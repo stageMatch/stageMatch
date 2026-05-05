@@ -160,11 +160,11 @@ body {
     width: 100%;
 }
 
-.input-group {
+.field-group {
     margin-bottom: 18px;
 }
 
-.input-group label {
+.field-group label {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -174,7 +174,7 @@ body {
     margin-bottom: 8px;
 }
 
-.input-group label svg {
+.field-group label svg {
     color: #667eea;
     flex-shrink: 0;
 }
