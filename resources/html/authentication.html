@@ -59,18 +59,6 @@
                             <input type="text" id="register-name" class="form-input" placeholder="Es. Rossi S.r.l." required>
                         </div>
 
-                        <!-- Email -->
-                        <div class="input-group">
-                            <label for="register-email">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                                Email
-                            </label>
-                            <input type="email" id="register-email" class="form-input" placeholder="info@azienda.it" required>
-                        </div>
-
                         <!-- Codice di accesso -->
                         <div class="input-group">
                             <label for="register-access-code">
@@ -98,11 +86,9 @@
                                 <div class="address-via">
                                     <input type="text" id="register-via" class="form-input" placeholder="Via / Corso / Piazza" required>
                                 </div>
-                                <div class="address-civico">
-                                    <input type="text" id="register-civico" class="form-input" placeholder="N°" required>
-                                </div>
-                                <div class="address-cap">
+                                <div class="address-cap-civico">
                                     <input type="text" id="register-cap" class="form-input" placeholder="CAP" required pattern="\d{5}" maxlength="5" inputmode="numeric">
+                                    <input type="text" id="register-civico" class="form-input" placeholder="N° civico" required>
                                 </div>
                                 <div class="address-citta">
                                     <input type="text" id="register-citta" class="form-input" placeholder="Città" required>

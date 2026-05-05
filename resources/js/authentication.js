@@ -54,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
 
             const name = document.getElementById("register-name").value.trim();
-            const email = document.getElementById("register-email").value.trim();
             const accessCode = document.getElementById("register-access-code").value.trim();
             const via = document.getElementById("register-via").value.trim();
             const civico = document.getElementById("register-civico").value.trim();
@@ -67,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            console.log("Registration attempt:", { name, email, accessCode, via, civico, cap, citta });
+            console.log("Registration attempt:", { name, accessCode, via, civico, cap, citta });
 
             // TODO: salvare i dati di registrazione in sessione/backend,
             // poi redirezionare a Google OAuth per completare l'accesso.

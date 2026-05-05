@@ -208,33 +208,30 @@ body {
     transform: translateY(-1px);
 }
 
-/* Griglia indirizzo: via(3fr) + civico(1fr) su prima riga, cap(1fr) + città(2fr) su seconda */
+/* Griglia indirizzo */
 .address-grid {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-.address-via {
-    grid-column: 1;
-    grid-row: 1;
+.address-via input,
+.address-citta input {
+    width: 100%;
 }
 
-.address-civico {
-    grid-column: 2;
-    grid-row: 1;
+.address-cap-civico {
+    display: flex;
+    gap: 10px;
 }
 
-.address-cap {
-    grid-column: 1;
-    grid-row: 2;
-    max-width: 120px;
+.address-cap-civico input:first-child {
+    width: 110px;
+    flex-shrink: 0;
 }
 
-.address-citta {
-    grid-column: 2;
-    grid-row: 2;
+.address-cap-civico input:last-child {
+    flex: 1;
 }
 
 /* Form options (checkbox termini) */
@@ -447,19 +444,6 @@ body {
     .btn-google-main {
         font-size: 15px;
         padding: 13px 18px;
-    }
-
-    .address-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .address-via,
-    .address-civico,
-    .address-cap,
-    .address-citta {
-        grid-column: 1;
-        grid-row: auto;
-        max-width: 100%;
     }
 
     .back-home a {
