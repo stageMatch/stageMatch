@@ -91,7 +91,10 @@
                                     <input type="text" id="register-civico" class="form-input" placeholder="N° civico" required>
                                 </div>
                                 <div class="address-citta">
-                                    <input type="text" id="register-citta" class="form-input" placeholder="Città" required>
+                                    <div class="autocomplete-wrap">
+                                        <input type="text" id="register-citta" class="form-input" placeholder="Città" required autocomplete="off">
+                                        <ul class="autocomplete-list" id="register-citta-list" role="listbox"></ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
