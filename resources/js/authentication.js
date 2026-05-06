@@ -42,9 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loginGoogleBtn) {
         loginGoogleBtn.addEventListener("click", () => {
             console.log("Google login clicked");
-            // TODO: Implementare Google OAuth
-            // window.location.href = '/auth/google/login';
-            showNotification("Autenticazione Google in sviluppo", "info");
+            window.location.href = '/auth/company/login';
         });
     }
 
@@ -68,32 +66,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log("Registration attempt:", { name, accessCode, via, civico, cap, citta });
 
-            // TODO: salvare i dati di registrazione in sessione/backend,
-            // poi redirezionare a Google OAuth per completare l'accesso.
-            // Esempio:
-            /*
             try {
-                const response = await fetch('/api/register', {
+                const response = await fetch('/api/company/register-intent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, accessCode, via, civico, cap, citta }),
+                    body: JSON.stringify({ name, accessCode, via, civico, cap, citta }),
                 });
-                const data = await response.json();
+                
                 if (response.ok) {
-                    window.location.href = '/auth/google/register';
+                    showNotification("Dati salvati! Reindirizzamento a Google...", "success");
+                    setTimeout(() => {
+                        window.location.href = '/auth/company/login';
+                    }, 1000);
                 } else {
-                    showNotification(data.message || 'Errore durante la registrazione', "error");
+                    const data = await response.json();
+                    showNotification(data.error || 'Errore durante la registrazione', "error");
                 }
             } catch (error) {
                 console.error('Registration error:', error);
                 showNotification('Errore di connessione. Riprova più tardi.', "error");
             }
-            */
-
-            showNotification("Registrazione completata! Reindirizzamento a Google...", "success");
-            setTimeout(() => {
-                // window.location.href = '/auth/google/register';
-            }, 1500);
         });
     }
 

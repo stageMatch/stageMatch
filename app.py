@@ -125,9 +125,40 @@ def authLogout():
 @au.sso_middleware.sso_login_required
 def completeLogin():
     user = session["user"]
+    auth_type = session.get('auth_type')
 
     if database_helper.existUser(user["googleId"]):
+        session.pop('auth_type', None)
+        session.pop('company_reg_data', None)
         return redirect(url_for("homepage"))
+
+    # Logica per AZIENDE
+    if auth_type == 'company':
+        reg_data = session.get('company_reg_data')
+        if reg_data:
+            company_user_data = {
+                "googleId": user["googleId"],
+                "user_type": "company",
+                "name": reg_data.get("name"),
+                "surname": "",
+                "email": user["email"],
+                "classe": reg_data.get("accessCode"),
+                "indirizzo": f"{reg_data.get('via')} ££ {reg_data.get('civico')} ££ {reg_data.get('cap')} ££ {reg_data.get('citta')}",
+                "picture": user["picture"]
+            }
+            try:
+                database_helper.addUser(
+                    company_user_data,
+                    privacy_consent={"privacy_version": PRIVACY_POLICY_VERSION}
+                )
+                session.pop('auth_type', None)
+                session.pop('company_reg_data', None)
+                return redirect(url_for("homepage"))
+            except Exception as e:
+                app.logger.error(f"[ERROR] Company registration failed: {e}")
+                return "Errore durante la registrazione dell'azienda", 500
+        else:
+            return redirect(url_for("authentication"))
 
     if request.method == "POST":
         data = request.form.to_dict()
@@ -144,6 +175,7 @@ def completeLogin():
 
         user_data = {
             "googleId": user["googleId"],
+            "user_type": "student",
             "name": au.getName(user["email"]),
             "surname": au.getSurname(user["email"]),
             "email": user["email"],
@@ -275,6 +307,24 @@ def forbidden(e):
 @app.route('/authentication')
 def authentication():
     return render_template("/html/authentication.html")
+
+@app.route("/api/company/register-intent", methods=["POST"])
+def companyRegisterIntent():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Dati non validi"}), 400
+    session['company_reg_data'] = data
+    return jsonify({"status": "ok"})
+
+@app.route("/auth/company/login")
+def authCompanyLogin():
+    session['auth_type'] = 'company'
+    return redirect(url_for("authCompanyPerform"))
+
+@app.route("/auth/company/perform")
+@au.sso_middleware.sso_login_required
+def authCompanyPerform():
+    return redirect(url_for("completeLogin"))
 
 if __name__ == '__main__':
     app.logger.info("[INFO] stageMatch started")
