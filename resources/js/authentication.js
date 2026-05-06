@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Registration attempt:", { name, accessCode, via, civico, cap, citta });
 
             try {
-                const response = await fetch('/api/company/register-intent', {
+                const response = await fetch('/auth/company/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, accessCode, via, civico, cap, citta }),

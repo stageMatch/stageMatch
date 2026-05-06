@@ -10,7 +10,6 @@ class User(Base):
     __tablename__ = "users"
 
     googleId = Column(String, primary_key=True)
-    user_type = Column(String, default="student") # "student" o "company"
     name = Column(String)
     surname = Column(String)
     email = Column(String, unique=True)
@@ -50,9 +49,6 @@ class User(Base):
 )
     @validates("codice_fiscale")
     def validateCodiceFiscale(self, key, value):
-        if self.user_type == "company":
-            return value
-
         if not value:
             raise ValueError("Codice fiscale richiesto")
 
@@ -65,9 +61,6 @@ class User(Base):
 
     @validates("data_nascita")
     def validateDataNascita(self, key, value):
-        if self.user_type == "company":
-            return value
-
         if isinstance(value, str):
             try:
                 return date.fromisoformat(value)

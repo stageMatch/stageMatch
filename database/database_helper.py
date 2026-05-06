@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker, selectinload
 from sqlalchemy.inspection import inspect
 from .models.base import Base
 from .models.user import User
+from .models.company import Company
 from .models.user_preferences import UserPreferences
 from .models.skill import Skill
 from .models.soft_skill import SoftSkill
@@ -45,6 +46,28 @@ def existUser(google_id: str) -> bool:
     """
     with Session() as session:
         return session.get(User, google_id) is not None
+
+def existCompany(google_id: str) -> bool:
+    """
+        Check if the company exists by googleId
+    """
+    with Session() as session:
+        return session.query(Company).filter_by(googleId=google_id).first() is not None
+
+def getCompanyById(company_id: int):
+    with Session() as session:
+        return session.get(Company, company_id)
+
+def getCompanyByGoogleId(google_id: str):
+    with Session() as session:
+        return session.query(Company).filter_by(googleId=google_id).first()
+
+def addCompany(company_data: dict):
+    with Session() as session:
+        company = Company(**company_data)
+        session.add(company)
+        session.commit()
+        return company.googleId
 
 def getUserColumn(user_id: str, column: str):
     """Return a single column value of a user by id."""
