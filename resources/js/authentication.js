@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
 
             const name = document.getElementById("register-name").value.trim();
-            const accessCode = document.getElementById("register-access-code").value.trim();
+            const access_code = document.getElementById("register-access-code").value.trim();
             const via = document.getElementById("register-via").value.trim();
             const civico = document.getElementById("register-civico").value.trim();
             const cap = document.getElementById("register-cap").value.trim();
@@ -64,13 +64,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            console.log("Registration attempt:", { name, accessCode, via, civico, cap, citta });
+            console.log("Registration attempt:", { name, access_code, via, civico, cap, citta });
 
             try {
                 const response = await fetch('/auth/company/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, accessCode, via, civico, cap, citta }),
+                    body: JSON.stringify({ name, access_code, via, civico, cap, citta }),
                 });
                 
                 if (response.ok) {

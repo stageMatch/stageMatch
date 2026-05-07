@@ -54,10 +54,6 @@ def existCompany(google_id: str) -> bool:
     with Session() as session:
         return session.query(Company).filter_by(googleId=google_id).first() is not None
 
-def getCompanyById(company_id: int):
-    with Session() as session:
-        return session.get(Company, company_id)
-
 def getCompanyByGoogleId(google_id: str):
     with Session() as session:
         return session.query(Company).filter_by(googleId=google_id).first()
@@ -67,7 +63,6 @@ def addCompany(company_data: dict):
         company = Company(**company_data)
         session.add(company)
         session.commit()
-        return company.googleId
 
 def getUserColumn(user_id: str, column: str):
     """Return a single column value of a user by id."""

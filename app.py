@@ -244,6 +244,10 @@ def saveProfile():
 
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/api/data", methods=["GET", "POST"])
+def getAndSendData():
+    pass
+
 @app.route("/photon", methods=["POST"])
 @au.sso_middleware.sso_login_required
 def photon():

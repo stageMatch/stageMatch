@@ -7,6 +7,6 @@ class Company(Base):
     googleId = Column(String, primary_key=True)
     name = Column(String)
     email = Column(String, unique=True)
-    accessCode = Column(String)
+    access_code = Column(String)
     address = Column(String)
     picture = Column(String, nullable=True)
