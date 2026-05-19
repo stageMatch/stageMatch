@@ -83,6 +83,7 @@ def privacy():
 
 @app.route("/auth/login")
 def authLogin():
+    session["auth_type"] = "user"
     token: str | None = request.args.get("token")
 
     if au.SSO_MODE == "dev" and not token:
@@ -150,14 +151,51 @@ def authLogout():
 
     return redirect(au.sso_middleware.portal_url)
 
-@app.route("/auth/company/login", methods=["POST"])
+@app.route("/auth/company/login", methods=["GET", "POST"])
 def authCompanyLogin():
-    pass
+    if request.method == "POST":
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Dati invalidi"}), 400
+
+        # Memorizziamo temporaneamente i dati di registrazione per associarli all'account Google nel callback
+        session["pending_company_data"] = data
+        session["auth_type"] = "company"
+        return jsonify({"message": "Dati ricevuti, procedi con l'autenticazione"}), 200
+
+    # Se è GET, impostiamo il tipo di autenticazione e reindirizziamo a Google
+    session["auth_type"] = "company"
+    return redirect(url_for("googleLogin"))
 
 @app.route("/logged/complete", methods=["GET", "POST"])
 @au.sso_middleware.sso_login_required
 def completeLogin():
     user = session["user"]
+    auth_type = session.get("auth_type")
+
+    # Gestione specifica per le aziende
+    if auth_type == "company":
+        if database_helper.existCompany(user["googleId"]):
+            return redirect(url_for("homepage"))
+
+        pending_data = session.get("pending_company_data")
+        if pending_data:
+            company_data = {
+                "googleId": user["googleId"],
+                "name": pending_data["name"],
+                "email": user["email"],
+                "access_code": pending_data["access_code"],
+                "address": f"{pending_data['via']} ££ {pending_data['civico']} ££ {pending_data['cap']} ££ {pending_data['citta']}",
+                "picture": user["picture"]
+            }
+            database_helper.addCompany(company_data)
+            session.pop("pending_company_data", None)
+            return redirect(url_for("homepage"))
+        else:
+            return au.render_sso_error(
+                "Azienda non registrata. Torna alla pagina di registrazione.",
+                url_for("authentication")
+            )
 
     if database_helper.existUser(user["googleId"]):
         return redirect(url_for("homepage"))
