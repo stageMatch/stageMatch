@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import timedelta
 import auth.auth as au
+from auth.auth_google.auth import initGoogleAuth, getGoogleUserInfo
 from database import database_helper
 
 load_dotenv()
@@ -17,6 +18,7 @@ app = Flask(
     static_folder="./resources",
     template_folder="./resources"
 )
+google = initGoogleAuth(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.getenv("SERVER_SECRET_KEY")
 app.permanent_session_lifetime = timedelta(hours=8)
@@ -111,6 +113,29 @@ def authLogin():
 
         return au.render_sso_error(
             "Token not valid or expired. Log in again",
+            au.sso_middleware.portal_url
+        )
+
+@app.route("/auth/google/login")
+def googleLogin():
+    redirect_uri = url_for("googleCallback", _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route("/auth/google/callback")
+def googleCallback():
+    try:
+        user_data = getGoogleUserInfo()
+        if not user_data:
+            return au.render_sso_error(
+                "Impossibile recuperare i dati utente da Google.",
+                au.sso_middleware.portal_url
+            )
+
+        return _completeLogin(user_data)
+    except Exception as e:
+        app.logger.error(f"[ERROR] Google callback failed: {e}")
+        return au.render_sso_error(
+            "Autenticazione Google fallita.",
             au.sso_middleware.portal_url
         )
 
