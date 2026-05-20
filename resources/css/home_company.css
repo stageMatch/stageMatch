@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════════════
+   home_company.css — stageMatch Company Dashboard
+   ═══════════════════════════════════════════════════════ */
+
+/* Importa stili base e variabili da home.css per coerenza */
+@import url("home.css");
+
+/* Estensioni specifiche per la visualizzazione azienda */
+
+.students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 10px;
+}
+
+/* Student Card */
+.st-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: fadeSlide 0.35s ease both;
+}
+
+.st-card:hover {
+    border-color: var(--border-acc);
+    background: var(--surface-hov);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+}
+
+.st-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.st-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--grad);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.st-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.st-name {
+    font-weight: 700;
+    color: white;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.st-school {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.st-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.st-skill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(102, 126, 234, 0.1);
+    color: #a8b6ff;
+    border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.st-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.st-contact-btn {
+    background: var(--grad);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.st-contact-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Overrides per Dashboard Azienda */
+.sidebar {
+    border-right: 1px solid var(--border-acc);
+}
+
+.logo-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}

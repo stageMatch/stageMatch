@@ -260,7 +260,15 @@ def homepage():
 @app.route("/logged/company/homepage")
 @au.sso_middleware.sso_login_required
 def homepageCompany():
-    return render_template("/html/home_company.html")
+    user = session["user"]
+    data = database_helper.getCompanyByGoogleId(user["googleId"])
+    if not data:
+        return au.render_sso_error(
+            "Azienda non trovata.",
+            url_for("authentication")
+        )
+    company_data = database_helper.modelToDict(data)
+    return render_template("/html/home_company.html", company=company_data)
 
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
