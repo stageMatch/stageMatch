@@ -126,6 +126,7 @@ def googleLogin():
 def googleCallback():
     try:
         user_data = getGoogleUserInfo()
+        print(user_data)
         if not user_data:
             return au.render_sso_error(
                 "Impossibile recuperare i dati utente da Google.",
@@ -176,7 +177,7 @@ def completeLogin():
     # Gestione specifica per le aziende
     if auth_type == "company":
         if database_helper.existCompany(user["googleId"]):
-            return redirect(url_for("homepage"))
+            return redirect(url_for("homepageCompany"))
 
         pending_data = session.get("pending_company_data")
         if pending_data:
@@ -190,7 +191,7 @@ def completeLogin():
             }
             database_helper.addCompany(company_data)
             session.pop("pending_company_data", None)
-            return redirect(url_for("homepage"))
+            return redirect(url_for("homepageCompany"))
         else:
             return au.render_sso_error(
                 "Azienda non registrata. Torna alla pagina di registrazione.",
@@ -255,6 +256,11 @@ def homepage():
     user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
 
     return render_template("/html/home.html", user=user_data)
+
+@app.route("/logged/company/homepage")
+@au.sso_middleware.sso_login_required
+def homepageCompany():
+    return render_template("/html/home_company.html")
 
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
