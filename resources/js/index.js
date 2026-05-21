@@ -344,7 +344,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // GESTIONE MEZZI DI TRASPORTO
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".transport-modes .mode").forEach(btn => {
+    const transportButtons = document.querySelectorAll(".transport-modes .mode");
+    transportButtons.forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll(".mode").forEach(b => b.classList.remove("active"));
 
@@ -353,4 +354,26 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Mezzo selezionato:", mode);
         });
     });
+
+    // Controllo parametri URL per ripetere percorso
+    const urlParams = new URLSearchParams(window.location.search);
+    const start = urlParams.get('startaddress');
+    const end = urlParams.get('endaddress');
+    const routeMode = urlParams.get('routemode');
+
+    if (start && end && routeMode) {
+        input_address_start.value = start;
+        input_address_end.value = end;
+        mode = routeMode;
+
+        transportButtons.forEach(btn => {
+            if (btn.dataset.mode === routeMode) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+
+        calcolaPercorso();
+    }
 });

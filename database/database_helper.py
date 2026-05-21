@@ -210,7 +210,7 @@ def addUserRoute(user_id: str, route_data: dict):
         if not any(
             r.start_address == route.start_address and
             r.end_address == route.end_address and
-            r.route_mode == route.route_mode
+            r.mode == route.mode
             for r in user.routes
         ):
             user.routes.append(route)
