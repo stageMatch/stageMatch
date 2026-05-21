@@ -321,6 +321,16 @@ def saveProfile():
 
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/api/users/routes")
+def getUserRoutes():
+    user = session["user"]
+    data = database_helper.getUserById(user["googleId"])
+    user_data = database_helper.modelToDict(data)
+    routes = user_data["routes"]
+    print(routes)
+
+    return jsonify(routes)
+
 @app.route("/api/data", methods=["GET", "POST"])
 def getAndSendData():
     pass
@@ -336,7 +346,13 @@ def photon():
 @app.route("/routejson", methods=["POST"])
 @au.sso_middleware.sso_login_required
 def routejson():
+    user = session["user"]
     params = request.get_json()
+    print(params)
+    data = dict(params)
+    print(data)
+    database_helper.addUserRoute(user["googleId"], data)
+    print(data)
     response = requests.get("http://127.0.0.1:5001/routejson", params=params, timeout=5)
 
     return response.json(), response.status_code

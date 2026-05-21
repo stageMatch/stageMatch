@@ -202,9 +202,9 @@ def addUserRoute(user_id: str, route_data: dict):
             return None
 
         route = UserRoute(
-            start_address=route_data["start_address"],
-            end_address=route_data["end_address"],
-            mode=route_data["mode"]
+            start_address=route_data["startaddress"],
+            end_address=route_data["endaddress"],
+            mode=route_data["routemode"]
         )
 
         if not any(
