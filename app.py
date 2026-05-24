@@ -34,7 +34,13 @@ if au.SSO_MODE == "production":
     )
 
 try:
-    database_helper.initDB(os.getenv("DB_CONNECTION_STRING", "database.db"))
+    db_conn = os.getenv("DB_CONNECTION_STRING", "database.db")
+    db_dir = os.path.dirname(db_conn)
+
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+
+    database_helper.initDB(db_conn)
 except Exception as e:
     app.logger.error(f"[ERROR] database initialization failed: {e}")
     raise e
@@ -339,7 +345,8 @@ def getAndSendData():
 @au.sso_middleware.sso_login_required
 def photon():
     params = request.get_json()
-    response = requests.get("http://127.0.0.1:5001/photon", params=params, timeout=5)
+    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
+    response = requests.get(f"{api_url}/photon", params=params, timeout=5)
 
     return response.json(), response.status_code
 
@@ -353,7 +360,8 @@ def routejson():
     print(data)
     database_helper.addUserRoute(user["googleId"], data)
     print(data)
-    response = requests.get("http://127.0.0.1:5001/routejson", params=params, timeout=5)
+    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
+    response = requests.get(f"{api_url}/routejson", params=params, timeout=5)
 
     return response.json(), response.status_code
 
@@ -385,7 +393,7 @@ if __name__ == '__main__':
     app.logger.info(f"Rate limit: max {au.rate_limiter.max_sessions_per_user} per user and max {au.rate_limiter.max_sessions_global} per global")
 
     app.run(
-        "127.0.0.1",
+        os.getenv("HOST", "127.0.0.1"),
         int(os.getenv("PORT", 5000)),
         debug=os.getenv("DEBUG", "False").lower() == "true"
     )
