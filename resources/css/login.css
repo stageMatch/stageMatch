@@ -145,6 +145,41 @@ body {
     transform: scale(0.97);
 }
 
+.btn-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    width: clamp(220px, 60vw, 275px);
+    height: 50px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: var(--white-modern-cold);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        border-color 0.3s var(--ease-out),
+        color 0.3s var(--ease-out),
+        transform 0.15s var(--ease-out),
+        background 0.3s var(--ease-out);
+    margin-top: 0.5rem;
+}
+
+.btn-back:hover {
+    border-color: var(--white-modern-cold);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+
+.btn-back:active {
+    transform: scale(0.97);
+}
+
 /* ─── Entrance animation ─── */
 @keyframes fadeUp {
     to {
@@ -187,7 +222,8 @@ body {
         height: 32px;
     }
 
-    .btn-login {
+    .btn-login,
+    .btn-back {
         width: 90vw;
         max-width: 320px;
     }
