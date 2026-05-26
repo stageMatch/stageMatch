@@ -1,0 +1,21 @@
+:root {
+    /* Brand Colors */
+    --midnight-blue: #0A0E1A;
+    --midnight-blue-light: #111625;
+    --emerald-green: #2ECC71;
+    --emerald-green-dark: #27AE60;
+    
+    /* Functional Colors */
+    --bg: var(--midnight-blue);
+    --panel: var(--midnight-blue-light);
+    --accent: var(--emerald-green);
+    --text: #E8E6F4;
+    --text-muted: #7B74A0;
+    --border: rgba(46, 204, 113, 0.15);
+    --border-glow: rgba(46, 204, 113, 0.3);
+    
+    /* Layout */
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

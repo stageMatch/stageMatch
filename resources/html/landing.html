@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>stageMatch</title>
+    <title>stageMatch | Trova il tuo stage ideale</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}" />
@@ -11,106 +16,137 @@
 <body>
 
     <!-- NAVBAR -->
-    <nav>
+    <nav id="main-nav">
         <a class="nav-logo" href="#">stage<span>Match</span></a>
         <ul class="nav-links">
             <li><a href="#features">Funzionalità</a></li>
             <li><a href="#howto">Come funziona</a></li>
-            <li><a href="{{ url_for('authentication') }}">Accedi come azienda</a></li>
+            <li><a href="#aziende">Per le aziende</a></li>
         </ul>
         <div class="nav-cta">
-            <a href="{{ url_for('login') }}" class="btn btn-ghost">Accedi</a>
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Accedi</a>
         </div>
-    </nav>
+        </nav>
 
-    <!-- HERO -->
-    <section class="hero">
+        <!-- HERO -->
+        <header class="hero">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
 
-        <div class="hero-content">
+        <div class="hero-content" data-reveal>
             <h1>
                 Trova lo stage<br>
                 <span class="highlight">giusto per te</span>
             </h1>
 
             <p>
-                La fortuna è ciò che accade quando la preparazione incontra l'opportunità
+                <i>La fortuna è ciò che accade quando la preparazione incontra l'opportunità</i>
             </p>
 
             <div class="hero-actions">
-                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Accedi</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Trova il tuo stage</a>
+                <a href="{{ url_for('authentication') }}" class="btn btn-ghost btn-lg">Sei un'azienda?</a>
             </div>
         </div>
-    </section>
+        </header>
 
     <!-- FEATURES -->
     <section id="features">
-        <div class="section-header">
-            <span class="section-eyebrow">Funzionalità</span>
-            <h2 class="section-title">Strumenti per trovare lo stage giusto</h2>
+        <div class="section-header" data-reveal>
+            <span class="section-eyebrow">Perché noi</span>
+            <h2 class="section-title">Strumenti progettati per te</h2>
         </div>
 
         <div class="features-grid">
-            <div class="feature-card">
+            <div class="feature-card" data-reveal>
                 <div class="feature-icon">🗺️</div>
                 <h3>Mappa interattiva</h3>
-                <p>Visualizza le opportunità su mappa e filtra per zona, distanza o modalità di lavoro</p>
+                <p>Esplora le opportunità intorno a te con la nostra mappa intuitiva. Filtra per distanza e modalità di lavoro.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card" data-reveal>
                 <div class="feature-icon">⚡</div>
-                <h3>Ricerca avanzata</h3>
-                <p>Filtra per settore, ruolo, città e tipo di contratto per trovare subito quello che cerchi</p>
+                <h3>Match intelligente</h3>
+                <p>Il nostro algoritmo suggerisce le posizioni più affini alle tue competenze e ai tuoi interessi.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card" data-reveal>
                 <div class="feature-icon">🏢</div>
-                <h3>Profili aziendali verificati</h3>
-                <p>Ogni azienda viene verificata prima di poter pubblicare. Solo opportunità reali</p>
+                <h3>Aziende Verificate</h3>
+                <p>Sicurezza e qualità prima di tutto. Ogni azienda partner viene rigorosamente verificata dal nostro team.</p>
             </div>
         </div>
     </section>
 
     <!-- HOW IT WORKS -->
     <section id="howto">
-        <div class="section-header">
-            <span class="section-eyebrow">Come funziona</span>
+        <div class="section-header" data-reveal>
+            <span class="section-eyebrow">Processo</span>
             <h2 class="section-title">Inizia in tre semplici passi</h2>
         </div>
 
-        <div class="steps">
-            <div class="step">
+        <div class="steps-container">
+            <div class="step" data-reveal>
                 <div class="step-num">1</div>
-                <div class="step-body">
-                    <h4>Accedi</h4>
-                    <p>Entra con le tue credenziali e accedi alla piattaforma</p>
+                <div class="step-content">
+                    <h4>Crea il tuo profilo</h4>
+                    <p>Completa il tuo profilo con le tue skill e preferenze. Sarà il tuo biglietto da visita digitale.</p>
                 </div>
             </div>
-            <div class="step">
+            <div class="step" data-reveal>
                 <div class="step-num">2</div>
-                <div class="step-body">
-                    <h4>Esplora e filtra</h4>
-                    <p>Usa la ricerca testuale, i filtri per settore e la mappa interattiva per trovare le opportunità
-                        più adatte a te</p>
+                <div class="step-content">
+                    <h4>Esplora e Candidati</h4>
+                    <p>Utilizza i filtri avanzati e la mappa per trovare lo stage dei tuoi sogni e invia la tua candidatura.</p>
                 </div>
             </div>
-            <div class="step">
+            <div class="step" data-reveal>
                 <div class="step-num">3</div>
-                <div class="step-body">
-                    <h4>Invia candidature</h4>
-                    <p>Invia le tue candidature alle opportunità che ti interessano e monitora lo stato delle tue applicazioni</p>
+                <div class="step-content">
+                    <h4>Fai il Match</h4>
+                    <p>Ricevi feedback dalle aziende, partecipa ai colloqui e inizia la tua nuova avventura.</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- PER LE AZIENDE -->
+    <section id="aziende">
+        <div class="section-header" data-reveal>
+            <span class="section-eyebrow">Aziende</span>
+            <h2 class="section-title">Trova i talenti di domani</h2>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card" data-reveal>
+                <div class="feature-icon">🚀</div>
+                <h3>Pubblica Posizioni</h3>
+                <p>Raggiungi migliaia di studenti e neo-laureati pronti a mettersi in gioco.</p>
+            </div>
+            <div class="feature-card" data-reveal>
+                <div class="feature-icon">📊</div>
+                <h3>Gestione Semplificata</h3>
+                <p>Una dashboard intuitiva per gestire candidature, colloqui e feedback.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 50px;" data-reveal>
+            <a href="{{ url_for('authentication') }}" class="btn btn-primary btn-lg">Inizia come azienda</a>
+        </div>
+    </section>
+
     <!-- FOOTER -->
     <footer>
-        <a class="nav-logo" href="#">stage<span>Match</span></a>
+        <div>
+            <a class="nav-logo" href="#">stage<span>Match</span></a>
+            <p class="footer-copy" style="margin-top: 10px;">Connecting talent with opportunity.</p>
+        </div>
+
         <ul class="footer-links">
-            <li><a href="{{ url_for('privacy') }}">Informativa privacy</a></li>
+            <li><a href="{{ url_for('privacy') }}">Privacy Policy</a></li>
+            <li><a href="#">Termini di Servizio</a></li>
+            <li><a href="mailto:info@stagematch.it">Contatti</a></li>
         </ul>
-        <span class="footer-copy">© 2025-2026 stageMatch. Tutti i diritti riservati</span>
+
+        <span class="footer-copy">© 2025-2026 stageMatch. Tutti i diritti riservati.</span>
     </footer>
 
     <!-- Script -->
