@@ -184,10 +184,22 @@ function validate() {
         if (msg) valid = false;
     };
 
-    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "indirizzo_studio", "via", "civico", "cap", "citta_residenza"].forEach(id => {
+    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
         if (!fields[id].value.trim()) err(id, "Campo obbligatorio");
         else err(id, "");
     });
+
+    if (fields.classe.value === CUSTOM_CLASS_VALUE) {
+        if (!fields.classe_custom.value.trim()) {
+            err("classe", "Specifica la tua classe");
+            fields.classe_custom.classList.add("invalid");
+        } else {
+            err("classe", "");
+            fields.classe_custom.classList.remove("invalid");
+        }
+    } else {
+        fields.classe_custom.classList.remove("invalid");
+    }
 
     if (!fields.privacy_ack.checked) err("privacy_ack", "Accetta l'informativa");
     else err("privacy_ack", "");
@@ -208,11 +220,16 @@ form?.addEventListener("submit", async e => {
 
         const res = await fetch(form.action, { method: "POST", body: fd });
         if (res.ok) {
-            form.style.display = "none";
-            successMsg.style.display = "flex";
-            modalFooter.style.display = "none";
-            progressFill.style.width = "100%";
-            setTimeout(() => window.location.href = "/logged/homepage", 2000);
+            form.classList.add("hidden");
+            successMsg.classList.add("visible");
+            modalFooter.classList.add("hidden");
+            
+            // Inizia il riempimento "organico" dopo che il messaggio è apparso
+            setTimeout(() => {
+                progressFill.style.width = "100%";
+            }, 600);
+
+            setTimeout(() => window.location.href = "/logged/homepage", 3200);
         } else {
             throw new Error("Errore nel salvataggio");
         }

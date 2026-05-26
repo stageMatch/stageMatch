@@ -97,24 +97,26 @@ body {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(10, 14, 26, 0.8);
-    backdrop-filter: blur(8px);
+    background: rgba(10, 14, 26, 0.6);
+    backdrop-filter: blur(0px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--transition);
+    transition: opacity 0.5s ease, backdrop-filter 0.5s ease;
     padding: 1rem;
 }
 
 .modal-overlay.visible {
     opacity: 1;
     pointer-events: auto;
+    backdrop-filter: blur(8px);
 }
 
 .modal {
+    position: relative;
     background: var(--white-modern);
     width: 100%;
     max-width: 700px;
@@ -124,13 +126,16 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform: translateY(20px);
-    transition: transform var(--transition);
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
     box-shadow: var(--shadow-md);
+    will-change: transform, opacity;
 }
 
 .modal-overlay.visible .modal {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
 .modal-header {
@@ -178,6 +183,22 @@ body {
     padding: 2rem;
     overflow-y: auto;
     flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ─── Form Transition ─── */
+#studentForm {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    will-change: opacity, transform;
+}
+
+#studentForm.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    pointer-events: none;
+    visibility: hidden;
 }
 
 /* ─── Form Grid ─── */
@@ -355,6 +376,13 @@ body {
     border-top: 1px solid var(--border-color);
     display: flex;
     gap: 1rem;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.modal-footer.hidden {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
 }
 
 .btn-cancel {
@@ -408,12 +436,27 @@ body {
 
 /* ─── Success ─── */
 .success-msg {
-    display: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(20px);
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 0;
+    padding: 2rem;
     text-align: center;
+    background: var(--white-modern);
+    z-index: 10;
+    transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+    pointer-events: none;
+    will-change: opacity, transform;
+}
+
+.success-msg.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .success-icon {
@@ -441,7 +484,7 @@ body {
     height: 100%;
     width: 0%;
     background: var(--emerald-green);
-    transition: width 2s linear;
+    transition: width 2.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ─── Responsive ─── */

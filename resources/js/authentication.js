@@ -26,25 +26,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const registerPanel = document.getElementById("registerPanel");
 
             if (target === "register") {
-                sliderContainer.classList.add("show-register");
                 loginPanel.classList.remove("active");
                 registerPanel.classList.add("active");
+                sliderContainer.classList.add("show-register");
+                
+                // Sincronizza altezza immediatamente
+                syncSliderHeight();
                 
                 setTimeout(() => {
-                    syncSliderHeight();
-                    document.getElementById("register-name")?.focus();
-                }, 50);
+                    document.getElementById("register-name")?.focus({ preventScroll: true });
+                }, 400);
             } else {
-                sliderContainer.classList.remove("show-register");
                 registerPanel.classList.remove("active");
                 loginPanel.classList.add("active");
+                sliderContainer.classList.remove("show-register");
                 
                 if (registerForm) registerForm.reset();
                 
+                // Sincronizza altezza immediatamente
+                syncSliderHeight();
+                
                 setTimeout(() => {
-                    syncSliderHeight();
-                    document.getElementById("loginGoogleBtn")?.focus();
-                }, 50);
+                    document.getElementById("loginGoogleBtn")?.focus({ preventScroll: true });
+                }, 400);
             }
         });
     });
