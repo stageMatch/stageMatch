@@ -1,27 +1,43 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>stageMatch - Autenticazione</title>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    
+    <!-- Mobile Icons -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="stageMatch">
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/authentication.css') }}">
 </head>
 <body>
-    <div class="auth-container">
+    <div class="overlay"></div>
+    <div class="noise"></div>
+
+    <main class="auth-container">
         <div class="auth-card">
             <div class="slider-container" id="sliderContainer">
 
                 <!-- Pannello Login -->
-                <div class="auth-panel login-panel active" id="loginPanel">
+                <section class="auth-panel login-panel active" id="loginPanel" aria-labelledby="login-title">
                     <div class="panel-header">
-                        <h2>Bentornato!</h2>
+                        <h2 id="login-title">Bentornato!</h2>
                         <p>Accedi al tuo account per continuare</p>
                     </div>
 
                     <div class="google-only-login">
-                        <p class="google-hint">Utilizza il tuo account Google per accedere a stageMatch.</p>
+                        <p class="google-hint">Utilizza il tuo account Google aziendale per accedere a stageMatch.</p>
                         <button type="button" class="btn-google-main" id="loginGoogleBtn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -36,12 +52,23 @@
                     <div class="switch-panel">
                         <p>Non hai un account? <a href="#" class="switch-link" data-target="register">Registrati</a></p>
                     </div>
-                </div>
+
+                    <nav class="back-home">
+                        <a href="/" class="btn-back">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                            Torna alla Home
+                        </a>
+                    </nav>
+                </section>
 
                 <!-- Pannello Registrazione -->
-                <div class="auth-panel register-panel" id="registerPanel">
+                <section class="auth-panel register-panel" id="registerPanel" aria-labelledby="register-title">
                     <div class="panel-header">
-                        <h2>Crea un account</h2>
+                        <h2 id="register-title">Crea un account</h2>
                         <p>Inizia il tuo viaggio con stageMatch</p>
                     </div>
 
@@ -70,7 +97,7 @@
                                 Codice di accesso
                             </label>
                             <input type="text" id="register-access-code" class="form-input"
-                                placeholder="Inserisci il codice fornito dalla scuola" required autocomplete="off" spellcheck="false">
+                                placeholder="Fornito dalla scuola" required autocomplete="off" spellcheck="false">
                         </div>
 
                         <!-- Indirizzo -->
@@ -88,7 +115,7 @@
                                 </div>
                                 <div class="address-cap-civico">
                                     <input type="text" id="register-cap" class="form-input" placeholder="CAP" required pattern="\d{5}" maxlength="5" inputmode="numeric">
-                                    <input type="text" id="register-civico" class="form-input" placeholder="N° civico" required>
+                                    <input type="text" id="register-civico" class="form-input" placeholder="Civico" required>
                                 </div>
                                 <div class="address-citta">
                                     <div class="autocomplete-wrap">
@@ -109,7 +136,7 @@
                         </div>
 
                         <!-- Submit Google -->
-                        <button type="submit" class="btn-google-main btn-google-register">
+                        <button type="submit" class="btn-google-main">
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -124,27 +151,23 @@
                     <div class="switch-panel">
                         <p>Hai già un account? <a href="#" class="switch-link" data-target="login">Accedi</a></p>
                     </div>
-                </div>
+
+                    <nav class="back-home">
+                        <a href="/" class="btn-back">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                            Torna alla Home
+                        </a>
+                    </nav>
+                </section>
 
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Link alla homepage -->
-    <div class="back-home">
-        <a href="/">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Indietro
-        </a>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='js/authentication.js') }}"></script>
 </body>
 </html>
