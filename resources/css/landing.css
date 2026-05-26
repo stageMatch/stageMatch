@@ -79,15 +79,25 @@ nav.scrolled {
 }
 
 .nav-logo {
-    font-weight: 800;
-    font-size: 1.4rem;
-    letter-spacing: -0.02em;
-    color: var(--c-text);
+    display: flex;
+    align-items: center;
     text-decoration: none;
 }
 
-.nav-logo span {
-    color: var(--c-accent);
+.logo-img {
+    height: 42px; /* Altezza ottimale per navbar da 70px */
+    width: auto;
+    max-width: 100%;
+    display: block;
+    transition: var(--transition);
+}
+
+nav.scrolled .logo-img {
+    height: 34px;
+}
+
+.nav-logo:hover .logo-img {
+    transform: scale(1.02);
 }
 
 .nav-links {
@@ -398,6 +408,12 @@ footer {
 }
 
 /* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .nav-links {
+        gap: 1.5rem;
+    }
+}
+
 @media (max-width: 768px) {
     .nav-links {
         display: none;
@@ -412,8 +428,37 @@ footer {
         align-items: stretch;
     }
     
-    .footer {
+    .step {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        align-items: center;
+    }
+
+    footer {
         flex-direction: column;
         text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    nav {
+        padding: 0 4%;
+    }
+
+    .logo-img {
+        height: 32px; /* Logo più compatto su smartphone */
+    }
+
+    nav.scrolled .logo-img {
+        height: 28px;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+    }
+
+    .feature-card {
+        padding: 30px 20px;
     }
 }
