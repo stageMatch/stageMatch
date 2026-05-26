@@ -28,7 +28,7 @@ def getUsername(email: str) -> str:
     return email.split("@")[0]
 
 def getName(email: str) -> str:
-    return email.split(".")[0]
+    return email.split(".")[1]
 
 def getSurname(email: str) -> str:
-    return email.split(".")[1]
+    return email.split(".")[0]
