@@ -3,20 +3,34 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StageMatch — Completa il profilo</title>
+    <title>stageMatch - Completa il profilo</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+
+    <!-- Mobile Icons -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="stageMatch">
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/complete_login.css') }}" />
 </head>
 <body>
 
-    <div class="bg"></div>
+    <div class="bg-overlay"></div>
     <div class="noise"></div>
 
-    <div class="hero">
-        <span class="hero-label">StageMatch</span>
-        <h1 class="hero-title">Benvenuto</h1>
-        <p class="hero-sub">Ci siamo quasi - completa il tuo profilo per accedere</p>
+    <main class="hero">
+        <h1 class="hero-title">Ci siamo quasi!</h1>
+        <p class="hero-sub">Completa il tuo profilo studente per iniziare a scoprire le migliori opportunità di stage.</p>
         <button class="btn-open" id="openModal">Termina la registrazione</button>
-    </div>
+    </main>
 
     <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal">
@@ -27,9 +41,9 @@
                     <h2 class="modal-title" id="modalTitle">Dati personali</h2>
                 </div>
                 <button class="btn-close" id="closeModal" aria-label="Chiudi">
-                    <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
-                        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8"
-                            stroke-linecap="round" />
+                    <svg viewBox="0 0 24 24" fill="none" width="24" height="24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
@@ -38,39 +52,38 @@
                 <form id="studentForm" action="/logged/complete" method="POST" novalidate>
                     <div class="form-grid">
 
-                        <!-- ── Dati da JWT (disabilitati) ── -->
+                        <!-- ── Dati da Google (disabilitati) ── -->
                         <div class="field">
                             <label for="nome">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5 6a5 5 0 0110 0H3z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
                                 </svg>
                                 Nome
                             </label>
-                            <input type="text" id="nome" name="nome" value="{{ user.name }}" disabled
-                                autocomplete="given-name" />
+                            <input type="text" id="nome" name="nome" value="{{ user.name }}" disabled autocomplete="given-name" />
                         </div>
 
                         <div class="field">
                             <label for="cognome">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5 6a5 5 0 0110 0H3z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
                                 </svg>
                                 Cognome
                             </label>
-                            <input type="text" id="cognome" name="cognome" value="{{ user.surname }}" disabled
-                                autocomplete="family-name" />
+                            <input type="text" id="cognome" name="cognome" value="{{ user.surname }}" disabled autocomplete="family-name" />
                         </div>
 
                         <div class="field col-full">
                             <label for="email">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M0 4a2 2 0 012-2h12a2 2 0 012 2v.5L8 9 0 4.5V4zm0 1.9V12a2 2 0 002 2h12a2 2 0 002-2V5.9l-8 4.6-8-4.6z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
                                 </svg>
-                                Email
+                                Email aziendale / scolastica
                             </label>
-                            <input type="email" id="email" name="email" value="{{ user.email }}" disabled
-                                autocomplete="email" />
+                            <input type="email" id="email" name="email" value="{{ user.email }}" disabled autocomplete="email" />
                         </div>
 
                         <div class="divider"></div>
@@ -78,9 +91,11 @@
                         <!-- ── Dati anagrafici ── -->
                         <div class="field">
                             <label for="data_nascita">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M5 0a1 1 0 011 1v1h4V1a1 1 0 112 0v1h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V4a2 2 0 012-2h1V1a1 1 0 011-1zm7 5H4v8h8V5z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
                                 Data di nascita
                             </label>
@@ -90,9 +105,10 @@
 
                         <div class="field">
                             <label for="sesso">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M11 1h4v4h-1.5V3.56L11.53 5.53A4.5 4.5 0 119.5 4.47L11.44 2.5H10V1h1zm-6.5 5a3 3 0 103 3 3 3 0 00-3-3z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
                                 </svg>
                                 Sesso
                             </label>
@@ -109,66 +125,57 @@
                         <!-- Comune di nascita — autocomplete -->
                         <div class="field">
                             <label for="comune_nascita">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
                                 </svg>
                                 Comune di nascita
                             </label>
                             <div class="autocomplete-wrap">
-                                <input type="text" id="comune_nascita" name="comune_nascita" placeholder="Es. Milano"
-                                    required autocomplete="off" />
-                                <!-- Codice belfiore nascosto — usato per calcolo CF -->
+                                <input type="text" id="comune_nascita" name="comune_nascita" placeholder="Es. Milano" required autocomplete="off" />
                                 <input type="hidden" id="comune_nascita_code" name="comune_nascita_code" />
                                 <ul class="autocomplete-list" id="comune_nascita_list" role="listbox"></ul>
                             </div>
                             <span class="field-error" id="err-comune_nascita"></span>
                         </div>
 
-                        <!-- Codice Fiscale con bottone calcola -->
+                        <!-- Codice Fiscale -->
                         <div class="field col-full">
                             <label for="codice_fiscale">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1H3zm1 2h8v1H4V4zm0 3h5v1H4V7zm0 3h8v1H4v-1z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
                                 </svg>
                                 Codice fiscale
                             </label>
                             <div class="input-with-btn">
-                                <input type="text" id="codice_fiscale" name="codice_fiscale"
-                                    placeholder="RSSMRA00A01F205X" maxlength="16" required autocomplete="off"
-                                    spellcheck="false" />
-                                <button type="button" id="cfCalcBtn" class="btn-inline"
-                                    title="Calcola dal nome, cognome, data e comune di nascita">
-                                    <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
-                                        <path
-                                            d="M12 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V2a1 1 0 00-1-1zM5 3h6v2H5V3zm0 4h2v2H5V7zm3 0h2v2H8V7zm-3 3h2v2H5v-2zm3 0h2v2H8v-2z" />
-                                    </svg>
+                                <input type="text" id="codice_fiscale" name="codice_fiscale" placeholder="RSSMRA00A01F205X" maxlength="16" required autocomplete="off" spellcheck="false" />
+                                <button type="button" id="cfCalcBtn" class="btn-inline" title="Calcola automaticamente">
                                     Calcola
                                 </button>
                             </div>
                             <span class="field-error" id="err-codice_fiscale"></span>
-                            <span class="field-hint" id="hint-codice_fiscale"></span>
                         </div>
 
                         <div class="field">
                             <label for="telefono">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M3.5 1A1.5 1.5 0 002 2.5v11A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0012.5 1h-9zM8 13a1 1 0 110-2 1 1 0 010 2z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                 </svg>
                                 Telefono
                             </label>
-                            <input type="tel" id="telefono" name="telefono" placeholder="+39 333 1234567" required
-                                autocomplete="tel" />
+                            <input type="tel" id="telefono" name="telefono" placeholder="+39 333 1234567" required autocomplete="tel" />
                             <span class="field-error" id="err-telefono"></span>
                         </div>
 
                         <div class="field">
                             <label for="indirizzo_studio">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zm8 0A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm-8 8A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm8 0A1.5 1.5 0 0110.5 9h3A1.5 1.5 0 0115 10.5v3A1.5 1.5 0 0113.5 15h-3A1.5 1.5 0 019 13.5v-3z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
                                 </svg>
                                 Indirizzo di studio
                             </label>
@@ -184,123 +191,105 @@
                             <span class="field-error" id="err-indirizzo_studio"></span>
                         </div>
 
-                        <div class="field">
+                        <div class="field col-full">
                             <label for="classe">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zm2 1V6h8V4.5H4zm0 3V9h8V7.5H4zm0 3V12h8v-1.5H4z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                                 </svg>
                                 Classe
                             </label>
                             <div class="select-wrap">
                                 <select id="classe" name="classe" required disabled>
-                                    <option value="" disabled selected>Seleziona prima l'indirizzo di studio...</option>
+                                    <option value="" disabled selected>Seleziona prima l'indirizzo...</option>
                                 </select>
                             </div>
-                            <input type="text" id="classe_custom" placeholder="Es. 4EBn" autocomplete="off" hidden />
+                            <input type="text" id="classe_custom" placeholder="Es. 4EBn" autocomplete="off" hidden style="margin-top: 8px;" class="form-input" />
                             <span class="field-error" id="err-classe"></span>
                         </div>
 
                         <div class="divider"></div>
 
                         <!-- ── Residenza ── -->
-                        <div class="section-label col-full">
-                            <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
-                                <path
-                                    d="M8.354 1.146a.5.5 0 00-.708 0l-6 6A.5.5 0 002 8h1v5a1 1 0 001 1h3v-3h2v3h3a1 1 0 001-1V8h1a.5.5 0 00.354-.854l-6-6z" />
+                        <div class="section-label">
+                            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
                             </svg>
-                            Indirizzo di residenza
+                            Residenza
                         </div>
 
-                        <div class="field col-2-1">
+                        <div class="field col-full">
                             <label for="via">Via / Piazza</label>
-                            <input type="text" id="via" name="via" placeholder="Via Roma" required
-                                autocomplete="street-address" />
+                            <input type="text" id="via" name="via" placeholder="Via Roma" required autocomplete="street-address" />
                             <span class="field-error" id="err-via"></span>
                         </div>
 
                         <div class="field">
                             <label for="civico">Civico</label>
-                            <input type="text" id="civico" name="civico" placeholder="12/A" required
-                                autocomplete="off" />
+                            <input type="text" id="civico" name="civico" placeholder="12/A" required autocomplete="off" />
                             <span class="field-error" id="err-civico"></span>
                         </div>
 
                         <div class="field">
                             <label for="cap">CAP</label>
-                            <input type="text" id="cap" name="cap" placeholder="20100" maxlength="5" required
-                                inputmode="numeric" autocomplete="postal-code" />
+                            <input type="text" id="cap" name="cap" placeholder="20100" maxlength="5" required inputmode="numeric" autocomplete="postal-code" />
                             <span class="field-error" id="err-cap"></span>
                         </div>
 
-                        <!-- Città residenza — autocomplete -->
                         <div class="field col-full">
-                            <label for="citta_residenza">
-                                <svg viewBox="0 0 16 16" fill="currentColor">
-                                    <path
-                                        d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z" />
-                                </svg>
-                                Città di residenza
-                            </label>
+                            <label for="citta_residenza">Città di residenza</label>
                             <div class="autocomplete-wrap">
-                                <input type="text" id="citta_residenza" name="citta_residenza" placeholder="Es. Brescia"
-                                    required autocomplete="off" />
+                                <input type="text" id="citta_residenza" name="citta_residenza" placeholder="Es. Brescia" required autocomplete="off" />
                                 <ul class="autocomplete-list" id="citta_residenza_list" role="listbox"></ul>
                             </div>
                             <span class="field-error" id="err-citta_residenza"></span>
                         </div>
 
+                        <!-- Privacy -->
                         <div class="privacy-panel col-full">
-                            <input type="hidden" id="privacy_version" name="privacy_version"
-                                value="{{ privacy_version }}" />
+                            <input type="hidden" id="privacy_version" name="privacy_version" value="{{ privacy_version }}" />
                             <div class="privacy-panel-head">
-                                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-                                    <path
-                                        d="M8 1l5 2v4.2c0 3.2-2.1 6.1-5 7.3-2.9-1.2-5-4.1-5-7.3V3l5-2zm0 2.1L5 4.3v2.9c0 2.3 1.2 4.4 3 5.4 1.8-1 3-3.1 3-5.4V4.3L8 3.1z" />
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                 </svg>
                                 Privacy e dati personali
                             </div>
                             <p class="privacy-copy">
-                                I dati inseriti servono per creare il profilo studente, gestire i match per lo stage,
-                                i contatti e le funzioni collegate al percorso. Leggi l'informativa completa prima di
-                                continuare.
+                                I tuoi dati sono al sicuro. Li utilizziamo esclusivamente per creare il tuo profilo e permetterti di trovare lo stage ideale.
                             </p>
                             <label class="privacy-check" for="privacy_ack">
                                 <input type="checkbox" id="privacy_ack" name="privacy_ack" required />
                                 <span>
-                                    Ho letto l'<a href="/privacy" target="_blank" rel="noopener">informativa privacy</a>
-                                    e autorizzo il trattamento dei dati personali necessari a usare StageMatch.
+                                    Accetto l'<a href="/privacy" target="_blank" style="color: var(--emerald-green); font-weight: 600;">informativa privacy</a>.
                                 </span>
                             </label>
                             <span class="field-error" id="err-privacy_ack"></span>
                         </div>
 
-                    </div><!-- /form-grid -->
+                    </div>
                 </form>
 
                 <!-- Successo -->
                 <div class="success-msg" id="successMsg">
                     <div class="success-icon">
-                        <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
-                            <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                stroke-linejoin="round" />
+                        <svg viewBox="0 0 24 24" fill="none" width="40" height="40" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
                     <h3>Profilo completato!</h3>
-                    <p>I tuoi dati sono stati salvati. Stai per essere reindirizzato...</p>
+                    <p>Ottimo lavoro. Stiamo preparando la tua dashboard...</p>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
                 </div>
-            </div><!-- /modal-body -->
+            </div>
 
             <div class="modal-footer" id="modalFooter">
                 <button class="btn-cancel" id="cancelBtn" type="button">Più tardi</button>
                 <button class="btn-submit" id="submitBtn" type="submit" form="studentForm">
-                    <svg viewBox="0 0 16 16" fill="currentColor" width="15" height="15">
-                        <path
-                            d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.5 7.5l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L7 9.94l3.47-3.47a.75.75 0 011.06 1.06z" />
-                    </svg>
                     <span id="submitLabel">Salva e continua</span>
                 </button>
             </div>
