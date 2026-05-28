@@ -85,76 +85,7 @@
     },
 ];
 
-const MOCK_ROUTES = [
-    {
-        id: 1,
-        mode: "driving-car",
-        from: "Bergamo Centro",
-        to: "Alpha Tech Srl — Dalmine",
-        distanceKm: 12.4,
-        durationMin: 18,
-        date: "Ieri",
-        startaddress: "Bergamo, BG",
-        endaddress: "Via Roma 12, Dalmine BG",
-    },
-    {
-        id: 2,
-        mode: "foot-walking",
-        from: "Stazione FS Bergamo",
-        to: "Beta Systems — Seriate",
-        distanceKm: 3.1,
-        durationMin: 38,
-        date: "2 giorni fa",
-        startaddress: "Stazione di Bergamo, BG",
-        endaddress: "Via Industria 5, Seriate BG",
-    },
-    {
-        id: 3,
-        mode: "cycling-regular",
-        from: "Bergamo Centro",
-        to: "Gamma Informatica — Curno",
-        distanceKm: 7.8,
-        durationMin: 28,
-        date: "5 giorni fa",
-        startaddress: "Bergamo, BG",
-        endaddress: "Via Milano 88, Curno BG",
-    },
-    {
-        id: 4,
-        mode: "driving-car",
-        from: "Bergamo Nord",
-        to: "Delta Networks — Stezzano",
-        distanceKm: 15.2,
-        durationMin: 22,
-        date: "1 settimana fa",
-        startaddress: "Bergamo Nord, BG",
-        endaddress: "Via Orio 3, Stezzano BG",
-    },
-    {
-        id: 5,
-        mode: "driving-car",
-        from: "Bergamo Centro",
-        to: "Alpha Tech Srl — Dalmine",
-        distanceKm: 12.4,
-        durationMin: 17,
-        date: "10 giorni fa",
-        startaddress: "Bergamo, BG",
-        endaddress: "Via Roma 12, Dalmine BG",
-    },
-    {
-        id: 6,
-        mode: "foot-walking",
-        from: "Bergamo Bassa",
-        to: "Beta Systems — Seriate",
-        distanceKm: 4.2,
-        durationMin: 52,
-        date: "2 settimane fa",
-        startaddress: "Bergamo Bassa, BG",
-        endaddress: "Via Industria 5, Seriate BG",
-    },
-];
-
-let currentCompanies = [];
+let userRoutes = [];
 
 /* ─── HELPERS ─────────────────────────────────────────── */
 const svgIcon = (id, extraClass = "icon") =>
@@ -211,8 +142,7 @@ function showSection(name) {
         loadCompanies();
     }
     if (name === "percorsi" && !percorsiLoaded) {
-        percorsiLoaded = true;
-        renderRoutes(MOCK_ROUTES);
+        loadRoutes();
     }
 
     // Mobile: chiudi sidebar
@@ -411,9 +341,9 @@ function renderRoutes(routes, filter = "all") {
           <div class="route-card-info">
             <div class="route-card-title">${r.from} → ${r.to}</div>
             <div class="route-card-meta">
-              <span><strong>${r.date}</strong></span>
-              <span><strong>${r.distanceKm} km</strong></span>
-              <span><strong>${r.durationMin} min</strong></span>
+              <span><strong>${r.date || "--"}</strong></span>
+              <span><strong>${r.distanceKm || "--"} km</strong></span>
+              <span><strong>${r.durationMin || "--"} min</strong></span>
               <span class="route-badge ${badge}">${label}</span>
             </div>
           </div>
@@ -429,6 +359,33 @@ function renderRoutes(routes, filter = "all") {
         </div>`;
         })
         .join("");
+}
+
+async function loadRoutes() {
+    try {
+        const res = await fetch("/api/users/routes");
+        if (!res.ok) throw new Error("Errore nel caricamento dei percorsi");
+        const data = await res.json();
+        
+        // Mappatura dei dati dal database al formato UI
+        userRoutes = data.map(r => ({
+            id: r.id,
+            mode: r.mode,
+            from: r.start_address,
+            to: r.end_address,
+            startaddress: r.start_address,
+            endaddress: r.end_address,
+            distanceKm: null, // Non presente nel DB
+            durationMin: null, // Non presente nel DB
+            date: null // Non presente nel DB
+        }));
+
+        percorsiLoaded = true;
+        renderRoutes(userRoutes, currentFilter);
+        renderRecentRoutes();
+    } catch (err) {
+        console.error("Errore fetch percorsi:", err);
+    }
 }
 
 function repeatRoute(routeJSON) {
@@ -459,7 +416,15 @@ function goToMap(companyId) {
 /* ─── ANTEPRIMA PERCORSI RECENTI (nella dashboard) ───── */
 function renderRecentRoutes() {
     const list = document.getElementById("recentRoutesList");
-    const recent = MOCK_ROUTES.slice(0, 3);
+    if (!userRoutes || userRoutes.length === 0) {
+        list.innerHTML = `
+            <div class="route-item">
+                <div class="route-info">Nessun percorso salvato</div>
+            </div>`;
+        return;
+    }
+
+    const recent = userRoutes.slice(0, 3);
 
     list.innerHTML = recent
         .map(
@@ -468,7 +433,7 @@ function renderRecentRoutes() {
         <div class="route-icon">${modeIcon[r.mode] || svgIcon("i-car")}</div>
         <div class="route-info">
           <div class="route-from-to">${r.from} → ${r.to}</div>
-          <div class="route-meta">${r.date} · ${r.distanceKm} km · ${r.durationMin} min</div>
+          <div class="route-meta">${r.date || "--"} · ${r.distanceKm || "--"} km · ${r.durationMin || "--"} min</div>
         </div>
         <span class="route-badge ${modeBadge[r.mode] || "car"}">${modeLabel[r.mode] || "Auto"}</span>
       </div>`,
@@ -1072,7 +1037,7 @@ function closeSidebar() {
    ════════════════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
     /* ── Render iniziale ─────────────────────────────────── */
-    renderRecentRoutes();
+    loadRoutes();
     updateNotificationsToggle();
     loadProfiloData();
 
@@ -1201,7 +1166,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .forEach((b) => b.classList.remove("active"));
             btn.classList.add("active");
             currentFilter = btn.dataset.filter;
-            if (percorsiLoaded) renderRoutes(MOCK_ROUTES, currentFilter);
+            if (percorsiLoaded) renderRoutes(userRoutes, currentFilter);
         });
     });
 

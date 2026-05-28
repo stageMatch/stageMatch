@@ -16,7 +16,7 @@ class User(Base):
     data_nascita = Column(Date)
     sesso = Column(String)
     comune_nascita = Column(String)
-    codice_fiscale = Column(String, unique=True)
+    codice_fiscale = Column(String, unique=True, nullable=True)
     telefono = Column(String)
     indirizzo_studio = Column(String)
     classe = Column(String)

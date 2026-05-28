@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>stageMatch - Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
+
+    <div class="bg-overlay"></div>
+    <div class="noise"></div>
 
     <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
         style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">
@@ -160,14 +167,7 @@
         <aside class="sidebar" id="sidebar">
 
             <div class="sidebar-logo">
-                <div class="logo-mark">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                    </svg>
-                </div>
-                <span class="logo-text">stageMatch</span>
+                <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="stageMatch" class="logo-img">
             </div>
 
             <nav class="sidebar-nav">

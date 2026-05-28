@@ -1,41 +1,69 @@
 /* landing.js — stageMatch homepage interactions */
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ── SCROLL REVEAL: sezioni che entrano dal basso ─────────── */
-    const revealTargets = document.querySelectorAll(
-        '.feature-card, .step'
-    );
-
-    const observer = new IntersectionObserver((entries) => {
+    
+    /* ── SCROLL REVEAL ────────────────────────────────────── */
+    const revealElements = document.querySelectorAll('[data-reveal]');
+    
+    const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-            } else {
-                entry.target.classList.remove('visible');
+                // Optional: stop observing once revealed
+                // revealObserver.unobserve(entry.target);
             }
         });
-    }, { threshold: 0.12 });
-
-    revealTargets.forEach((el, i) => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(24px)';
-        el.style.transition = `opacity 0.4s ease ${i * 0.04}s, transform 0.4s ease ${i * 0.04}s`;
-        observer.observe(el);
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
     });
 
-    // Aggiunge la classe che scatta la transizione
-    document.addEventListener('scroll', () => { }, { passive: true });
+    revealElements.forEach(el => revealObserver.observe(el));
 
-    // Aggiunge stile per .visible via JS
-    const style = document.createElement('style');
-    style.textContent = '.visible { opacity: 1 !important; transform: translateY(0) !important; }';
-    document.head.appendChild(style);
+    /* ── NAVBAR SCROLL EFFECT ──────────────────────────────── */
+    const nav = document.getElementById('main-nav');
+    
+    const handleScroll = () => {
+        if (window.scrollY > 50) {
+            nav.classList.add('scrolled');
+        } else {
+            nav.classList.remove('scrolled');
+        }
+    };
 
-    /* ── NAVBAR: ombra al scroll ──────────────────────────────── */
-    const navbar = document.querySelector('nav');
-    window.addEventListener('scroll', () => {
-        navbar.style.boxShadow = window.scrollY > 10
-            ? '0 4px 24px rgba(0,0,0,0.4)'
-            : 'none';
-    }, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
+
+    /* ── SMOOTH SCROLL FOR ANCHORS ─────────────────────────── */
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            e.preventDefault();
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                const navHeight = nav.offsetHeight;
+                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navHeight;
+                
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    /* ── OPTIONAL: PARALLAX BLOBS ─────────────────────────── */
+    const blobs = document.querySelectorAll('.blob');
+    window.addEventListener('mousemove', (e) => {
+        const x = e.clientX / window.innerWidth;
+        const y = e.clientY / window.innerHeight;
+        
+        blobs.forEach((blob, index) => {
+            const speed = (index + 1) * 20;
+            blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+        });
+    });
 });

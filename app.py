@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import timedelta
 import auth.auth as au
+from auth.auth_google.auth import initGoogleAuth, getGoogleUserInfo
 from database import database_helper
 
 load_dotenv()
@@ -17,6 +18,7 @@ app = Flask(
     static_folder="./resources",
     template_folder="./resources"
 )
+google = initGoogleAuth(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.getenv("SERVER_SECRET_KEY")
 app.permanent_session_lifetime = timedelta(hours=8)
@@ -32,7 +34,13 @@ if au.SSO_MODE == "production":
     )
 
 try:
-    database_helper.initDB(os.getenv("DB_CONNECTION_STRING", "database.db"))
+    db_conn = os.getenv("DB_CONNECTION_STRING", "database.db")
+    db_dir = os.path.dirname(db_conn)
+
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+
+    database_helper.initDB(db_conn)
 except Exception as e:
     app.logger.error(f"[ERROR] database initialization failed: {e}")
     raise e
@@ -71,12 +79,17 @@ def mainPage():
 def login():
     return render_template("/html/login.html")
 
+@app.route("/authentication")
+def authentication():
+    return render_template("/html/authentication.html")
+
 @app.route("/privacy")
 def privacy():
     return render_template("/html/privacy.html", privacy_version=PRIVACY_POLICY_VERSION)
 
 @app.route("/auth/login")
 def authLogin():
+    session["auth_type"] = "user"
     token: str | None = request.args.get("token")
 
     if au.SSO_MODE == "dev" and not token:
@@ -110,6 +123,30 @@ def authLogin():
             au.sso_middleware.portal_url
         )
 
+@app.route("/auth/google/login")
+def googleLogin():
+    redirect_uri = url_for("googleCallback", _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route("/auth/google/callback")
+def googleCallback():
+    try:
+        user_data = getGoogleUserInfo()
+        print(user_data)
+        if not user_data:
+            return au.render_sso_error(
+                "Impossibile recuperare i dati utente da Google.",
+                au.sso_middleware.portal_url
+            )
+
+        return _completeLogin(user_data)
+    except Exception as e:
+        app.logger.error(f"[ERROR] Google callback failed: {e}")
+        return au.render_sso_error(
+            "Autenticazione Google fallita.",
+            au.sso_middleware.portal_url
+        )
+
 @app.route("/auth/logout")
 def authLogout():
     session_id: str = session.get("session_id")
@@ -121,10 +158,51 @@ def authLogout():
 
     return redirect(au.sso_middleware.portal_url)
 
+@app.route("/auth/company/login", methods=["GET", "POST"])
+def authCompanyLogin():
+    if request.method == "POST":
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Dati invalidi"}), 400
+
+        # Memorizziamo temporaneamente i dati di registrazione per associarli all'account Google nel callback
+        session["pending_company_data"] = data
+        session["auth_type"] = "company"
+        return jsonify({"message": "Dati ricevuti, procedi con l'autenticazione"}), 200
+
+    # Se è GET, impostiamo il tipo di autenticazione e reindirizziamo a Google
+    session["auth_type"] = "company"
+    return redirect(url_for("googleLogin"))
+
 @app.route("/logged/complete", methods=["GET", "POST"])
 @au.sso_middleware.sso_login_required
 def completeLogin():
     user = session["user"]
+    auth_type = session.get("auth_type")
+
+    # Gestione specifica per le aziende
+    if auth_type == "company":
+        if database_helper.existCompany(user["googleId"]):
+            return redirect(url_for("homepageCompany"))
+
+        pending_data = session.get("pending_company_data")
+        if pending_data:
+            company_data = {
+                "googleId": user["googleId"],
+                "name": pending_data["name"],
+                "email": user["email"],
+                "access_code": pending_data["access_code"],
+                "address": f"{pending_data['via']} ££ {pending_data['civico']} ££ {pending_data['cap']} ££ {pending_data['citta']}",
+                "picture": user["picture"]
+            }
+            database_helper.addCompany(company_data)
+            session.pop("pending_company_data", None)
+            return redirect(url_for("homepageCompany"))
+        else:
+            return au.render_sso_error(
+                "Azienda non registrata. Torna alla pagina di registrazione.",
+                url_for("authentication")
+            )
 
     if database_helper.existUser(user["googleId"]):
         return redirect(url_for("homepage"))
@@ -185,6 +263,19 @@ def homepage():
 
     return render_template("/html/home.html", user=user_data)
 
+@app.route("/logged/company/homepage")
+@au.sso_middleware.sso_login_required
+def homepageCompany():
+    user = session["user"]
+    data = database_helper.getCompanyByGoogleId(user["googleId"])
+    if not data:
+        return au.render_sso_error(
+            "Azienda non trovata.",
+            url_for("authentication")
+        )
+    company_data = database_helper.modelToDict(data)
+    return render_template("/html/home_company.html", company=company_data)
+
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
 def map():
@@ -236,19 +327,41 @@ def saveProfile():
 
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/api/users/routes")
+def getUserRoutes():
+    user = session["user"]
+    data = database_helper.getUserById(user["googleId"])
+    user_data = database_helper.modelToDict(data)
+    routes = user_data["routes"]
+    print(routes)
+
+    return jsonify(routes)
+
+@app.route("/api/data", methods=["GET", "POST"])
+def getAndSendData():
+    pass
+
 @app.route("/photon", methods=["POST"])
 @au.sso_middleware.sso_login_required
 def photon():
     params = request.get_json()
-    response = requests.get("http://127.0.0.1:5001/photon", params=params, timeout=5)
+    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
+    response = requests.get(f"{api_url}/photon", params=params, timeout=5)
 
     return response.json(), response.status_code
 
 @app.route("/routejson", methods=["POST"])
 @au.sso_middleware.sso_login_required
 def routejson():
+    user = session["user"]
     params = request.get_json()
-    response = requests.get("http://127.0.0.1:5001/routejson", params=params, timeout=5)
+    print(params)
+    data = dict(params)
+    print(data)
+    database_helper.addUserRoute(user["googleId"], data)
+    print(data)
+    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
+    response = requests.get(f"{api_url}/routejson", params=params, timeout=5)
 
     return response.json(), response.status_code
 
@@ -280,7 +393,7 @@ if __name__ == '__main__':
     app.logger.info(f"Rate limit: max {au.rate_limiter.max_sessions_per_user} per user and max {au.rate_limiter.max_sessions_global} per global")
 
     app.run(
-        "127.0.0.1",
+        os.getenv("HOST", "127.0.0.1"),
         int(os.getenv("PORT", 5000)),
         debug=os.getenv("DEBUG", "False").lower() == "true"
     )
