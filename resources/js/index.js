@@ -340,6 +340,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Pannello chiuso con ESC");
         }
     });
+
+    toggle.click();
 });
 
 // GESTIONE MEZZI DI TRASPORTO

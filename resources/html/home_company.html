@@ -8,6 +8,10 @@
 </head>
 <body>
 
+    <!-- Background Elements -->
+    <div class="bg-overlay"></div>
+    <div class="noise"></div>
+
     <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
         style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">
         <symbol id="i-home" viewBox="0 0 24 24">
@@ -29,7 +33,7 @@
         <symbol id="i-settings" viewBox="0 0 24 24">
             <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5Z" />
             <path
-                d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6Z" />
+                d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9-.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6Z" />
         </symbol>
         <symbol id="i-logout" viewBox="0 0 24 24">
             <path d="M10 17 15 12 10 7" />
@@ -63,14 +67,7 @@
         <aside class="sidebar" id="sidebar">
 
             <div class="sidebar-logo">
-                <div class="logo-mark">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                    </svg>
-                </div>
-                <span class="logo-text">stageMatch</span>
+                <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="stageMatch" class="logo-img">
             </div>
 
             <nav class="sidebar-nav">
@@ -176,7 +173,7 @@
                             </div>
                             <div class="hero-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></div>
                         </div>
-                        <div style="margin-top:16px">
+                        <div style="margin-top:24px">
                             <button class="btn-primary" id="btnGoToStudents" style="width:100%;justify-content:center;">
                                 Vedi Studenti Interessati
                             </button>
@@ -244,7 +241,7 @@
                     </div>
                 </div>
 
-                <div class="profilo-grid animate-in">
+                <div class="profilo-grid animate-in" style="margin-top: 16px;">
                     <div class="pro-card pro-card-wide">
                         <div class="pro-card-head"><span class="icon"><svg><use href="#i-building"></use></svg></span>Dati Azienda</div>
                         <div class="pro-rows">
@@ -268,9 +265,9 @@
                     </div>
                 </div>
 
-                <div class="imp-grid animate-in">
-                    <div class="imp-card">
-                        <div class="imp-card-head"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</div>
+                <div class="imp-grid animate-in" style="margin-top: 16px;">
+                    <div class="imp-card card">
+                        <div class="card-head"><span class="card-title-inline"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</span></div>
                         <div class="imp-toggle-row">
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Nuovi interessi studenteschi</div>
