@@ -1,0 +1,129 @@
+{
+    "name": "StageMatch Codespace",
+    "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+        },
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Python
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "ms-python.debugpy",
+                "ms-python.vscode-python-envs",
+                // SQLite
+                "alexcvzz.vscode-sqlite",
+                // Docker
+                "ms-azuretools.vscode-docker",
+                // DX
+                "pkief.material-icon-theme",
+                "zhuangtongfa.material-theme",
+                "usernamehw.errorlens",
+                "streetsidesoftware.code-spell-checker"
+            ],
+            "settings": {
+                // Editor
+                "editor.fontSize": 14,
+                "editor.wordWrap": "on",
+                "editor.formatOnSave": true,
+                "editor.formatOnPaste": true,
+                "editor.autoIndentOnPaste": true,
+                "editor.cursorSmoothCaretAnimation": "on",
+                "editor.cursorBlinking": "expand",
+                "editor.renderWhitespace": "none",
+                "editor.linkedEditing": true,
+                "editor.unicodeHighlight.ambiguousCharacters": false,
+                "editor.unicodeHighlight.invisibleCharacters": false,
+                "editor.multiCursorModifier": "ctrlCmd",
+                "editor.tokenColorCustomizations": {
+                    "textMateRules": [
+                        {
+                            "scope": [
+                                "entity.name.function",
+                                "variable.parameter"
+                            ],
+                            "settings": {
+                                "fontStyle": "italic"
+                            }
+                        },
+                        {
+                            "scope": "comment",
+                            "settings": {
+                                "fontStyle": "italic bold"
+                            }
+                        }
+                    ]
+                },
+                // Files
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                "files.autoSave": "afterDelay",
+                "files.watcherExclude": {
+                    "**/__pycache__/**": true,
+                    "**/.venv/**": true
+                },
+                // Explorer
+                "explorer.confirmDragAndDrop": false,
+                "explorer.confirmDelete": false,
+                "explorer.compactFolders": false,
+                // Workbench
+                "workbench.editor.showTabIndex": true,
+                "workbench.iconTheme": "material-icon-theme",
+                "workbench.colorTheme": "One Dark Pro Night Flat",
+                // Git
+                "git.autofetch": true,
+                "git.confirmSync": false,
+                "git.blame.editorDecoration.enabled": true,
+                // Emmet
+                "emmet.showSuggestionsAsSnippets": true,
+                "emmet.triggerExpansionOnTab": true,
+                "emmet.useInlineCompletions": true,
+                // Terminal
+                "terminal.integrated.suggest.enabled": true,
+                // Python
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.quickSuggestions": {
+                        "other": "on",
+                        "comments": "on",
+                        "strings": "on"
+                    }
+                },
+                "python.autoComplete.extraPaths": [],
+                "python.analysis.autoImportCompletions": true,
+                "python.analysis.aiCodeActions": {},
+                "python.analysis.completeFunctionParens": true,
+                "python.analysis.enableEditableInstalls": false,
+                "python.analysis.inlayHints.functionReturnTypes": true,
+                "python.analysis.inlayHints.variableTypes": true,
+                "python.analysis.inlayHints.pytestParameters": true,
+                "python.terminal.shellIntegration.enabled": true,
+                // Chat / Copilot
+                "chat.editing.autoAcceptDelay": 5,
+                "chat.agent.enabled": true,
+                "chat.viewSessions.orientation": "stacked",
+                // Telemetry off
+                "telemetry.editStats.enabled": false,
+                "telemetry.feedback.enabled": false,
+                "telemetry.telemetryLevel": "off"
+            }
+        }
+    },
+    "forwardPorts": [
+        5000
+    ],
+    "portsAttributes": {
+        "5000": {
+            "label": "Flask",
+            "onAutoForward": "notify"
+        }
+    },
+    "postCreateCommand": "curl -fsSL https://antigravity.google/cli/install.sh | bash"
+}
