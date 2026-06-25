@@ -3,10 +3,6 @@
     "image": "mcr.microsoft.com/devcontainers/python:3.12",
     "remoteUser": "vscode",
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {
-            "version": "latest",
-            "dockerDashComposeVersion": "v2"
-        },
         "ghcr.io/devcontainers/features/git:1": {}
     },
     "customizations": {
@@ -20,13 +16,10 @@
                 "ms-python.vscode-python-envs",
                 // SQLite
                 "alexcvzz.vscode-sqlite",
-                // Docker
-                "ms-azuretools.vscode-docker",
                 // DX
                 "pkief.material-icon-theme",
                 "zhuangtongfa.material-theme",
-                "usernamehw.errorlens",
-                "streetsidesoftware.code-spell-checker"
+                "usernamehw.errorlens"
             ],
             "settings": {
                 // Editor
