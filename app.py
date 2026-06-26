@@ -279,7 +279,7 @@ def homepageCompany():
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
 def map():
-    return render_template("/html/index.html")
+    return render_template("/html/map-view.html")
 
 @app.route("/dev/login")
 def devLogin():
