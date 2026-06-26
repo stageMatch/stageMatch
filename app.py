@@ -75,13 +75,13 @@ def _completeLogin(user_data: dict):
 def mainPage():
     return render_template("html/landing.html")
 
-@app.route('/login')
-def login():
-    return render_template("/html/login.html")
+@app.route('/login/student')
+def loginStudent():
+    return render_template("/html/login-student.html")
 
-@app.route("/authentication")
-def authentication():
-    return render_template("/html/authentication.html")
+@app.route("/login/company")
+def loginCompany():
+    return render_template("/html/login-company.html")
 
 @app.route("/privacy")
 def privacy():
@@ -201,7 +201,7 @@ def completeLogin():
         else:
             return au.render_sso_error(
                 "Azienda non registrata. Torna alla pagina di registrazione.",
-                url_for("authentication")
+                url_for("loginCompany"),
             )
 
     if database_helper.existUser(user["googleId"]):
@@ -271,7 +271,7 @@ def homepageCompany():
     if not data:
         return au.render_sso_error(
             "Azienda non trovata.",
-            url_for("authentication")
+            url_for("loginCompany")
         )
     company_data = database_helper.modelToDict(data)
     return render_template("/html/home_company.html", company=company_data)
