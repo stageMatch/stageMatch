@@ -263,7 +263,7 @@
                             <label class="privacy-check" for="privacy_ack">
                                 <input type="checkbox" id="privacy_ack" name="privacy_ack" required />
                                 <span>
-                                    Accetto l'<a href="/privacy" target="_blank" style="color: var(--emerald-green); font-weight: 600;">informativa privacy</a>.
+                                    Accetto l'<a href="{{ url_for('privacy') }}" target="_blank" style="color: var(--emerald-green); font-weight: 600;">informativa privacy</a>.
                                 </span>
                             </label>
                             <span class="field-error" id="err-privacy_ack"></span>
