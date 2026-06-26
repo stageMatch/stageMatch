@@ -251,7 +251,7 @@ def completeLogin():
         "email": user["email"]
     }
 
-    return render_template("/html/complete_login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
+    return render_template("/html/complete-login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
 
 @app.route("/logged/homepage")
 @au.sso_middleware.sso_login_required
