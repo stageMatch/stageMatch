@@ -12,14 +12,14 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
-    
+
     <!-- Mobile Icons -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="stageMatch">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/authentication.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login-company.css') }}">
 </head>
 <body>
     <div class="overlay"></div>
@@ -54,7 +54,7 @@
                     </div>
 
                     <nav class="back-home">
-                        <a href="/" class="btn-back">
+                        <a href="{{ url_for('mainPage') }}" class="btn-back">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -153,7 +153,7 @@
                     </div>
 
                     <nav class="back-home">
-                        <a href="/" class="btn-back">
+                        <a href="{{ url_for('mainPage') }}" class="btn-back">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -168,6 +168,6 @@
         </div>
     </main>
 
-    <script src="{{ url_for('static', filename='js/authentication.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login-company.js') }}"></script>
 </body>
 </html>

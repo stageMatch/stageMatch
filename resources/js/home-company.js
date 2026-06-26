@@ -1,7 +1,3 @@
-/**
- * home_company.js — stageMatch Azienda Dashboard
- */
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     const state = {

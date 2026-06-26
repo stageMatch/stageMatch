@@ -75,13 +75,13 @@ def _completeLogin(user_data: dict):
 def mainPage():
     return render_template("html/landing.html")
 
-@app.route('/login')
-def login():
-    return render_template("/html/login.html")
+@app.route('/login/student')
+def loginStudent():
+    return render_template("/html/login-student.html")
 
-@app.route("/authentication")
-def authentication():
-    return render_template("/html/authentication.html")
+@app.route("/login/company")
+def loginCompany():
+    return render_template("/html/login-company.html")
 
 @app.route("/privacy")
 def privacy():
@@ -183,7 +183,7 @@ def completeLogin():
     # Gestione specifica per le aziende
     if auth_type == "company":
         if database_helper.existCompany(user["googleId"]):
-            return redirect(url_for("homepageCompany"))
+            return redirect(url_for("dashboardCompany"))
 
         pending_data = session.get("pending_company_data")
         if pending_data:
@@ -197,15 +197,15 @@ def completeLogin():
             }
             database_helper.addCompany(company_data)
             session.pop("pending_company_data", None)
-            return redirect(url_for("homepageCompany"))
+            return redirect(url_for("dashboardCompany"))
         else:
             return au.render_sso_error(
                 "Azienda non registrata. Torna alla pagina di registrazione.",
-                url_for("authentication")
+                url_for("loginCompany"),
             )
 
     if database_helper.existUser(user["googleId"]):
-        return redirect(url_for("homepage"))
+        return redirect(url_for("dashboardStudent"))
 
     if request.method == "POST":
         data = request.form.to_dict()
@@ -243,7 +243,7 @@ def completeLogin():
             }
         )
 
-        return redirect(url_for("homepage"))
+        return redirect(url_for("dashboardStudent"))
 
     user_data = {
         "name": au.getName(user["email"]),
@@ -251,35 +251,35 @@ def completeLogin():
         "email": user["email"]
     }
 
-    return render_template("/html/complete_login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
+    return render_template("/html/complete-login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
 
-@app.route("/logged/homepage")
+@app.route("/logged/dashboard/student")
 @au.sso_middleware.sso_login_required
-def homepage():
+def dashboardStudent():
     user = session["user"]
     data = database_helper.getUserById(user["googleId"])
     user_data = database_helper.modelToDict(data)
     user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
 
-    return render_template("/html/home.html", user=user_data)
+    return render_template("/html/dashboard-student.html", user=user_data)
 
-@app.route("/logged/company/homepage")
+@app.route("/logged/dashboard/company")
 @au.sso_middleware.sso_login_required
-def homepageCompany():
+def dashboardCompany():
     user = session["user"]
     data = database_helper.getCompanyByGoogleId(user["googleId"])
     if not data:
         return au.render_sso_error(
             "Azienda non trovata.",
-            url_for("authentication")
+            url_for("loginCompany")
         )
     company_data = database_helper.modelToDict(data)
-    return render_template("/html/home_company.html", company=company_data)
+    return render_template("/html/home-company.html", company=company_data)
 
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
 def map():
-    return render_template("/html/index.html")
+    return render_template("/html/map-view.html")
 
 @app.route("/dev/login")
 def devLogin():

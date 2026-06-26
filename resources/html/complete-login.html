@@ -19,7 +19,7 @@
     <meta name="apple-mobile-web-app-title" content="stageMatch">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/complete_login.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/complete-login.css') }}" />
 </head>
 <body>
 
@@ -263,7 +263,7 @@
                             <label class="privacy-check" for="privacy_ack">
                                 <input type="checkbox" id="privacy_ack" name="privacy_ack" required />
                                 <span>
-                                    Accetto l'<a href="/privacy" target="_blank" style="color: var(--emerald-green); font-weight: 600;">informativa privacy</a>.
+                                    Accetto l'<a href="{{ url_for('privacy') }}" target="_blank" style="color: var(--emerald-green); font-weight: 600;">informativa privacy</a>.
                                 </span>
                             </label>
                             <span class="field-error" id="err-privacy_ack"></span>
@@ -297,6 +297,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/complete_login.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/complete-login.js') }}"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
-    
+
     <!-- Mobile Icons (Apple & Android) -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <meta name="mobile-web-app-capable" content="yes">
@@ -34,7 +34,7 @@
             <li><a href="#aziende">Per le aziende</a></li>
         </ul>
         <div class="nav-cta">
-            <a href="{{ url_for('login') }}" class="btn btn-primary">Accedi</a>
+            <a href="{{ url_for('loginStudent') }}" class="btn btn-primary">Accedi</a>
         </div>
         </nav>
 
@@ -54,8 +54,8 @@
             </p>
 
             <div class="hero-actions">
-                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Trova il tuo stage</a>
-                <a href="{{ url_for('authentication') }}" class="btn btn-ghost btn-lg">Sei un'azienda?</a>
+                <a href="{{ url_for('loginStudent') }}" class="btn btn-primary btn-lg">Trova il tuo stage</a>
+                <a href="{{ url_for('loginCompany') }}" class="btn btn-ghost btn-lg">Sei un'azienda?</a>
             </div>
         </div>
         </header>
@@ -139,7 +139,7 @@
         </div>
 
         <div style="text-align: center; margin-top: 50px;" data-reveal>
-            <a href="{{ url_for('authentication') }}" class="btn btn-primary btn-lg">Inizia come azienda</a>
+            <a href="{{ url_for('loginCompany') }}" class="btn btn-primary btn-lg">Inizia come azienda</a>
         </div>
     </section>
 

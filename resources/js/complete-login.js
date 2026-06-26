@@ -223,13 +223,13 @@ form?.addEventListener("submit", async e => {
             form.classList.add("hidden");
             successMsg.classList.add("visible");
             modalFooter.classList.add("hidden");
-            
+
             // Inizia il riempimento "organico" dopo che il messaggio è apparso
             setTimeout(() => {
                 progressFill.style.width = "100%";
             }, 600);
 
-            setTimeout(() => window.location.href = "/logged/homepage", 3200);
+            setTimeout(() => window.location.href = "/logged/dashboard/student", 3200);
         } else {
             throw new Error("Errore nel salvataggio");
         }

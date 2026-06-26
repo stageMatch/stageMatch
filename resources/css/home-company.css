@@ -1,9 +1,4 @@
-/* ═══════════════════════════════════════════════════════
-   home_company.css — stageMatch Company Dashboard
-   ═══════════════════════════════════════════════════════ */
-
-/* Importa stili base e variabili da home.css per coerenza */
-@import url("home.css");
+@import url("dashboard-student.css");
 
 /* ─── GRID STUDENTI ───────────────────────────────────── */
 .students-grid {
@@ -153,7 +148,7 @@
     .students-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .st-card {
         padding: 16px;
     }

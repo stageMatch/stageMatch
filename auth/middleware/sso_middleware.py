@@ -10,7 +10,7 @@ import json
 import os
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from flask import request, redirect, session, render_template_string
 import logging
@@ -267,7 +267,7 @@ class SSOMiddleware:
             'name': user_data.get('name', ''),
             'googleId': user_data.get('googleId', ''),
             'picture': user_data.get('picture', ''),
-            'authenticated_at': datetime.utcnow().isoformat()
+            'authenticated_at': datetime.now(timezone.utc).isoformat()
         }
         flask_session['session_id'] = sid
         logger.info(f"Sessione creata per: {user_data.get('email')}")
