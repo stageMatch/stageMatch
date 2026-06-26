@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════════════
-   home.js — stageMatch Dashboard
-   ═══════════════════════════════════════════════════════ */
-
 /* ─── DATI MOCK ───────────────────────────────────────────
    In produzione sostituire con fetch() verso le API Flask.
    ─────────────────────────────────────────────────────── */
@@ -366,7 +362,7 @@ async function loadRoutes() {
         const res = await fetch("/api/users/routes");
         if (!res.ok) throw new Error("Errore nel caricamento dei percorsi");
         const data = await res.json();
-        
+
         // Mappatura dei dati dal database al formato UI
         userRoutes = data.map(r => ({
             id: r.id,

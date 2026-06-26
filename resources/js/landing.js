@@ -1,10 +1,8 @@
-/* landing.js — stageMatch homepage interactions */
-
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     /* ── SCROLL REVEAL ────────────────────────────────────── */
     const revealElements = document.querySelectorAll('[data-reveal]');
-    
+
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -22,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ── NAVBAR SCROLL EFFECT ──────────────────────────────── */
     const nav = document.getElementById('main-nav');
-    
+
     const handleScroll = () => {
         if (window.scrollY > 50) {
             nav.classList.add('scrolled');
@@ -39,14 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
         anchor.addEventListener('click', function (e) {
             const targetId = this.getAttribute('href');
             if (targetId === '#') return;
-            
+
             e.preventDefault();
             const targetElement = document.querySelector(targetId);
-            
+
             if (targetElement) {
                 const navHeight = nav.offsetHeight;
                 const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navHeight;
-                
+
                 window.scrollTo({
                     top: targetPosition,
                     behavior: 'smooth'
@@ -60,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('mousemove', (e) => {
         const x = e.clientX / window.innerWidth;
         const y = e.clientY / window.innerHeight;
-        
+
         blobs.forEach((blob, index) => {
             const speed = (index + 1) * 20;
             blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;

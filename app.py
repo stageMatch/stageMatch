@@ -205,7 +205,7 @@ def completeLogin():
             )
 
     if database_helper.existUser(user["googleId"]):
-        return redirect(url_for("homepage"))
+        return redirect(url_for("dashboardStudent"))
 
     if request.method == "POST":
         data = request.form.to_dict()
@@ -243,7 +243,7 @@ def completeLogin():
             }
         )
 
-        return redirect(url_for("homepage"))
+        return redirect(url_for("dashboardStudent"))
 
     user_data = {
         "name": au.getName(user["email"]),
@@ -253,15 +253,15 @@ def completeLogin():
 
     return render_template("/html/complete-login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
 
-@app.route("/logged/homepage")
+@app.route("/logged/dashboard/student")
 @au.sso_middleware.sso_login_required
-def homepage():
+def dashboardStudent():
     user = session["user"]
     data = database_helper.getUserById(user["googleId"])
     user_data = database_helper.modelToDict(data)
     user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
 
-    return render_template("/html/home.html", user=user_data)
+    return render_template("/html/dashboard-student.html", user=user_data)
 
 @app.route("/logged/company/homepage")
 @au.sso_middleware.sso_login_required
