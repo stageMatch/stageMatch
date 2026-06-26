@@ -183,7 +183,7 @@ def completeLogin():
     # Gestione specifica per le aziende
     if auth_type == "company":
         if database_helper.existCompany(user["googleId"]):
-            return redirect(url_for("homepageCompany"))
+            return redirect(url_for("dashboardCompany"))
 
         pending_data = session.get("pending_company_data")
         if pending_data:
@@ -197,7 +197,7 @@ def completeLogin():
             }
             database_helper.addCompany(company_data)
             session.pop("pending_company_data", None)
-            return redirect(url_for("homepageCompany"))
+            return redirect(url_for("dashboardCompany"))
         else:
             return au.render_sso_error(
                 "Azienda non registrata. Torna alla pagina di registrazione.",
@@ -263,9 +263,9 @@ def dashboardStudent():
 
     return render_template("/html/dashboard-student.html", user=user_data)
 
-@app.route("/logged/company/homepage")
+@app.route("/logged/dashboard/company")
 @au.sso_middleware.sso_login_required
-def homepageCompany():
+def dashboardCompany():
     user = session["user"]
     data = database_helper.getCompanyByGoogleId(user["googleId"])
     if not data:
@@ -274,7 +274,7 @@ def homepageCompany():
             url_for("loginCompany")
         )
     company_data = database_helper.modelToDict(data)
-    return render_template("/html/home_company.html", company=company_data)
+    return render_template("/html/home-company.html", company=company_data)
 
 @app.route('/logged/map')
 @au.sso_middleware.sso_login_required
