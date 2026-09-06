@@ -1,14 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    /* ── SCROLL REVEAL ────────────────────────────────────── */
     const revealElements = document.querySelectorAll('[data-reveal]');
 
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                // Optional: stop observing once revealed
-                // revealObserver.unobserve(entry.target);
             }
         });
     }, {
@@ -18,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     revealElements.forEach(el => revealObserver.observe(el));
 
-    /* ── NAVBAR SCROLL EFFECT ──────────────────────────────── */
     const nav = document.getElementById('main-nav');
 
     const handleScroll = () => {
@@ -30,9 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Initial check
+    handleScroll();
 
-    /* ── SMOOTH SCROLL FOR ANCHORS ─────────────────────────── */
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             const targetId = this.getAttribute('href');
@@ -53,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* ── OPTIONAL: PARALLAX BLOBS ─────────────────────────── */
     const blobs = document.querySelectorAll('.blob');
     window.addEventListener('mousemove', (e) => {
         const x = e.clientX / window.innerWidth;

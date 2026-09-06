@@ -12,7 +12,7 @@ white_list_manager = WhitelistManager(
 )
 
 rate_limiter = RateLimiter(
-    int(os.getenv("MAX_SESSIONS_PER_USER", 3)),
+    int(os.getenv("MAX_SESSIONS_PER_USER", 1)),
     int(os.getenv("MAX_SESSIONS_GLOBAL", 100))
 )
 

@@ -165,7 +165,6 @@ def authCompanyLogin():
         if not data:
             return jsonify({"error": "Dati invalidi"}), 400
 
-        # Memorizziamo temporaneamente i dati di registrazione per associarli all'account Google nel callback
         session["pending_company_data"] = data
         session["auth_type"] = "company"
         return jsonify({"message": "Dati ricevuti, procedi con l'autenticazione"}), 200
@@ -180,7 +179,6 @@ def completeLogin():
     user = session["user"]
     auth_type = session.get("auth_type")
 
-    # Gestione specifica per le aziende
     if auth_type == "company":
         if database_helper.existCompany(user["googleId"]):
             return redirect(url_for("dashboardCompany"))

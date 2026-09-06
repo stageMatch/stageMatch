@@ -1,4 +1,3 @@
-/* ─── Variables ─── */
 :root {
     --midnight-blue: #0A0E1A;
     --emerald-green: #2ECC71;
@@ -13,7 +12,6 @@
     --shadow-md: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-/* ─── Reset ─── */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
@@ -32,7 +30,7 @@ body {
 .bg-overlay {
     position: fixed;
     inset: 0;
-    background: 
+    background:
         linear-gradient(160deg, rgba(10, 14, 26, 0.95) 0%, rgba(10, 14, 26, 0.8) 100%),
         url('../img/bergamoalto.jpg');
     background-size: cover;
@@ -492,7 +490,7 @@ body {
     .form-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .col-full, .col-2-1 {
         grid-column: span 1;
     }

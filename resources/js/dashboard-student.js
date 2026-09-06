@@ -1,8 +1,4 @@
-/* ─── DATI MOCK ───────────────────────────────────────────
-   In produzione sostituire con fetch() verso le API Flask.
-   ─────────────────────────────────────────────────────── */
-
-   const MOCK_COMPANIES = [
+const MOCK_COMPANIES = [
     {
         id: 1,
         initials: "AT",
@@ -83,7 +79,6 @@
 
 let userRoutes = [];
 
-/* ─── HELPERS ─────────────────────────────────────────── */
 const svgIcon = (id, extraClass = "icon") =>
     `<span class="${extraClass}"><svg><use href="#${id}"></use></svg></span>`;
 
@@ -103,11 +98,6 @@ const modeBadge = {
     "cycling-regular": "bike",
 };
 
-/* ════════════════════════════════════════════════════════
-   NAVIGAZIONE SEZIONI
-   showSection('dashboard' | 'aziende' | 'percorsi')
-   Nasconde tutte le sezioni e mostra solo quella richiesta.
-   ════════════════════════════════════════════════════════ */
 const SECTIONS = [
     "sectionDashboard",
     "sectionAziende",
@@ -141,11 +131,9 @@ function showSection(name) {
         loadRoutes();
     }
 
-    // Mobile: chiudi sidebar
     if (window.innerWidth <= 1100) closeSidebar();
 }
 
-/* ─── setActive ───────────────────────────────────────── */
 function setActive(el) {
     document
         .querySelectorAll(".nav-item")
@@ -153,10 +141,6 @@ function setActive(el) {
     if (el) el.classList.add("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   AZIENDE MATCH
-   Renderizza le card nella sezione principale (non panel).
-   ════════════════════════════════════════════════════════ */
 function renderCompanies(companies) {
     const list = document.getElementById("aziendeList");
     const empty = document.getElementById("aziendeEmpty");
@@ -222,11 +206,6 @@ async function loadCompanies() {
     document.getElementById("aziendeLoading").style.display = "flex";
     document.getElementById("aziendeList").style.display = "none";
 
-    /* ── Sostituire con fetch reale: ──────────────────────────
-       const res  = await fetch('/api/companies/matches');
-       const data = await res.json();
-       renderCompanies(data);
-       ─────────────────────────────────────────────────────── */
     await new Promise((r) => setTimeout(r, 700));
 
     document.getElementById("aziendeLoading").style.display = "none";
@@ -302,10 +281,6 @@ function closeCompanyDetails() {
     overlay.classList.remove("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   I MIEI PERCORSI
-   Renderizza la lista completa con filtri per mezzo.
-   ════════════════════════════════════════════════════════ */
 function renderRoutes(routes, filter = "all") {
     const list = document.getElementById("percorsiList");
     const count = document.getElementById("percorsiCount");
@@ -363,7 +338,6 @@ async function loadRoutes() {
         if (!res.ok) throw new Error("Errore nel caricamento dei percorsi");
         const data = await res.json();
 
-        // Mappatura dei dati dal database al formato UI
         userRoutes = data.map(r => ({
             id: r.id,
             mode: r.mode,
@@ -394,14 +368,11 @@ function repeatRoute(routeJSON) {
     window.location.href = `/logged/map?${params.toString()}`;
 }
 
-/* ════════════════════════════════════════════════════════
-   REDIRECT MAPPA (da card azienda)
-   ════════════════════════════════════════════════════════ */
 function goToMap(companyId) {
     const c = getCompanyById(companyId);
     if (!c) return;
     const params = new URLSearchParams({
-        startaddress: "Bergamo, BG", // ← sostituire con indirizzo da sessione utente
+        startaddress: "Bergamo, BG",
         endaddress: c.address,
         endname: c.name,
         routemode: "driving-car",
@@ -409,7 +380,6 @@ function goToMap(companyId) {
     window.location.href = `/logged/map?${params.toString()}`;
 }
 
-/* ─── ANTEPRIMA PERCORSI RECENTI (nella dashboard) ───── */
 function renderRecentRoutes() {
     const list = document.getElementById("recentRoutesList");
     if (!userRoutes || userRoutes.length === 0) {
@@ -437,9 +407,6 @@ function renderRecentRoutes() {
         .join("");
 }
 
-/* ════════════════════════════════════════════════════════
-   PROFILO — dati caricati da /api/users/profile
-   ════════════════════════════════════════════════════════ */
 const EMPTY_PROFILO_DATA = {
     name: "",
     surname: "",
@@ -629,7 +596,6 @@ async function loadProfiloData() {
     }
 }
 
-/* ─── Apre il modal e popola i form ──────────────────── */
 function openProfiloModal() {
     if (!profiloLoaded) {
         showToast("Attendi il caricamento del profilo");
@@ -645,17 +611,13 @@ function openProfiloModal() {
     document.getElementById("fComune").value = getComuneResidenza(profiloData.indirizzo);
     document.getElementById("fTel").value = profiloData.telefono;
 
-    // Skills editor
     renderSkillsEditor();
 
-    // Soft skills checkboxes
     renderSoftEditor();
 
-    // Reset status
     setApiStatus("", "");
 
     document.getElementById("profiloOverlay").classList.add("active");
-    // Attiva prima tab
     switchTab("anagrafica");
 }
 
@@ -663,7 +625,6 @@ function closeProfiloModal() {
     document.getElementById("profiloOverlay").classList.remove("active");
 }
 
-/* ─── Tab switching ──────────────────────────────────── */
 function switchTab(name) {
     document.querySelectorAll(".pro-tab").forEach((t) => {
         t.classList.toggle("active", t.dataset.tab === name);
@@ -676,7 +637,6 @@ function switchTab(name) {
     });
 }
 
-/* ─── Skill editor ───────────────────────────────────── */
 function renderSkillsEditor() {
     const el = document.getElementById("proSkillsEditor");
     el.innerHTML = profiloData.skills
@@ -704,7 +664,6 @@ function removeSkill(i) {
     renderSkillsEditor();
 }
 
-/* ─── Soft skills editor ─────────────────────────────── */
 function renderSoftEditor() {
     const el = document.getElementById("proSoftEditor");
     el.innerHTML = ALL_SOFT_SKILLS.map((s) => {
@@ -732,7 +691,6 @@ function toggleSoft(el, label) {
     }
 }
 
-/* ─── Status helper ──────────────────────────────────── */
 function setApiStatus(msg, cls) {
     const el = document.getElementById("proApiStatus");
     el.textContent = msg;
@@ -769,10 +727,6 @@ function buildProfiloPayload() {
     };
 }
 
-/* ════════════════════════════════════════════════════════
-   SALVA PROFILO — salvataggio locale
-   In produzione sostituire con: fetch('/api/profile', { method: 'POST', body: JSON.stringify(profiloData) })
-   ════════════════════════════════════════════════════════ */
 async function salvaProfilo() {
     // Leggi valori dal form anagrafica
     profiloData.name = document.getElementById("fNome").value.trim();
@@ -819,7 +773,6 @@ async function salvaProfilo() {
     }
 }
 
-/* ─── Aggiorna la sezione profilo con i nuovi dati ───── */
 function updateProfiloUI(apiResult) {
     // Nome hero
     document.querySelector(".profilo-hero-name").textContent = profiloData.name + " " + profiloData.surname;
@@ -862,7 +815,6 @@ function updateProfiloUI(apiResult) {
         tagsEl.appendChild(tag);
     }
 
-    // Ri-renderizza skills bar
     const skillsEl = document.getElementById("proSkills");
     if (skillsEl) {
         skillsEl.innerHTML = profiloData.skills
@@ -880,7 +832,6 @@ function updateProfiloUI(apiResult) {
             .join("");
     }
 
-    // Ri-renderizza soft skills
     const softEl = document.getElementById("proSoftSkills");
     if (softEl) {
         softEl.innerHTML = profiloData.soft_skills
@@ -896,9 +847,6 @@ function updateProfiloUI(apiResult) {
     }
 }
 
-/* ════════════════════════════════════════════════════════
-   IMPOSTAZIONI
-   ════════════════════════════════════════════════════════ */
 let impostazioniData = {
     notifMatch: true,
     notifPercorsi: true,
@@ -914,7 +862,6 @@ let impostazioniData = {
     reduceMotion: false,
 };
 
-/* ─── Salva toggle/select cambiati direttamente nella pagina ─ */
 function saveImpostazioni() {
     impostazioniData.notifMatch =
         document.getElementById("notifMatch")?.checked;
@@ -939,7 +886,6 @@ function saveImpostazioni() {
     showToast("Impostazione salvata");
 }
 
-/* ─── Tema segmented ─────────────────────────────────────── */
 function setTema(btn) {
     document
         .querySelectorAll(".imp-seg")
@@ -958,7 +904,6 @@ function salvaImpModal() {
     closeImpModal();
 }
 
-/* ─── Toast ──────────────────────────────────────────────── */
 let toastTimer;
 function showToast(msg) {
     const t = document.getElementById("impToast");
@@ -981,7 +926,6 @@ function updateNotificationsToggle() {
         : "Disattiva notifiche";
 }
 
-/* ─── Esporta dati GDPR ──────────────────────────────────── */
 function esportaDati() {
     const payload = {
         profilo: profiloData,
@@ -998,15 +942,11 @@ function esportaDati() {
     showToast("Download avviato");
 }
 
-/* ─── Esporta CV PDF (stub) ──────────────────────────────── */
 function esportaCV() {
     showToast("Generazione PDF in corso...");
     setTimeout(() => showToast("CV pronto per il download"), 1800);
 }
 
-/* ════════════════════════════════════════════════════════
-   LOGOUT MODAL
-   ════════════════════════════════════════════════════════ */
 function openLogoutModal() {
     document.getElementById("logoutOverlay").classList.add("active");
     document.getElementById("logoutCancel").focus();
@@ -1016,7 +956,6 @@ function closeLogoutModal() {
     document.getElementById("logoutOverlay").classList.remove("active");
 }
 
-/* ─── SIDEBAR MOBILE ──────────────────────────────────── */
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("open");
     document.getElementById("overlay").classList.toggle("active");
@@ -1027,25 +966,17 @@ function closeSidebar() {
     document.getElementById("overlay").classList.remove("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   INIZIALIZZAZIONE — tutti gli event listener centralizzati
-   qui, nessun onclick/onchange nel markup HTML
-   ════════════════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
-    /* ── Render iniziale ─────────────────────────────────── */
     loadRoutes();
     updateNotificationsToggle();
     loadProfiloData();
 
-    /* ── Sidebar overlay (chiudi cliccando fuori) ────────── */
     document.getElementById("overlay").addEventListener("click", closeSidebar);
 
-    /* ── Hamburger (mobile) ──────────────────────────────── */
     document
         .querySelector(".hamburger")
         .addEventListener("click", toggleSidebar);
 
-    /* ── Nav items sidebar ───────────────────────────────── */
     document.getElementById("navDashboard").addEventListener("click", (e) => {
         e.preventDefault();
         showSection("dashboard");
@@ -1121,7 +1052,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    /* ── Bottoni dashboard ───────────────────────────────── */
     document.getElementById("btnDashAziende").addEventListener("click", () => {
         showSection("aziende");
         setActive(document.getElementById("navAziende"));
@@ -1144,7 +1074,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    /* ── Transport pills (hero card) ─────────────────────── */
     document.querySelectorAll(".t-pill").forEach((pill) => {
         pill.addEventListener("click", () => {
             document
@@ -1154,7 +1083,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /* ── Filtri percorsi ─────────────────────────────────── */
     document.querySelectorAll(".filter-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
             document
@@ -1166,27 +1094,22 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /* ── Profilo: apri modal ─────────────────────────────── */
     document
         .getElementById("btnEditProfilo")
         .addEventListener("click", openProfiloModal);
 
-    /* ── Profilo modal: tab switching ────────────────────── */
     document.querySelectorAll(".pro-tab").forEach((tab) => {
         tab.addEventListener("click", () => switchTab(tab.dataset.tab));
     });
 
-    /* ── Profilo modal: tasto ✕ chiude il modal ─────────── */
     document
         .querySelector("#profiloOverlay .profilo-modal-close")
         .addEventListener("click", closeProfiloModal);
 
-    /* ── Profilo modal: aggiungi competenza ──────────────── */
     document
         .querySelector(".pro-add-btn")
         .addEventListener("click", addSkillRow);
 
-    /* ── Profilo modal: skill editor dinamico ───────────── */
     document.getElementById("proSkillsEditor").addEventListener("change", (e) => {
         const { skillIndex, skillField } = e.target.dataset;
         if (skillIndex === undefined || !skillField) return;
@@ -1200,7 +1123,6 @@ document.addEventListener("DOMContentLoaded", () => {
         removeSkill(Number(removeButton.dataset.skillRemove));
     });
 
-    /* ── Profilo modal: annulla e salva ──────────────────── */
     document
         .querySelector("#profiloOverlay .logout-btn-cancel")
         .addEventListener("click", closeProfiloModal);
@@ -1208,13 +1130,11 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("btnSalvaProfilo")
         .addEventListener("click", salvaProfilo);
 
-    /* ── Profilo modal: chiudi cliccando fuori ───────────── */
     document.getElementById("profiloOverlay").addEventListener("click", (e) => {
         if (e.target === document.getElementById("profiloOverlay"))
             closeProfiloModal();
     });
 
-    /* ── Impostazioni modal: chiudi e salva ──────────────── */
     document
         .querySelector("#impOverlay .logout-btn-cancel")
         .addEventListener("click", closeImpModal);
@@ -1222,24 +1142,18 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("btnSalvaImp")
         .addEventListener("click", salvaImpModal);
 
-    /* ── Impostazioni modal: chiudi cliccando fuori ──────── */
     document.getElementById("impOverlay").addEventListener("click", (e) => {
         if (e.target === document.getElementById("impOverlay")) closeImpModal();
     });
 
-    /* ── Impostazioni toggles e select ──────────────────────
-       Usa event delegation sull'intera sezione impostazioni
-       per intercettare qualsiasi checkbox/select cambiato.  */
     document
         .getElementById("sectionImpostazioni")
         .addEventListener("change", saveImpostazioni);
 
-    /* ── Impostazioni tema segmented ─────────────────────── */
     document.querySelectorAll(".imp-seg").forEach((btn) => {
         btn.addEventListener("click", () => setTema(btn));
     });
 
-    /* ── Impostazioni: esporta dati e CV ─────────────────── */
     document
         .querySelector('[data-action="esportaDati"]')
         .addEventListener("click", esportaDati);
@@ -1252,7 +1166,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.open("/privacy", "_blank", "noopener");
         });
 
-    /* ── Logout modal ────────────────────────────────────── */
     document
         .getElementById("logoutCancel")
         .addEventListener("click", closeLogoutModal);
@@ -1264,7 +1177,6 @@ document.addEventListener("DOMContentLoaded", () => {
             closeLogoutModal();
     });
 
-    /* ── ESC: chiude tutti i modal ───────────────────────── */
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             closeSidebar();

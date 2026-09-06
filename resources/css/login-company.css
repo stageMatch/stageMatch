@@ -1,4 +1,3 @@
-/* ─── RESET & VARIABLES ─── */
 *,
 *::before,
 *::after {
@@ -8,25 +7,20 @@
 }
 
 :root {
-    /* Brand Colors */
     --midnight-blue: #0A0E1A;
     --emerald-green: #2ECC71;
     --emerald-green-dark: #27AE60;
     --white-modern: #E8E6F4;
     --white-pure: #FFFFFF;
-    
-    /* Text Colors */
     --text-main: #1A1C1E;
     --text-muted: #5F6368;
     --text-light: #9AA0A6;
-    
     --font-main: 'Inter', system-ui, -apple-system, sans-serif;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --transition: 0.3s var(--ease-out);
     --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* ─── BODY / BACKGROUND ─── */
 body {
     min-height: 100dvh;
     background: url('../img/bergamoalto.jpg') center center / cover no-repeat fixed;
@@ -41,7 +35,6 @@ body {
     padding: 20px;
 }
 
-/* ─── OVERLAY & NOISE ─── */
 .overlay {
     position: fixed;
     inset: 0;
@@ -61,7 +54,6 @@ body {
     pointer-events: none;
 }
 
-/* ─── CONTAINER ─── */
 .auth-container {
     position: relative;
     z-index: 10;
@@ -130,7 +122,6 @@ body {
     z-index: 2;
 }
 
-/* ─── HEADER ─── */
 .panel-header {
     text-align: center;
     margin-bottom: 32px;
@@ -150,7 +141,6 @@ body {
     font-weight: 500;
 }
 
-/* ─── GOOGLE LOGIN ─── */
 .google-only-login {
     display: flex;
     flex-direction: column;
@@ -196,7 +186,6 @@ body {
     transform: scale(0.98);
 }
 
-/* ─── FORMS ─── */
 .auth-form {
     width: 100%;
 }
@@ -247,7 +236,6 @@ body {
     box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.1);
 }
 
-/* Griglia indirizzo */
 .address-grid {
     display: flex;
     flex-direction: column;
@@ -268,7 +256,6 @@ body {
     flex: 1;
 }
 
-/* ─── CHECKBOX & LINKS ─── */
 .form-options {
     margin-bottom: 24px;
 }
@@ -346,7 +333,6 @@ body {
     color: var(--emerald-green-dark);
 }
 
-/* ─── SWITCH PANEL ─── */
 .switch-panel {
     text-align: center;
     margin-top: 32px;
@@ -360,7 +346,6 @@ body {
     font-weight: 500;
 }
 
-/* ─── BACK BUTTON ─── */
 .back-home {
     margin-top: 24px;
     display: flex;
@@ -389,7 +374,6 @@ body {
     transform: translateY(-2px);
 }
 
-/* ─── AUTOCOMPLETE ─── */
 .autocomplete-wrap {
     position: relative;
     width: 100%;
@@ -441,7 +425,6 @@ body {
     font-weight: 400;
 }
 
-/* ─── TOASTS ─── */
 .toast-container {
     position: fixed;
     top: 24px;
@@ -519,13 +502,11 @@ body {
     padding: 4px;
 }
 
-/* ─── ANIMATIONS ─── */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
     .back-home {
         top: 20px;
@@ -537,15 +518,15 @@ body {
     body {
         padding: 15px;
     }
-    
+
     .auth-panel {
         padding: 32px 24px;
     }
-    
+
     .panel-header h2 {
         font-size: 1.75rem;
     }
-    
+
     .btn-back {
         padding: 10px 16px;
         font-size: 0.8rem;

@@ -5,20 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>stageMatch - Autenticazione</title>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
 
-    <!-- Mobile Icons -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="stageMatch">
 
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login-company.css') }}">
 </head>
 <body>
@@ -29,7 +25,6 @@
         <div class="auth-card">
             <div class="slider-container" id="sliderContainer">
 
-                <!-- Pannello Login -->
                 <section class="auth-panel login-panel active" id="loginPanel" aria-labelledby="login-title">
                     <div class="panel-header">
                         <h2 id="login-title">Bentornato!</h2>
@@ -65,7 +60,6 @@
                     </nav>
                 </section>
 
-                <!-- Pannello Registrazione -->
                 <section class="auth-panel register-panel" id="registerPanel" aria-labelledby="register-title">
                     <div class="panel-header">
                         <h2 id="register-title">Crea un account</h2>
@@ -74,7 +68,6 @@
 
                     <form class="auth-form" id="registerForm">
 
-                        <!-- Nome azienda -->
                         <div class="field-group">
                             <label for="register-name">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -86,7 +79,6 @@
                             <input type="text" id="register-name" class="form-input" placeholder="Es. Rossi S.r.l." required>
                         </div>
 
-                        <!-- Codice di accesso -->
                         <div class="field-group">
                             <label for="register-access-code">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -100,7 +92,6 @@
                                 placeholder="Fornito dalla scuola" required autocomplete="off" spellcheck="false">
                         </div>
 
-                        <!-- Indirizzo -->
                         <div class="field-group">
                             <label>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -126,7 +117,6 @@
                             </div>
                         </div>
 
-                        <!-- Termini -->
                         <div class="form-options">
                             <label class="checkbox-container">
                                 <input type="checkbox" id="accept-terms" required>
@@ -135,7 +125,6 @@
                             </label>
                         </div>
 
-                        <!-- Submit Google -->
                         <button type="submit" class="btn-google-main">
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

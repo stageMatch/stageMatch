@@ -5,20 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>stageMatch - Completa il profilo</title>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
 
-    <!-- Mobile Icons -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="stageMatch">
 
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/complete-login.css') }}" />
 </head>
 <body>
@@ -52,7 +48,6 @@
                 <form id="studentForm" action="/logged/complete" method="POST" novalidate>
                     <div class="form-grid">
 
-                        <!-- ── Dati da Google (disabilitati) ── -->
                         <div class="field">
                             <label for="nome">
                                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -88,7 +83,6 @@
 
                         <div class="divider"></div>
 
-                        <!-- ── Dati anagrafici ── -->
                         <div class="field">
                             <label for="data_nascita">
                                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -122,7 +116,6 @@
                             <span class="field-error" id="err-sesso"></span>
                         </div>
 
-                        <!-- Comune di nascita — autocomplete -->
                         <div class="field">
                             <label for="comune_nascita">
                                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -139,7 +132,6 @@
                             <span class="field-error" id="err-comune_nascita"></span>
                         </div>
 
-                        <!-- Codice Fiscale -->
                         <div class="field col-full">
                             <label for="codice_fiscale">
                                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -212,7 +204,6 @@
 
                         <div class="divider"></div>
 
-                        <!-- ── Residenza ── -->
                         <div class="section-label">
                             <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -248,7 +239,6 @@
                             <span class="field-error" id="err-citta_residenza"></span>
                         </div>
 
-                        <!-- Privacy -->
                         <div class="privacy-panel col-full">
                             <input type="hidden" id="privacy_version" name="privacy_version" value="{{ privacy_version }}" />
                             <div class="privacy-panel-head">
@@ -273,7 +263,6 @@
                 </form>
             </div>
 
-            <!-- Successo -->
             <div class="success-msg" id="successMsg">
                 <div class="success-icon">
                     <svg viewBox="0 0 24 24" fill="none" width="40" height="40" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">

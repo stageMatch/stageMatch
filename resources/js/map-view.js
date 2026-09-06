@@ -65,27 +65,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const marker = L.marker(initial_coordinates).addTo(map);
 marker.bindPopup('Questa è Bergamo').openPopup();
 
-/**
- * Calcola e visualizza il percorso tra due indirizzi sulla mappa.
- *
- * @async
- * @function calcolaPercorso
- * @returns {Promise<void>}
- * @throws {Error} Se la richiesta al backend fallisce (response.ok === false), la risposta non è un GeoJSON valido,
- *                 gli indirizzi non sono stati inseriti o il mezzo di trasporto non è selezionato.
- *
- * @description
- * - Legge gli indirizzi dagli input #address_start e #address_end e valida i valori.
- * - Verifica che sia stato selezionato un mezzo di trasporto (variabile globale `mode`).
- * - Effettua una chiamata GET a /routejson del backend con startaddress, endaddress e routemode.
- * - Rimuove dalla mappa il layer GeoJSON e i marker precedenti se presenti.
- * - Aggiunge il nuovo layer GeoJSON (stile rosso, weight: 4) e posiziona due marker personalizzati (startIcon, endIcon).
- * - Chiude il pannello di controllo (rimuove la classe "open") e adatta la vista della mappa ai bounds del percorso.
- *
- * @sideEffects
- * - Modifica il DOM (chiusura pannello, eventuale visualizzazione di spinner/suggerimenti).
- * - Modifica la mappa Leaflet (rimozione/aggiunta di layer e marker, chiamata a map.fitBounds()).
- */
 async function calcolaPercorso() {
     const panel = document.getElementById("controlPanel");
 
@@ -154,26 +133,6 @@ async function calcolaPercorso() {
 
 button.addEventListener("click", calcolaPercorso);
 
-/**
- * Recupera suggerimenti di indirizzi dall'API Photon Komoot basandosi sul valore dell'input.
- *
- * @async
- * @function suggestion
- * @this {HTMLInputElement} L'elemento input che ha invocato la funzione (start o end).
- * @returns {Promise<void>}
- * @throws {Error} Se la richiesta all'API fallisce o la risposta non può essere elaborata.
- *
- * @description
- * - Applica debounce (100ms) tramite la variabile globale `wait_time` prima di mostrare lo spinner e chiamare l'API.
- * - Interroga Photon Komoot con bias geografico (lat/lon da `initial_coordinates`) e limita a 5 risultati.
- * - Estrae via, numero civico, CAP e città dai risultati e popola il relativo container (#suggestions_start o #suggestions_end).
- * - Crea/rimuove uno spinner nell'input wrapper mentre la richiesta è in corso.
- * - Aggiunge listener sui suggerimenti per impostare `this.value`, nascondere la lista e rimuovere lo spinner.
- *
- * @sideEffects
- * - Aggiorna il DOM (spinner, lista suggerimenti, event listeners).
- * - Imposta il valore dell'input invocante tramite `this.value` alla selezione di un suggerimento.
- */
 async function suggestion() {
     const address = this.value.trim();
 
@@ -298,7 +257,6 @@ input_address_end.addEventListener("keydown", (e) => {
     if (e.key === "Enter") suggestion.call(input_address_end);
 });
 
-// GESTIONE TOGGLE PANNELLO
 document.addEventListener("DOMContentLoaded", () => {
     const panel = document.getElementById("controlPanel");
     const toggle = document.getElementById("togglePanel");
@@ -344,7 +302,6 @@ document.addEventListener("DOMContentLoaded", () => {
     toggle.click();
 });
 
-// GESTIONE MEZZI DI TRASPORTO
 document.addEventListener("DOMContentLoaded", () => {
     const transportButtons = document.querySelectorAll(".transport-modes .mode");
     transportButtons.forEach(btn => {
@@ -357,7 +314,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Controllo parametri URL per ripetere percorso
     const urlParams = new URLSearchParams(window.location.search);
     const start = urlParams.get('startaddress');
     const end = urlParams.get('endaddress');

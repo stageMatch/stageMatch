@@ -43,7 +43,6 @@ const CUSTOM_CLASS_VALUE = "__custom__";
 
 let comuniDB = [];
 
-/** ─── Caricamento Comuni ─── */
 async function loadComuni() {
     try {
         const res = await fetch("https://raw.githubusercontent.com/axiostudio/comuni-italiani/refs/heads/main/data/import/json/gi_comuni.json");
@@ -75,7 +74,6 @@ function findComuneByName(name) {
     return comuniDB.find(c => normalize(c.nome) === q) || null;
 }
 
-/** ─── Gestione Classe ─── */
 function populateClassSelect(indirizzo) {
     const select = fields.classe;
     const studyCode = STUDY_CLASS_CODES[indirizzo];
@@ -108,7 +106,6 @@ fields.classe?.addEventListener("change", e => {
     if (isCustom) fields.classe_custom.focus();
 });
 
-/** ─── Autocomplete ─── */
 function setupAutocomplete(inputId, listId, onSelect) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
@@ -138,8 +135,6 @@ function setupAutocomplete(inputId, listId, onSelect) {
     });
 }
 
-/** ─── Codice Fiscale ─── */
-// (Manteniamo la logica di calcolo esistente ma la rendiamo più compatta)
 const CF_ODD = { 0:1, 1:0, 2:5, 3:7, 4:9, 5:13, 6:15, 7:17, 8:19, 9:21, A:1, B:0, C:5, D:7, E:9, F:13, G:15, H:17, I:19, J:21, K:2, L:4, M:18, N:20, O:11, P:3, Q:6, R:8, S:12, T:14, U:16, V:10, W:22, X:25, Y:24, Z:23 };
 function cfPart(s, isName = false) {
     const chars = s.toUpperCase().replace(/[^A-Z]/g, "");
@@ -174,7 +169,6 @@ document.getElementById("cfCalcBtn")?.addEventListener("click", () => {
     fields.codice_fiscale.classList.remove("invalid");
 });
 
-/** ─── Validazione e Invio ─── */
 function validate() {
     let valid = true;
     const err = (id, msg) => {
@@ -224,7 +218,6 @@ form?.addEventListener("submit", async e => {
             successMsg.classList.add("visible");
             modalFooter.classList.add("hidden");
 
-            // Inizia il riempimento "organico" dopo che il messaggio è apparso
             setTimeout(() => {
                 progressFill.style.width = "100%";
             }, 600);
@@ -240,7 +233,6 @@ form?.addEventListener("submit", async e => {
     }
 });
 
-/** ─── Modal Control ─── */
 const toggleModal = (v) => {
     overlay.classList.toggle("visible", v);
     document.body.style.overflow = v ? "hidden" : "";

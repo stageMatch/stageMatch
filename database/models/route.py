@@ -11,6 +11,6 @@ class UserRoute(Base):
 
     start_address = Column(String, nullable=False)
     end_address = Column(String, nullable=False)
-    mode = Column(String, nullable=False) 
+    mode = Column(String, nullable=False)
 
     user = relationship("User", back_populates="routes")

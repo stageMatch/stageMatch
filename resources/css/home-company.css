@@ -1,6 +1,5 @@
 @import url("dashboard-student.css");
 
-/* ─── GRID STUDENTI ───────────────────────────────────── */
 .students-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -8,7 +7,6 @@
     margin-top: 10px;
 }
 
-/* ─── STUDENT CARD ────────────────────────────────────── */
 .st-card {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -126,12 +124,10 @@
     box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 }
 
-/* ─── SIDEBAR & LOGO ──────────────────────────────────── */
 .sidebar {
     border-right: 1px solid var(--border);
 }
 
-/* ─── RESPONSIVE TWEAKS ────────────────────────────────── */
 @media (max-width: 1200px) {
     .stats-row {
         grid-template-columns: repeat(3, 1fr);

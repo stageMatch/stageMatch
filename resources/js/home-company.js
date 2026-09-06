@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- State ---
     const state = {
         activeSection: 'Dashboard',
         students: [
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     };
 
-    // --- Selectors ---
     const navItems = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.content');
     const hamburger = document.querySelector('.hamburger');
@@ -21,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutCancel = document.getElementById('logoutCancel');
     const logoutConfirm = document.getElementById('logoutConfirm');
 
-    // --- Navigation Logic ---
     function switchSection(sectionId) {
         const targetId = 'section' + sectionId;
 
@@ -38,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.activeSection = sectionId;
 
-        // On mobile, close sidebar after navigation
         if (window.innerWidth <= 1100) {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Sidebar & Mobile ---
     hamburger?.addEventListener('click', () => {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('active');
@@ -69,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.classList.remove('active');
     });
 
-    // --- Logout ---
     logoutBtn?.addEventListener('click', (e) => {
         e.preventDefault();
         logoutOverlay.classList.add('active');
@@ -83,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = '/auth/logout';
     });
 
-    // --- Rendering Studenti ---
     function renderStudents() {
         const list = document.getElementById('studentiList');
         const loading = document.getElementById('studentiLoading');
@@ -91,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!list) return;
 
-        // Simula caricamento
         loading.style.display = 'flex';
         list.style.display = 'none';
         empty.style.display = 'none';
@@ -126,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
             }
 
-            // Aggiorna badge e stats
             const badge = document.getElementById('badgeStudenti');
             if (badge) badge.textContent = state.students.length;
 
@@ -138,10 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 800);
     }
 
-    // --- Dashboard Initial Stats ---
     document.getElementById('statViews').textContent = '124';
 
-    // Hero button
     document.getElementById('btnGoToStudents')?.addEventListener('click', () => {
         switchSection('Studenti');
     });

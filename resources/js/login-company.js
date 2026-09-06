@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const switchLinks = document.querySelectorAll(".switch-link");
     const registerForm = document.getElementById("registerForm");
 
-    // Sincronizza altezza slider con il pannello attivo
     function syncSliderHeight() {
         const activePanel = sliderContainer.querySelector(".auth-panel.active") || sliderContainer.querySelector(".auth-panel");
         if (activePanel) {
@@ -11,13 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Init: altezza iniziale
     setTimeout(syncSliderHeight, 100);
 
-    // Ricalcola altezza al ridimensionamento della finestra
     window.addEventListener("resize", syncSliderHeight);
 
-    // Switch tra Login e Registrazione
     switchLinks.forEach(link => {
         link.addEventListener("click", (e) => {
             e.preventDefault();
@@ -29,10 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 loginPanel.classList.remove("active");
                 registerPanel.classList.add("active");
                 sliderContainer.classList.add("show-register");
-                
-                // Sincronizza altezza immediatamente
+
                 syncSliderHeight();
-                
+
                 setTimeout(() => {
                     document.getElementById("register-name")?.focus({ preventScroll: true });
                 }, 400);
@@ -40,12 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 registerPanel.classList.remove("active");
                 loginPanel.classList.add("active");
                 sliderContainer.classList.remove("show-register");
-                
+
                 if (registerForm) registerForm.reset();
-                
-                // Sincronizza altezza immediatamente
+
                 syncSliderHeight();
-                
+
                 setTimeout(() => {
                     document.getElementById("loginGoogleBtn")?.focus({ preventScroll: true });
                 }, 400);
@@ -53,7 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Handle Login con Google
     const loginGoogleBtn = document.getElementById("loginGoogleBtn");
     if (loginGoogleBtn) {
         loginGoogleBtn.addEventListener("click", () => {
@@ -63,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Handle Register form submission
     if (registerForm) {
         registerForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -84,7 +76,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // UI State
             submitBtn.disabled = true;
             submitBtn.innerHTML = "Registrazione in corso...";
 
@@ -115,7 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Funzione per mostrare notifiche (Toast) migliorata
     function showNotification(message, type = "info", duration = 4000) {
         let toastContainer = document.querySelector(".toast-container");
         if (!toastContainer) {
@@ -126,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toast = document.createElement("div");
         toast.className = `custom-toast ${type}`;
-        
+
         const titles = { success: "Successo", error: "Errore", warning: "Attenzione", info: "Info" };
 
         const icons = {
@@ -167,9 +157,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    /* ════════════════════════════════════
-       CITY AUTOCOMPLETE LOGIC
-       ════════════════════════════════════ */
     let comuniDB = [];
 
     async function loadComuni() {
@@ -232,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const li = document.createElement("li");
                 const n = c.nome;
                 const matchIdx = n.toLowerCase().indexOf(q.toLowerCase());
-                
+
                 if (matchIdx >= 0) {
                     const before = n.substring(0, matchIdx);
                     const match = n.substring(matchIdx, matchIdx + q.length);
@@ -305,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Inizializza caricamento e autocomplete
     loadComuni();
     setupAutocomplete("register-citta", "register-citta-list");
 });

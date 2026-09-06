@@ -1,11 +1,8 @@
 :root {
-    /* Brand Colors */
     --midnight-blue: #0A0E1A;
     --midnight-blue-light: #111625;
     --emerald-green: #2ECC71;
     --emerald-green-dark: #27AE60;
-    
-    /* Functional Colors (Light Mode) */
     --bg-map: #f1f3f4;
     --panel-bg: #ffffff;
     --accent: var(--emerald-green);
@@ -14,7 +11,7 @@
     --text-muted: #5f6368;
     --border-color: #e8eaed;
     --shadow: rgba(10, 14, 26, 0.1);
-    
+
     --radius-lg: 16px;
     --radius-md: 12px;
 }
@@ -189,7 +186,6 @@ body {
     width: 100%;
 }
 
-/* Bottone di ricerca accanto all'input */
 .input-wrapper {
     display: flex;
     gap: 8px;
@@ -199,17 +195,15 @@ body {
 
 .input-wrapper .form-control {
     flex: 1;
-    min-width: 0; /* evita overflow su mobile */
+    min-width: 0;
 }
 
-/* Questo è il nuovo anchor per il dropdown */
 .input-field-wrapper {
     position: relative;
     flex: 1;
     min-width: 0;
 }
 
-/* L'input occupa tutto lo spazio del field-wrapper */
 .input-field-wrapper .form-control {
     width: 100%;
 }

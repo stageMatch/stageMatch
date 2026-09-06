@@ -18,15 +18,13 @@ Ogni collaboratore crea il proprio branch partendo da `main`, usando il proprio 
 Esempi:
 
 ```bash
-git checkout main
 git pull origin main
-git checkout -b Falcone
+git switch -c Falcone
 ```
 
 ```bash
-git checkout main
 git pull origin main
-git checkout -b Rossi
+git switch -c Rossi
 ```
 
 ### Commit
@@ -35,7 +33,7 @@ Ogni commit deve iniziare con il proprio nome in maiuscolo, seguito da due punti
 
 Esempi:
 
-```text
+```txt
 FALCONE: fix login redirect
 ROSSI: update frontend layout
 ```
@@ -62,15 +60,13 @@ Ogni contributore crea il proprio branch partendo da `dev`, usando il proprio no
 Esempi:
 
 ```bash
-git checkout dev
 git pull origin dev
-git checkout -b Contributore
+git switch -c Contributore
 ```
 
 ```bash
-git checkout dev
 git pull origin dev
-git checkout -b Sviluppatore
+git switch -c Sviluppatore
 ```
 
 ### Commit
@@ -105,15 +101,6 @@ Se trovi un problema, apri una Issue e includi:
 - passaggi per riprodurre il problema;
 - comportamento atteso;
 - screenshot, log o messaggi di errore quando utili.
-
-## Verifica locale
-
-Non esiste ancora una test suite top-level. Prima di aprire una Pull Request, esegui una verifica manuale proporzionata alla modifica:
-
-- `python app.py` per l'app principale;
-- `python server.py` per il backend geografico;
-- login, completamento profilo, mappa e generazione percorso;
-- `cd test_auth && ./start.sh` se hai modificato il blueprint o il middleware SSO.
 
 ## Ringraziamenti
 
