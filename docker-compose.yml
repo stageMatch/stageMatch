@@ -1,6 +1,8 @@
 services:
   web:
     build: .
+    image: stagematch:latest
+    restart: unless-stopped
     ports:
       - "${PORT:-5000}:5000"
     env_file:
@@ -12,21 +14,19 @@ services:
     depends_on:
       - api
     volumes:
-      - .:/app
       - db_data:/app/database_files
 
   api:
-    build: .
+    image: stagematch:latest
+    restart: unless-stopped
     command: python server.py
-    ports:
-      - "5001:5001"
     env_file:
       - .env
     environment:
       - HOST=0.0.0.0
       - PORT_API=5001
-    volumes:
-      - .:/app
+    expose:
+      - "5001"
 
 volumes:
   db_data:
