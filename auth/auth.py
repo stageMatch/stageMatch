@@ -1,34 +1,41 @@
 import os
 from dotenv import load_dotenv
-from auth.middleware.sso_middleware import SSOMiddleware, WhitelistManager, RateLimiter, render_sso_error
+from auth.middleware.session_middleware import SessionMiddleware, renderAuthError
+from auth.rate_limiter import RateLimiter
 
 load_dotenv()
 
-SSO_MODE: str = os.getenv("SSO_MODE").lower()
-DEV_USER_EMAIL: str = os.getenv("DEV_USER_EMAIL").lower()
-
-white_list_manager = WhitelistManager(
-    whitelist_path=os.path.join("test") # Change the logic of uploading
-)
-
 rate_limiter = RateLimiter(
-    int(os.getenv("MAX_SESSIONS_PER_USER", 1)),
-    int(os.getenv("MAX_SESSIONS_GLOBAL", 100))
+    int(os.getenv("MAX_SESSIONS_PER_USER", 3)),
+    int(os.getenv("MAX_SESSIONS_GLOBAL", 100)),
+    int(os.getenv("SESSION_TTL_SECONDS", 28800))
 )
 
-sso_middleware = SSOMiddleware(
-    jwt_secret=os.getenv("JWT_SECRET"),
-    jwt_audience=os.getenv("APP_AUDIENCE"),
-    portal_url=os.getenv("PORTAL_URL"),
-    whitelist_manager=white_list_manager,
+session_middleware = SessionMiddleware(
     rate_limiter=rate_limiter
 )
 
-def getUsername(email: str) -> str:
-    return email.split("@")[0]
+def getName(email: str, fallback_name: str = "") -> str:
+    local_part = email.split("@")[0]
+    parts = local_part.split(".")
 
-def getName(email: str) -> str:
-    return email.split(".")[1]
+    if len(parts) >= 2:
+        return parts[1]
 
-def getSurname(email: str) -> str:
-    return email.split(".")[0]
+    if fallback_name:
+        return fallback_name.split(" ")[0]
+
+    return local_part
+
+def getSurname(email: str, fallback_name: str = "") -> str:
+    local_part = email.split("@")[0]
+    parts = local_part.split(".")
+
+    if len(parts) >= 2:
+        return parts[0]
+
+    if fallback_name:
+        tokens = fallback_name.split(" ")
+        return tokens[-1] if len(tokens) > 1 else tokens[0]
+
+    return local_part

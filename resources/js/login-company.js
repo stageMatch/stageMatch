@@ -294,4 +294,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadComuni();
     setupAutocomplete("register-citta", "register-citta-list");
+
+    const NOTICE_MESSAGES = {
+        login_required: { message: "Devi accedere per continuare.", type: "warning" },
+        session_expired: { message: "La tua sessione è scaduta. Accedi di nuovo.", type: "warning" },
+        logged_out: { message: "Logout effettuato con successo.", type: "success" }
+    };
+
+    const notice = new URLSearchParams(window.location.search).get("notice");
+    if (notice && NOTICE_MESSAGES[notice]) {
+        const { message, type } = NOTICE_MESSAGES[notice];
+        showNotification(message, type);
+    }
 });

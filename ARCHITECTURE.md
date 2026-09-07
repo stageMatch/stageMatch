@@ -34,7 +34,7 @@ graph LR
 
     subgraph Core ["Core Application (Port 5000)"]
         App["Flask Main App<br/>(app.py)"]:::backend
-        SSO["SSO Middleware<br/>(JWT, RateLimit, Whitelist)"]:::auth
+        SSO["Auth Middleware<br/>(Google OAuth, RateLimit)"]:::auth
         note_app["Serves Views, Sessions,<br/>User Profiles CRUD"]:::note
     end
 
@@ -49,7 +49,7 @@ graph LR
     end
 
     subgraph External ["External Services"]
-        Portal["SSO Checkin Portal"]:::external
+        Google["Google OAuth"]:::external
         Photon["Photon API<br/>(Autocomplete)"]:::external
         Nominatim["Nominatim API<br/>(Geocoding)"]:::external
         ORS["OpenRouteService<br/>(Routing)"]:::external
@@ -59,7 +59,7 @@ graph LR
     FE -->|"1. HTTP Request"| App
 
     %% Authentication Flow
-    App <-->|"2. Auth Flow"| Portal
+    App <-->|"2. Auth Flow"| Google
     App -->|"3. Validation"| SSO
 
     %% Database Flow

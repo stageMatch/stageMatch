@@ -23,10 +23,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.getenv("SERVER_SECRET_KEY")
 app.permanent_session_lifetime = timedelta(hours=8)
 
-if au.SSO_MODE == "production" and not au.sso_middleware.jwt_secret:
-    raise ValueError("JWT key is not configured")
-
-if au.SSO_MODE == "production":
+if os.getenv("DEBUG", "False").lower() != "true":
     app.config.update(
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
@@ -48,26 +45,26 @@ except Exception as e:
 def _completeLogin(user_data: dict):
     email = user_data.get("email", "")
 
-    # Check whitelist to be reviewed
-
-    # Check ratelimit
     session_id = secrets.token_hex(32)
-    allowed, reason = au.rate_limiter.register_session(session_id, email)
+    allowed, reason = au.rate_limiter.registerSession(session_id, email)
 
     if not allowed:
         app.logger.warning(f"[WARNING] rate limit reached for {email}")
 
-        return au.render_sso_error(
+        auth_type = session.get("auth_type", "user")
+
+        return au.renderAuthError(
             reason,
-            au.sso_middleware.portal_url,
+            url_for("loginCompany" if auth_type == "company" else "loginStudent"),
             429,
             "Too many active sessions",
-            "⏱️"
+            "⏱️",
+            "Vai al login"
         )
 
     app.logger.info(f"[INFO] User {email} logged in with session ID: {session_id}")
 
-    au.sso_middleware.create_session(user_data, session, session_id)
+    au.session_middleware.createSession(user_data, session, session_id)
 
     return redirect(url_for("completeLogin"))
 
@@ -90,38 +87,8 @@ def privacy():
 @app.route("/auth/login")
 def authLogin():
     session["auth_type"] = "user"
-    token: str | None = request.args.get("token")
 
-    if au.SSO_MODE == "dev" and not token:
-        dev_email: str = request.args.get("email") or au.DEV_USER_EMAIL
-        app.logger.info(f"[INFO] authorised access for {dev_email}")
-        user_data: dict[str, str] = {
-            "email": dev_email,
-            "name": au.getUsername(dev_email),
-            "googleId": "dev-user-id",
-            "picture": "DEV"
-        }
-        print(user_data)
-
-        return _completeLogin(user_data)
-
-    if not token:
-        return au.render_sso_error(
-            "Missing token. Log in via the portal",
-            au.sso_middleware.portal_url
-        )
-
-    try:
-        user_data = au.sso_middleware.validate_jwt(token)
-
-        return _completeLogin(user_data)
-    except Exception as e:
-        app.logger.error(f"[ERROR] validation is failing: {e}")
-
-        return au.render_sso_error(
-            "Token not valid or expired. Log in again",
-            au.sso_middleware.portal_url
-        )
+    return redirect(url_for("googleLogin"))
 
 @app.route("/auth/google/login")
 def googleLogin():
@@ -134,29 +101,45 @@ def googleCallback():
         user_data = getGoogleUserInfo()
         print(user_data)
         if not user_data:
-            return au.render_sso_error(
+            auth_type = session.get("auth_type", "user")
+
+            return au.renderAuthError(
                 "Impossibile recuperare i dati utente da Google.",
-                au.sso_middleware.portal_url
+                url_for("loginCompany" if auth_type == "company" else "loginStudent"),
+                401,
+                "Accesso Negato",
+                "🔒",
+                "Vai al login"
             )
 
         return _completeLogin(user_data)
     except Exception as e:
         app.logger.error(f"[ERROR] Google callback failed: {e}")
-        return au.render_sso_error(
+        auth_type = session.get("auth_type", "user")
+
+        return au.renderAuthError(
             "Autenticazione Google fallita.",
-            au.sso_middleware.portal_url
+            url_for("loginCompany" if auth_type == "company" else "loginStudent"),
+            401,
+            "Accesso Negato",
+            "🔒",
+            "Vai al login"
         )
 
 @app.route("/auth/logout")
 def authLogout():
     session_id: str = session.get("session_id")
+    auth_type = session.get("auth_type", "user")
 
     if session_id:
-        au.rate_limiter.remove_session(session_id)
+        au.rate_limiter.removeSession(session_id)
 
     session.clear()
 
-    return redirect(au.sso_middleware.portal_url)
+    return redirect(url_for(
+        "loginCompany" if auth_type == "company" else "loginStudent",
+        notice="logged_out"
+    ))
 
 @app.route("/auth/company/login", methods=["GET", "POST"])
 def authCompanyLogin():
@@ -174,7 +157,7 @@ def authCompanyLogin():
     return redirect(url_for("googleLogin"))
 
 @app.route("/logged/complete", methods=["GET", "POST"])
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired()
 def completeLogin():
     user = session["user"]
     auth_type = session.get("auth_type")
@@ -197,9 +180,13 @@ def completeLogin():
             session.pop("pending_company_data", None)
             return redirect(url_for("dashboardCompany"))
         else:
-            return au.render_sso_error(
+            return au.renderAuthError(
                 "Azienda non registrata. Torna alla pagina di registrazione.",
                 url_for("loginCompany"),
+                401,
+                "Accesso Negato",
+                "🔒",
+                "Vai alla registrazione"
             )
 
     if database_helper.existUser(user["googleId"]):
@@ -220,8 +207,8 @@ def completeLogin():
 
         user_data = {
             "googleId": user["googleId"],
-            "name": au.getName(user["email"]),
-            "surname": au.getSurname(user["email"]),
+            "name": au.getName(user["email"], user.get("name")),
+            "surname": au.getSurname(user["email"], user.get("name")),
             "email": user["email"],
             "data_nascita": data["data_nascita"],
             "sesso": data["sesso"],
@@ -244,15 +231,15 @@ def completeLogin():
         return redirect(url_for("dashboardStudent"))
 
     user_data = {
-        "name": au.getName(user["email"]),
-        "surname": au.getSurname(user["email"]),
+        "name": au.getName(user["email"], user.get("name")),
+        "surname": au.getSurname(user["email"], user.get("name")),
         "email": user["email"]
     }
 
     return render_template("/html/complete-login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
 
 @app.route("/logged/dashboard/student")
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def dashboardStudent():
     user = session["user"]
     data = database_helper.getUserById(user["googleId"])
@@ -262,32 +249,32 @@ def dashboardStudent():
     return render_template("/html/dashboard-student.html", user=user_data)
 
 @app.route("/logged/dashboard/company")
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="company")
 def dashboardCompany():
     user = session["user"]
     data = database_helper.getCompanyByGoogleId(user["googleId"])
+
     if not data:
-        return au.render_sso_error(
+        return au.renderAuthError(
             "Azienda non trovata.",
-            url_for("loginCompany")
+            url_for("loginCompany"),
+            404,
+            "Azienda non trovata",
+            "🔍",
+            "Vai al login"
         )
+
     company_data = database_helper.modelToDict(data)
+
     return render_template("/html/home-company.html", company=company_data)
 
 @app.route('/logged/map')
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def map():
     return render_template("/html/map-view.html")
 
-@app.route("/dev/login")
-def devLogin():
-    if au.SSO_MODE != "dev":
-        return "Not availble in production", 403
-
-    return redirect(url_for("authLogin"))
-
 @app.route("/api/users/profile")
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def getUserProfile():
     id = session["user"]["googleId"]
     data = database_helper.getUserById(id)
@@ -295,7 +282,7 @@ def getUserProfile():
     return database_helper.modelToDict(data)
 
 @app.route("/api/users/profile/save", methods=["POST"])
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def saveProfile():
     try:
         data = request.get_json()
@@ -340,7 +327,7 @@ def getAndSendData():
     pass
 
 @app.route("/photon", methods=["POST"])
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def photon():
     params = request.get_json()
     api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
@@ -349,7 +336,7 @@ def photon():
     return response.json(), response.status_code
 
 @app.route("/routejson", methods=["POST"])
-@au.sso_middleware.sso_login_required
+@au.session_middleware.loginRequired(role="user")
 def routejson():
     user = session["user"]
     params = request.get_json()
@@ -365,30 +352,29 @@ def routejson():
 
 @app.errorhandler(404)
 def notFound(e):
-    return au.render_sso_error(
+    return au.renderAuthError(
         "Page not found",
-        au.sso_middleware.portal_url,
+        url_for("mainPage"),
         404,
         "Page not found",
-        "🔍"
+        "🔍",
+        "Torna alla Home"
     )
 
 @app.errorhandler(403)
 def forbidden(e):
-    return au.render_sso_error(
+    return au.renderAuthError(
         "Forbidden access",
-        au.sso_middleware.portal_url,
+        url_for("mainPage"),
         403,
         "Forbidden access",
-        "🚫"
+        "🚫",
+        "Torna alla Home"
     )
 
 if __name__ == '__main__':
     app.logger.info("[INFO] stageMatch started")
-    app.logger.info(f"SSO mode: {au.SSO_MODE.upper()}")
-    app.logger.info(f"SSO portal: {au.sso_middleware.portal_url}")
-    app.logger.info(f"Audience JWT: {au.sso_middleware.jwt_audience}")
-    app.logger.info(f"Rate limit: max {au.rate_limiter.max_sessions_per_user} per user and max {au.rate_limiter.max_sessions_global} per global")
+    app.logger.info(f"Rate limit: max {au.rate_limiter.maxSessionsPerUser} per user and max {au.rate_limiter.maxSessionsGlobal} per global")
 
     app.run(
         os.getenv("HOST", "127.0.0.1"),

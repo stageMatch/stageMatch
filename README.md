@@ -6,23 +6,23 @@ Un'applicazione web full-stack che abbina i profili degli studenti alle aziende 
 
 stageMatch nasce per semplificare l'incontro tra studenti e aziende in cerca di tirocinanti: gli studenti costruiscono un profilo con competenze, preferenze e disponibilità, mentre le aziende pubblicano le proprie opportunità, e l'applicazione si occupa di individuare gli abbinamenti più rilevanti.
 
-L'autenticazione avviene tramite un portale SSO esterno (con fallback su Google OAuth), i dati sono gestiti con SQLAlchemy su SQLite e le funzionalità di geocoding, autocompletamento indirizzi e calcolo dei percorsi sono delegate a un servizio proxy interno dedicato, così da valutare anche la vicinanza geografica tra studente e azienda nel processo di abbinamento.
+L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchemy su SQLite e le funzionalità di geocoding, autocompletamento indirizzi e calcolo dei percorsi sono delegate a un servizio proxy interno dedicato, così da valutare anche la vicinanza geografica tra studente e azienda nel processo di abbinamento.
 
 ## Funzionalità principali
 
 - **Profili studente**: dati anagrafici, competenze tecniche (skill) e trasversali (soft skill), preferenze e cronologia degli indirizzi/percorsi cercati.
 - **Profili azienda**: registrazione tramite Google OAuth e pubblicazione delle informazioni utili all'abbinamento con gli studenti.
-- **Autenticazione a doppio canale**: login tramite il portale SSO d'istituto (JWT) oppure, in alternativa, Google OAuth.
+- **Autenticazione**: login di studenti e aziende tramite Google OAuth, gestito interamente dall'applicazione.
 - **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
 - **Gestione privacy**: tracciamento del consenso privacy per utente, con versionamento della policy (`PRIVACY_POLICY_VERSION`).
-- **Controlli di accesso**: whitelist utenti basata su file JSON e rate limiting delle sessioni simultanee (per singolo utente e a livello globale).
+- **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database.
 
 ## Stack tecnologico
 
 | Ambito | Tecnologie |
 | --- | --- |
 | Backend | Python, Flask, Flask-CORS, Flask-Login |
-| Autenticazione | PyJWT (validazione JWT del portale SSO), Authlib (Google OAuth) |
+| Autenticazione | Authlib (Google OAuth) |
 | Database | SQLAlchemy su SQLite |
 | Frontend | HTML/CSS/JS "vanilla" con template Jinja, senza framework né bundler; una coppia HTML/CSS/JS per ciascuna pagina in `resources/html` |
 | Servizi geografici esterni | Nominatim (geocoding), Photon (autocompletamento indirizzi), OpenRouteService (routing) |
@@ -41,9 +41,10 @@ L'applicazione è composta da due processi Flask indipendenti che comunicano tra
 stageMatch/
 ├── app.py                  # App principale Flask (porta 5000)
 ├── server.py                # Geo-proxy Flask (porta 5001)
-├── auth/                     # Autenticazione: SSO, JWT, whitelist, rate limiter, Google OAuth
+├── auth/                     # Autenticazione: Google OAuth, sessioni, rate limiter
 │   ├── auth.py
-│   ├── middleware/sso_middleware.py
+│   ├── rate_limiter.py
+│   ├── middleware/session_middleware.py
 │   └── auth_google/auth.py
 ├── database/                 # Livello dati SQLAlchemy
 │   ├── database_helper.py    # Unico punto di accesso al DB
@@ -76,7 +77,7 @@ In alternativa, con Docker Compose (avvia entrambi i servizi collegati tra loro)
 docker compose up --build
 ```
 
-Per lo sviluppo locale è disponibile una scorciatoia di autenticazione: impostando `SSO_MODE=dev` in `.env`, il login viene simulato senza bisogno del portale SSO reale (vedi `.env.example` per i dettagli).
+Il login (sia studenti che aziende) richiede credenziali Google OAuth valide (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) configurate su Google Cloud Console anche in locale.
 
 ### Variabili d'ambiente principali
 
@@ -84,14 +85,11 @@ Tutte le variabili sono documentate in `.env.example`; le principali sono:
 
 | Variabile | Descrizione |
 | --- | --- |
-| `SSO_MODE` | `production` (richiede JWT reale dal portale) o `dev` (login simulato in locale). |
-| `DEV_USER_EMAIL` | Email usata per il login automatico in modalità `dev` (sovrascrivibile con `?email=`). |
-| `JWT_SECRET` / `APP_AUDIENCE` | Segreto condiviso e audience per la validazione dei JWT emessi dal portale SSO. |
-| `PORTAL_URL` | URL del portale SSO usato per i redirect di login/logout. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenziali OAuth per il login/registrazione Google. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenziali OAuth per il login/registrazione Google di studenti e aziende. |
 | `ORS_API_KEY` | API key di OpenRouteService, usata da `server.py` per il calcolo dei percorsi. |
 | `SERVER_SECRET_KEY` | Segreto Flask per la firma dei cookie di sessione. |
 | `MAX_SESSIONS_PER_USER` / `MAX_SESSIONS_GLOBAL` | Limiti del rate limiter sulle sessioni simultanee. |
+| `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
 | `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite. |
 | `PORT` / `PORT_API` | Porte di ascolto rispettivamente di `app.py` e `server.py`. |
 

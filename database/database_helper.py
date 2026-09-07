@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from tracemalloc import start
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, selectinload
@@ -13,6 +11,7 @@ from .models.skill import Skill
 from .models.soft_skill import SoftSkill
 from .models.route import UserRoute
 from .models.privacy_consent import PrivacyConsent
+from .models.active_session import ActiveSession
 
 # global
 Session = None
@@ -221,6 +220,69 @@ def addUserRoute(user_id: str, route_data: dict):
         session.commit()
 
         return route
+
+def addActiveSession(session_id: str, email: str):
+    with Session() as session:
+        now = datetime.now(timezone.utc)
+        active_session = ActiveSession(
+            session_id=session_id,
+            email=email.lower(),
+            created_at=now,
+            last_seen=now
+        )
+        session.add(active_session)
+        session.commit()
+
+def touchActiveSession(session_id: str):
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if not active_session:
+            return
+
+        active_session.last_seen = datetime.now(timezone.utc)
+        session.commit()
+
+def removeActiveSession(session_id: str):
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if active_session:
+            session.delete(active_session)
+            session.commit()
+
+def isActiveSessionValid(session_id: str, ttl_seconds: int) -> bool:
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if not active_session:
+            return False
+
+        expires_at = active_session.last_seen + timedelta(seconds=ttl_seconds)
+
+        return datetime.now(timezone.utc) <= expires_at
+
+def getActiveSessionsByEmail(email: str):
+    with Session() as session:
+        return (
+            session.query(ActiveSession)
+            .filter_by(email=email.lower())
+            .order_by(ActiveSession.created_at.asc())
+            .all()
+        )
+
+def countActiveSessions() -> int:
+    with Session() as session:
+        return session.query(ActiveSession).count()
+
+def deleteExpiredActiveSessions(ttl_seconds: int):
+    with Session() as session:
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=ttl_seconds)
+
+        session.query(ActiveSession).filter(
+            ActiveSession.last_seen < cutoff
+        ).delete()
+        session.commit()
 
 def modelToDict(obj, include_relationships=True):
     result = {}
