@@ -258,7 +258,12 @@ def isActiveSessionValid(session_id: str, ttl_seconds: int) -> bool:
         if not active_session:
             return False
 
-        expires_at = active_session.last_seen + timedelta(seconds=ttl_seconds)
+        last_seen = active_session.last_seen
+
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+        expires_at = last_seen + timedelta(seconds=ttl_seconds)
 
         return datetime.now(timezone.utc) <= expires_at
 
