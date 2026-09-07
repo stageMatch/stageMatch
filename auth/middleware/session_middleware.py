@@ -99,10 +99,28 @@ ERROR_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Accesso</title>
     <style>
+        :root {
+            --midnight-blue: #0A0E1A;
+            --midnight-blue-light: #111625;
+            --emerald-green: #2ECC71;
+            --emerald-green-dark: #27AE60;
+
+            --bg: var(--midnight-blue);
+            --panel: var(--midnight-blue-light);
+            --accent: var(--emerald-green);
+            --text: #E8E6F4;
+            --text-muted: #7B74A0;
+            --border: rgba(46, 204, 113, 0.15);
+            --border-glow: rgba(46, 204, 113, 0.3);
+
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: var(--bg);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -110,8 +128,9 @@ ERROR_TEMPLATE = """
             padding: 20px;
         }
         .card {
-            background: white;
-            border-radius: 16px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             box-shadow: 0 24px 64px rgba(0,0,0,0.4);
             max-width: 480px;
             width: 100%;
@@ -119,20 +138,23 @@ ERROR_TEMPLATE = """
             text-align: center;
         }
         .icon { font-size: 56px; margin-bottom: 20px; }
-        h1 { color: #1a1a2e; font-size: 22px; margin-bottom: 12px; font-weight: 600; }
-        .message { color: #555; font-size: 15px; line-height: 1.7; margin-bottom: 32px; }
+        h1 { color: var(--text); font-size: 22px; margin-bottom: 12px; font-weight: 600; }
+        .message { color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 32px; }
         .btn {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: var(--accent);
+            color: var(--midnight-blue);
             padding: 13px 32px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             text-decoration: none;
             font-size: 15px;
-            font-weight: 500;
-            transition: opacity 0.2s;
+            font-weight: 600;
+            transition: var(--transition);
         }
-        .btn:hover { opacity: 0.88; }
+        .btn:hover {
+            background: var(--emerald-green-dark);
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
