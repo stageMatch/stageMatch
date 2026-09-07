@@ -15,27 +15,12 @@ session_middleware = SessionMiddleware(
     rate_limiter=rate_limiter
 )
 
-def getName(email: str, fallback_name: str = "") -> str:
+def getName(email: str) -> str:
     local_part = email.split("@")[0]
-    parts = local_part.split(".")
 
-    if len(parts) >= 2:
-        return parts[1]
+    return local_part.split(".")[1]
 
-    if fallback_name:
-        return fallback_name.split(" ")[0]
-
-    return local_part
-
-def getSurname(email: str, fallback_name: str = "") -> str:
+def getSurname(email: str) -> str:
     local_part = email.split("@")[0]
-    parts = local_part.split(".")
 
-    if len(parts) >= 2:
-        return parts[0]
-
-    if fallback_name:
-        tokens = fallback_name.split(" ")
-        return tokens[-1] if len(tokens) > 1 else tokens[0]
-
-    return local_part
+    return local_part.split(".")[0]

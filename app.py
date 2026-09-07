@@ -207,8 +207,8 @@ def completeLogin():
 
         user_data = {
             "googleId": user["googleId"],
-            "name": au.getName(user["email"], user.get("name")),
-            "surname": au.getSurname(user["email"], user.get("name")),
+            "name": au.getName(user["email"]),
+            "surname": au.getSurname(user["email"]),
             "email": user["email"],
             "data_nascita": data["data_nascita"],
             "sesso": data["sesso"],
@@ -231,8 +231,8 @@ def completeLogin():
         return redirect(url_for("dashboardStudent"))
 
     user_data = {
-        "name": au.getName(user["email"], user.get("name")),
-        "surname": au.getSurname(user["email"], user.get("name")),
+        "name": au.getName(user["email"]),
+        "surname": au.getSurname(user["email"]),
         "email": user["email"]
     }
 
