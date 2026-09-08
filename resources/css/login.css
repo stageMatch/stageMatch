@@ -36,6 +36,8 @@ body {
 
 .chooser-header {
     padding: 2rem 5%;
+    display: flex;
+    justify-content: center;
 }
 
 .chooser-logo {
@@ -228,4 +230,50 @@ body {
     line-height: 1;
     cursor: pointer;
     padding: 0 0 0 4px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+footer {
+    padding: 60px 5%;
+    background: rgba(10, 14, 26, 0.5);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+}
+
+.footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+}
+
+.footer-copy {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    footer {
+        flex-direction: column;
+        text-align: center;
+    }
 }

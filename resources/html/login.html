@@ -49,6 +49,23 @@
         <a href="{{ url_for('mainPage') }}" class="btn-back-link">← Torna alla Home</a>
     </main>
 
+    <footer>
+        <div>
+            <a class="nav-logo" href="{{ url_for('mainPage') }}">
+                <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="stageMatch Logo" class="logo-img">
+            </a>
+            <p class="footer-copy" style="margin-top: 10px;">Connecting talent with opportunity.</p>
+        </div>
+
+        <ul class="footer-links">
+            <li><a href="{{ url_for('privacy') }}">Privacy Policy</a></li>
+            <li><a href="#">Termini di Servizio</a></li>
+            <li><a href="mailto:info@stagematch.it">Contatti</a></li>
+        </ul>
+
+        <span class="footer-copy">© 2025-2026 stageMatch. Tutti i diritti riservati.</span>
+    </footer>
+
     <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>
