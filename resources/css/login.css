@@ -98,6 +98,10 @@ body {
     transition: var(--transition);
 }
 
+.chooser-card p {
+    flex: 1;
+}
+
 .chooser-card:hover {
     border-color: var(--accent);
     transform: translateY(-5px);
