@@ -46,7 +46,12 @@ class SessionMiddleware:
         return sid
 
     def _loginUrlForRole(self, role: str | None, notice: str) -> str:
-        endpoint = "loginCompany" if role == "company" else "loginStudent"
+        if role == "company":
+            endpoint = "loginCompany"
+        elif role == "user":
+            endpoint = "loginStudent"
+        else:
+            endpoint = "login"
 
         return url_for(endpoint, notice=notice)
 
@@ -57,12 +62,13 @@ class SessionMiddleware:
 
         `role` ("user" | "company") indica a quale pagina di login rimandare
         se la sessione manca/è scaduta. Se omesso, si usa session['auth_type']
-        (impostato al momento del login), con fallback a "user".
+        (impostato al momento del login); se anche questo manca, il ruolo è
+        sconosciuto e si rimanda alla pagina di scelta login (`/login`).
         """
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
-                target_role = role or session.get("auth_type") or "user"
+                target_role = role or session.get("auth_type")
 
                 if 'user' not in session:
                     logger.warning("Accesso senza sessione - redirect al login")

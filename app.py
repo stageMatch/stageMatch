@@ -72,6 +72,10 @@ def _completeLogin(user_data: dict):
 def mainPage():
     return render_template("html/landing.html")
 
+@app.route('/login')
+def login():
+    return render_template("/html/login.html")
+
 @app.route('/login/student')
 def loginStudent():
     return render_template("/html/login-student.html")

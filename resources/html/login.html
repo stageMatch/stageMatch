@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>stageMatch - Accedi</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="stageMatch">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}" />
+</head>
+<body>
+    <header class="chooser-header">
+        <a class="chooser-logo" href="{{ url_for('mainPage') }}">
+            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="stageMatch Logo" class="logo-img">
+        </a>
+    </header>
+
+    <main class="chooser-main">
+        <div class="chooser-intro" data-reveal>
+            <h1>Accedi a stageMatch</h1>
+            <p>Scegli come vuoi continuare</p>
+        </div>
+
+        <div class="chooser-grid">
+            <div class="chooser-card" data-reveal>
+                <div class="chooser-icon">🎓</div>
+                <h2>Sono uno Studente</h2>
+                <p>Trova stage in linea con le tue competenze e candidati in pochi click.</p>
+                <a href="{{ url_for('loginStudent') }}" class="btn btn-primary btn-lg">Accedi come Studente</a>
+            </div>
+
+            <div class="chooser-card" data-reveal>
+                <div class="chooser-icon">🏢</div>
+                <h2>Sono un'Azienda</h2>
+                <p>Pubblica posizioni e trova i talenti di domani.</p>
+                <a href="{{ url_for('loginCompany') }}" class="btn btn-primary btn-lg">Accedi come Azienda</a>
+            </div>
+        </div>
+
+        <a href="{{ url_for('mainPage') }}" class="btn-back-link">← Torna alla Home</a>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>
