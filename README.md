@@ -21,7 +21,7 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 
 | Ambito | Tecnologie |
 | --- | --- |
-| Backend | Python, Flask, Flask-CORS, Flask-Login |
+| Backend | Python, Flask, Flask-CORS |
 | Autenticazione | Authlib (Google OAuth) |
 | Database | SQLAlchemy su SQLite |
 | Frontend | HTML/CSS/JS "vanilla" con template Jinja, senza framework né bundler; una coppia HTML/CSS/JS per ciascuna pagina in `resources/html` |
@@ -48,10 +48,12 @@ stageMatch/
 │   └── auth_google/auth.py
 ├── database/                 # Livello dati SQLAlchemy
 │   ├── database_helper.py    # Unico punto di accesso al DB
-│   └── models/                # User, Company, UserPreferences, Skill, SoftSkill, UserRoute, PrivacyConsent
+│   └── models/                # User, Company, UserPreferences, Skill, SoftSkill, UserRoute, PrivacyConsent, ActiveSession
 ├── resources/                 # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
 │   ├── html/                  # Una pagina per file (landing, login, dashboard, mappa, ...)
-│   └── css/                   # Stili, incluse le variabili del design system
+│   ├── css/                   # Stili, incluse le variabili del design system
+│   ├── js/                    # Script lato client, vanilla JS (uno per pagina)
+│   └── img/                   # Immagini e asset statici
 ├── ARCHITECTURE.md           # Diagramma del flusso richieste/dati
 ├── CONTRIBUTING.md           # Regole di branch, commit e Pull Request
 ├── docker-compose.yml        # Orchestrazione dei due servizi (web + api)
@@ -81,7 +83,7 @@ Il login (sia studenti che aziende) richiede credenziali Google OAuth valide (`G
 
 ### Variabili d'ambiente principali
 
-Tutte le variabili sono documentate in `.env.example`; le principali sono:
+Le principali variabili sono documentate in `.env.example`:
 
 | Variabile | Descrizione |
 | --- | --- |
@@ -91,7 +93,9 @@ Tutte le variabili sono documentate in `.env.example`; le principali sono:
 | `MAX_SESSIONS_PER_USER` / `MAX_SESSIONS_GLOBAL` | Limiti del rate limiter sulle sessioni simultanee. |
 | `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
 | `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite. |
-| `PORT` / `PORT_API` | Porte di ascolto rispettivamente di `app.py` e `server.py`. |
+| `PORT` | Porta di ascolto di `app.py` (default `5000`). Presente in `.env.example`. |
+| `PORT_API` | Porta di ascolto di `server.py` (default `5001`). Non è in `.env.example`: va impostata nell'ambiente (lo fa già `docker-compose.yml`) se si vuole un valore diverso dal default. |
+| `HOST` | Host di bind per `app.py` e `server.py` (default `127.0.0.1`). Non è in `.env.example`. |
 
 > Nel repository non sono presenti al momento suite di test, linter o build step configurati.
 
