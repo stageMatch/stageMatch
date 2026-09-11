@@ -34,7 +34,8 @@ def getUserById(user_id: str):
                 selectinload(User.preferences),
                 selectinload(User.skills),
                 selectinload(User.soft_skills),
-                selectinload(User.routes)
+                selectinload(User.routes),
+                selectinload(User.notifications)
             )
             .filter_by(googleId=user_id)
             .first()
