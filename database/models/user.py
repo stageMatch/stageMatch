@@ -45,7 +45,7 @@ class User(Base):
         "UserRoute",
         back_populates="user",
         cascade="all, delete-orphan",
-        order_by="desc(UserRoute.id)"
+        order_by="desc(UserRoute.updated_at)"
 )
     notifications = relationship(
         "Notification",

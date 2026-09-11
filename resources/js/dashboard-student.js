@@ -1212,14 +1212,26 @@ document.addEventListener("DOMContentLoaded", () => {
         if (wrap && !wrap.contains(e.target)) closeNotifPanel();
     });
 
+    const heroGoToMapBtn = document.getElementById("heroGoToMapBtn");
+
+    function updateHeroMapLink(mode) {
+        if (!heroGoToMapBtn) return;
+        const params = new URLSearchParams({ routemode: mode });
+        heroGoToMapBtn.href = `${heroGoToMapBtn.getAttribute("href").split("?")[0]}?${params.toString()}`;
+    }
+
     document.querySelectorAll(".t-pill").forEach((pill) => {
         pill.addEventListener("click", () => {
             document
                 .querySelectorAll(".t-pill")
                 .forEach((p) => p.classList.remove("active"));
             pill.classList.add("active");
+            updateHeroMapLink(pill.dataset.mode);
         });
     });
+
+    const activePill = document.querySelector(".t-pill.active");
+    if (activePill) updateHeroMapLink(activePill.dataset.mode);
 
     document.querySelectorAll(".filter-btn").forEach((btn) => {
         btn.addEventListener("click", () => {

@@ -13,6 +13,17 @@ load_dotenv()
 
 PRIVACY_POLICY_VERSION = os.getenv("PRIVACY_POLICY_VERSION")
 
+TRANSPORT_MODE_LABELS = {
+    "driving-car": "Auto",
+    "foot-walking": "A piedi",
+    "cycling-regular": "Bicicletta"
+}
+TRANSPORT_MODE_ICONS = {
+    "driving-car": "i-car",
+    "foot-walking": "i-walk",
+    "cycling-regular": "i-bike"
+}
+
 app = Flask(
     __name__,
     static_folder="./resources",
@@ -270,7 +281,16 @@ def dashboardStudent():
         for notification in notifications
     ]
 
-    return render_template("/html/dashboard-student.html", user=user_data, notifications=notifications_data)
+    stats = database_helper.getRouteStats(user_data["routes"])
+    stats["preferredModeLabel"] = TRANSPORT_MODE_LABELS.get(stats["preferredMode"])
+    stats["preferredModeIconId"] = TRANSPORT_MODE_ICONS.get(stats["preferredMode"])
+
+    return render_template(
+        "/html/dashboard-student.html",
+        user=user_data,
+        notifications=notifications_data,
+        stats=stats
+    )
 
 @app.route("/logged/dashboard/company")
 @au.session_middleware.loginRequired(role="company")
@@ -380,15 +400,22 @@ def photon():
 def routejson():
     user = session["user"]
     params = request.get_json()
-    print(params)
     data = dict(params)
-    print(data)
-    database_helper.addUserRoute(user["googleId"], data)
-    print(data)
+
     api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
     response = requests.get(f"{api_url}/routejson", params=params, timeout=5)
+    response_data = response.json()
 
-    return response.json(), response.status_code
+    if response.ok and "error" not in response_data:
+        try:
+            distance_m = response_data["features"][0]["properties"]["summary"]["distance"]
+            data["distance_km"] = distance_m / 1000
+        except (KeyError, IndexError, TypeError):
+            data["distance_km"] = None
+
+        database_helper.addUserRoute(user["googleId"], data)
+
+    return response_data, response.status_code
 
 @app.errorhandler(404)
 def notFound(e):

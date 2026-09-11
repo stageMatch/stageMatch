@@ -281,14 +281,14 @@
                     <div class="stat-card animate-in">
                         <div class="stat-icon"><span class="icon"><svg><use href="#i-route"></use></svg></span></div>
                         <div>
-                            <div class="stat-num">247</div>
+                            <div class="stat-num">{{ "%.1f"|format(stats.totalKm) }}</div>
                             <div class="stat-lbl">km percorsi</div>
                         </div>
                     </div>
                     <div class="stat-card animate-in">
                         <div class="stat-icon"><span class="icon"><svg><use href="#i-map"></use></svg></span></div>
                         <div>
-                            <div class="stat-num">12</div>
+                            <div class="stat-num">{{ stats.totalRoutes }}</div>
                             <div class="stat-lbl">Percorsi totali</div>
                         </div>
                     </div>
@@ -300,11 +300,19 @@
                         </div>
                     </div>
                     <div class="stat-card animate-in">
-                        <div class="stat-icon"><span class="icon"><svg><use href="#i-car"></use></svg></span></div>
+                        {% if stats.preferredMode %}
+                        <div class="stat-icon"><span class="icon"><svg><use href="#{{ stats.preferredModeIconId }}"></use></svg></span></div>
                         <div>
-                            <div class="stat-num">Auto</div>
+                            <div class="stat-num">{{ stats.preferredModeLabel }}</div>
                             <div class="stat-lbl">Mezzo preferito</div>
                         </div>
+                        {% else %}
+                        <div class="stat-icon"><span class="icon"><svg><use href="#i-car"></use></svg></span></div>
+                        <div>
+                            <div class="stat-num" style="font-size:15px;">Nessun mezzo preferito</div>
+                            <div class="stat-lbl">Mezzo preferito</div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -331,17 +339,21 @@
                                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                         <circle cx="12" cy="10" r="3" />
                                     </svg>
-                                    Ultimo: Bergamo → Dalmine · 12 km
+                                    {% if stats.lastRoute %}
+                                    Ultimo: {{ stats.lastRoute.start_address }} → {{ stats.lastRoute.end_address }}{% if stats.lastRoute.distance_km %} · {{ "%.1f"|format(stats.lastRoute.distance_km) }} km{% endif %}
+                                    {% else %}
+                                    Nessun percorso disponibile
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         <div class="transport-pills">
-                            <div class="t-pill active"><span class="icon"><svg><use href="#i-car"></use></svg></span>Auto</div>
-                            <div class="t-pill"><span class="icon"><svg><use href="#i-walk"></use></svg></span>A piedi</div>
-                            <div class="t-pill"><span class="icon"><svg><use href="#i-bike"></use></svg></span>Bicicletta</div>
+                            <div class="t-pill active" data-mode="driving-car"><span class="icon"><svg><use href="#i-car"></use></svg></span>Auto</div>
+                            <div class="t-pill" data-mode="foot-walking"><span class="icon"><svg><use href="#i-walk"></use></svg></span>A piedi</div>
+                            <div class="t-pill" data-mode="cycling-regular"><span class="icon"><svg><use href="#i-bike"></use></svg></span>Bicicletta</div>
                         </div>
                         <div style="margin-top:16px">
-                            <a href="{{ url_for('map') }}" class="btn-primary" style="width:100%;justify-content:center;">
+                            <a href="{{ url_for('map') }}?routemode=driving-car" id="heroGoToMapBtn" class="btn-primary" style="width:100%;justify-content:center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                     fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
                                     stroke-linejoin="round">

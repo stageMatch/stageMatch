@@ -333,5 +333,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         calcolaPercorso();
+    } else if (routeMode) {
+        mode = routeMode;
+
+        transportButtons.forEach(btn => {
+            if (btn.dataset.mode === routeMode) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
     }
 });

@@ -202,18 +202,29 @@ def addUserRoute(user_id: str, route_data: dict):
         if not user:
             return None
 
-        route = UserRoute(
-            start_address=route_data["startaddress"],
-            end_address=route_data["endaddress"],
-            mode=route_data["routemode"]
+        distance_km = route_data.get("distance_km")
+
+        existing = next(
+            (
+                r for r in user.routes
+                if r.start_address == route_data["startaddress"] and
+                r.end_address == route_data["endaddress"] and
+                r.mode == route_data["routemode"]
+            ),
+            None
         )
 
-        if not any(
-            r.start_address == route.start_address and
-            r.end_address == route.end_address and
-            r.mode == route.mode
-            for r in user.routes
-        ):
+        if existing:
+            existing.distance_km = distance_km
+            existing.updated_at = datetime.now(timezone.utc)
+            route = existing
+        else:
+            route = UserRoute(
+                start_address=route_data["startaddress"],
+                end_address=route_data["endaddress"],
+                mode=route_data["routemode"],
+                distance_km=distance_km
+            )
             user.routes.append(route)
 
         if len(user.routes) > 25:
@@ -222,6 +233,41 @@ def addUserRoute(user_id: str, route_data: dict):
         session.commit()
 
         return route
+
+def getRouteStats(routes: list):
+    """Aggrega la lista di percorsi (dict, es. user_data["routes"]) in statistiche
+    per la dashboard: km totali, numero percorsi, mezzo preferito e ultimo percorso."""
+    if not routes:
+        return {
+            "totalRoutes": 0,
+            "totalKm": 0.0,
+            "preferredMode": None,
+            "lastRoute": None
+        }
+
+    total_km = sum(r.get("distance_km") or 0 for r in routes)
+
+    occurrences = {}
+    km_by_mode = {}
+    for r in routes:
+        mode = r.get("mode")
+        occurrences[mode] = occurrences.get(mode, 0) + 1
+        km_by_mode[mode] = km_by_mode.get(mode, 0) + (r.get("distance_km") or 0)
+
+    max_occurrences = max(occurrences.values())
+    tied_modes = [mode for mode, count in occurrences.items() if count == max_occurrences]
+
+    if len(tied_modes) == 1:
+        preferred_mode = tied_modes[0]
+    else:
+        preferred_mode = max(tied_modes, key=lambda mode: km_by_mode[mode])
+
+    return {
+        "totalRoutes": len(routes),
+        "totalKm": total_km,
+        "preferredMode": preferred_mode,
+        "lastRoute": routes[0]
+    }
 
 def getUserNotifications(user_id: str):
     with Session() as session:
