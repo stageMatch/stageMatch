@@ -274,6 +274,8 @@ body {
 
 /* Topbar */
 .topbar {
+    position: relative;
+    z-index: 300;
     height: var(--tb-h);
     border-bottom: 1px solid var(--border);
     padding: 0 26px;
@@ -343,7 +345,6 @@ body {
     transition: all 0.2s;
     flex-shrink: 0;
     position: relative;
-    overflow: hidden;
     color: var(--text);
 }
 
@@ -383,10 +384,10 @@ body {
     max-height: 420px;
     display: flex;
     flex-direction: column;
-    background: var(--midnight-blue-light);
-    border: 1px solid var(--border);
+    background: #1a1830;
+    border: 1px solid rgba(46, 204, 113, 0.18);
     border-radius: var(--radius-lg, 16px);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .7), 0 0 0 1px rgba(0, 0, 0, .35);
     overflow: hidden;
     opacity: 0;
     transform: translateY(8px) scale(.97);
@@ -502,16 +503,13 @@ body {
     -webkit-box-orient: vertical;
 }
 
-.notif-item.expanded .notif-item-message {
-    display: block;
-    -webkit-line-clamp: unset;
-    color: var(--text);
+.notif-item-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
 }
 
 .notif-item-check {
-    position: absolute;
-    top: 12px;
-    right: 14px;
     width: 22px;
     height: 22px;
     border-radius: 50%;
@@ -1546,6 +1544,19 @@ body {
     gap: 8px;
 }
 
+.notif-details-modal {
+    width: min(480px, 92vw);
+    padding: 1.5rem;
+}
+
+.notif-details-message {
+    margin-top: 1rem;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+}
+
 @media (max-width: 640px) {
     .company-details-modal {
         padding: 1.1rem;
@@ -1673,6 +1684,7 @@ body {
         left: 0;
         height: 100vh;
         transform: translateX(-100%);
+        z-index: 400;
     }
 
     .sidebar.open {
@@ -2004,7 +2016,7 @@ body {
     min-height: 0;
 }
 
-.logout-overlay.active .profilo-modal {
+.modal-overlay.active .profilo-modal {
     transform: translateY(0) scale(1);
 }
 
@@ -2645,7 +2657,7 @@ body {
     }
 }
 
-.logout-overlay {
+.modal-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
@@ -2660,12 +2672,12 @@ body {
     transition: opacity 0.22s ease;
 }
 
-.logout-overlay.active {
+.modal-overlay.active {
     opacity: 1;
     pointer-events: all;
 }
 
-.logout-modal {
+.modal-box {
     background: var(--midnight-blue-light);
     border: 1px solid var(--border);
     border-radius: 20px;
@@ -2676,11 +2688,11 @@ body {
     transition: transform 0.28s cubic-bezier(0.34, 1.36, 0.64, 1);
 }
 
-.logout-overlay.active .logout-modal {
+.modal-overlay.active .modal-box {
     transform: translateY(0) scale(1);
 }
 
-.logout-modal-icon {
+.modal-icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
@@ -2693,7 +2705,7 @@ body {
     margin-bottom: 1.2rem;
 }
 
-.logout-modal-title {
+.modal-title {
     font-family: inherit;
     font-size: 1.2rem;
     font-weight: 700;
@@ -2701,20 +2713,20 @@ body {
     margin-bottom: 0.5rem;
 }
 
-.logout-modal-desc {
+.modal-desc {
     font-size: 0.85rem;
     color: var(--muted);
     line-height: 1.6;
     margin-bottom: 1.8rem;
 }
 
-.logout-modal-actions {
+.modal-actions {
     display: flex;
     gap: 0.75rem;
 }
 
-.logout-btn-cancel,
-.logout-btn-confirm {
+.modal-btn-cancel,
+.modal-btn-confirm {
     flex: 1;
     padding: 0.75rem 1rem;
     border-radius: 10px;
@@ -2726,28 +2738,28 @@ body {
     transition: all 0.2s ease;
 }
 
-.logout-btn-cancel {
+.modal-btn-cancel {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
     color: var(--text);
 }
 
-.logout-btn-cancel:hover {
+.modal-btn-cancel:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: var(--emerald-green);
 }
 
-.logout-btn-confirm {
+.modal-btn-confirm {
     background: #ff4d4d;
     color: white;
 }
 
-.logout-btn-confirm:hover {
+.modal-btn-confirm:hover {
     background: #ff3333;
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3);
 }
 
-.logout-btn-confirm:active {
+.modal-btn-confirm:active {
     transform: scale(0.97);
 }

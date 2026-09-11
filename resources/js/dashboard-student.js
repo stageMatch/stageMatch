@@ -915,7 +915,6 @@ function showToast(msg) {
 }
 
 let notifications = [];
-let expandedNotifId = null;
 
 function loadNotificationsData() {
     const el = document.getElementById("notifications-data");
@@ -958,7 +957,7 @@ function renderNotifications() {
     list.innerHTML = notifications
         .map(
             (n) => `
-        <div class="notif-item ${n.is_read ? "read" : "unread"}${n.id === expandedNotifId ? " expanded" : ""}" data-notif-id="${n.id}">
+        <div class="notif-item ${n.is_read ? "read" : "unread"}" data-notif-id="${n.id}">
             <div class="notif-item-dot"></div>
             <div class="notif-item-body">
                 <div class="notif-item-top">
@@ -967,17 +966,40 @@ function renderNotifications() {
                 </div>
                 ${n.sender ? `<div class="notif-item-sender">${escapeHtml(n.sender)}</div>` : ""}
                 <div class="notif-item-message">${escapeHtml(n.message)}</div>
+                ${
+                    !n.is_read
+                        ? `<div class="notif-item-footer">
+                        <button class="notif-item-check" type="button" title="Segna come letta" data-notif-check="${n.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg>
+                        </button>
+                    </div>`
+                        : ""
+                }
             </div>
-            ${
-                !n.is_read
-                    ? `<button class="notif-item-check" type="button" title="Segna come letta" data-notif-check="${n.id}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg>
-                </button>`
-                    : ""
-            }
         </div>`,
         )
         .join("");
+}
+
+function openNotifDetails(id) {
+    const notif = notifications.find((n) => n.id === id);
+    const overlay = document.getElementById("notifDetailsOverlay");
+    if (!notif || !overlay) return;
+
+    document.getElementById("notifDetailsTitle").textContent = notif.title;
+    document.getElementById("notifDetailsMeta").textContent = notif.sender
+        ? `${notif.sender} · ${formatNotifTime(notif.created_at)}`
+        : formatNotifTime(notif.created_at);
+    document.getElementById("notifDetailsMessage").textContent = notif.message;
+
+    overlay.classList.add("active");
+    markNotificationRead(id);
+}
+
+function closeNotifDetails() {
+    const overlay = document.getElementById("notifDetailsOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("active");
 }
 
 async function markNotificationRead(id) {
@@ -1171,10 +1193,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const item = e.target.closest(".notif-item");
             if (!item) return;
 
-            const id = Number(item.dataset.notifId);
-            expandedNotifId = expandedNotifId === id ? null : id;
-            markNotificationRead(id);
-            renderNotifications();
+            openNotifDetails(Number(item.dataset.notifId));
+        });
+    }
+
+    const notifDetailsOverlay = document.getElementById("notifDetailsOverlay");
+    if (notifDetailsOverlay) {
+        document
+            .getElementById("notifDetailsClose")
+            .addEventListener("click", closeNotifDetails);
+        notifDetailsOverlay.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeNotifDetails();
         });
     }
 
@@ -1233,7 +1262,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document
-        .querySelector("#profiloOverlay .logout-btn-cancel")
+        .querySelector("#profiloOverlay .modal-btn-cancel")
         .addEventListener("click", closeProfiloModal);
     document
         .getElementById("btnSalvaProfilo")
@@ -1245,7 +1274,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document
-        .querySelector("#impOverlay .logout-btn-cancel")
+        .querySelector("#impOverlay .modal-btn-cancel")
         .addEventListener("click", closeImpModal);
     document
         .getElementById("btnSalvaImp")

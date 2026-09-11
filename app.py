@@ -232,6 +232,13 @@ def completeLogin():
             }
         )
 
+        database_helper.addNotification(
+            user["googleId"],
+            "Benvenuto su stageMatch!",
+            "La tua registrazione è avvenuta con successo. Completa il tuo profilo per iniziare a ricevere match con le aziende.",
+            sender="stageMatch"
+        )
+
         return redirect(url_for("dashboardStudent"))
 
     user_data = {

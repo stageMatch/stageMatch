@@ -818,7 +818,7 @@
         </div>
     </div>
 
-    <div class="logout-overlay" id="impOverlay">
+    <div class="modal-overlay" id="impOverlay">
         <div class="profilo-modal" style="width:min(440px,96vw)">
             <div class="profilo-modal-head">
                 <div class="profilo-modal-title" id="impModalTitle">Modifica</div>
@@ -827,13 +827,13 @@
             <div style="padding:18px 22px 0; flex:1; overflow-y:auto;" id="impModalBody"></div>
             <div class="profilo-modal-footer">
                 <div class="pro-api-status" id="impApiStatus"></div>
-                <button class="logout-btn-cancel">Annulla</button>
-                <button class="logout-btn-confirm" id="btnSalvaImp">Salva</button>
+                <button class="modal-btn-cancel">Annulla</button>
+                <button class="modal-btn-confirm" id="btnSalvaImp">Salva</button>
             </div>
         </div>
     </div>
 
-    <div class="logout-overlay" id="profiloOverlay">
+    <div class="modal-overlay" id="profiloOverlay">
         <div class="profilo-modal">
             <div class="profilo-modal-head">
                 <div class="profilo-modal-title"><span class="icon"><svg><use href="#i-pencil"></use></svg></span>Modifica profilo</div>
@@ -888,17 +888,17 @@
             <div class="profilo-modal-footer">
                 <div class="pro-api-status" id="proApiStatus"></div>
                 <div class="profilo-modal-actions">
-                    <button class="logout-btn-cancel">Annulla</button>
-                    <button class="logout-btn-confirm" id="btnSalvaProfilo">Salva modifiche</button>
+                    <button class="modal-btn-cancel">Annulla</button>
+                    <button class="modal-btn-confirm" id="btnSalvaProfilo">Salva modifiche</button>
                 </div>
             </div>
         </div>
     </div>
     </div>
 
-    <div class="logout-overlay" id="logoutOverlay">
-        <div class="logout-modal">
-            <div class="logout-modal-icon">
+    <div class="modal-overlay" id="logoutOverlay">
+        <div class="modal-box">
+            <div class="modal-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -906,26 +906,39 @@
                     <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
             </div>
-            <div class="logout-modal-title">Sei sicuro di voler uscire?</div>
-            <div class="logout-modal-desc">La tua sessione verrà terminata e dovrai effettuare nuovamente l'accesso.
+            <div class="modal-title">Sei sicuro di voler uscire?</div>
+            <div class="modal-desc">La tua sessione verrà terminata e dovrai effettuare nuovamente l'accesso.
             </div>
-            <div class="logout-modal-actions">
-                <button class="logout-btn-cancel" id="logoutCancel">Annulla</button>
-                <button class="logout-btn-confirm" id="logoutConfirm">Conferma</button>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" id="logoutCancel">Annulla</button>
+                <button class="modal-btn-confirm" id="logoutConfirm">Conferma</button>
             </div>
         </div>
     </div>
 
-    <div class="logout-overlay" id="companyDetailsOverlay">
-        <div class="logout-modal company-details-modal">
+    <div class="modal-overlay" id="companyDetailsOverlay">
+        <div class="modal-box company-details-modal">
             <div class="company-details-header">
                 <div>
-                    <div class="logout-modal-title">Dettagli azienda</div>
-                    <div class="logout-modal-desc company-details-subtitle">Informazioni e contatti del match selezionato.</div>
+                    <div class="modal-title">Dettagli azienda</div>
+                    <div class="modal-desc company-details-subtitle">Informazioni e contatti del match selezionato.</div>
                 </div>
                 <button class="profilo-modal-close" id="companyDetailsClose" type="button">✕</button>
             </div>
             <div id="companyDetailsContent"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="notifDetailsOverlay">
+        <div class="modal-box notif-details-modal">
+            <div class="company-details-header">
+                <div>
+                    <div class="modal-title" id="notifDetailsTitle"></div>
+                    <div class="modal-desc company-details-subtitle" id="notifDetailsMeta"></div>
+                </div>
+                <button class="profilo-modal-close" id="notifDetailsClose" type="button">✕</button>
+            </div>
+            <div class="notif-details-message" id="notifDetailsMessage"></div>
         </div>
     </div>
 
