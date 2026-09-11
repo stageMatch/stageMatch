@@ -250,7 +250,20 @@ def dashboardStudent():
     user_data = database_helper.modelToDict(data)
     user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
 
-    return render_template("/html/dashboard-student.html", user=user_data)
+    notifications = database_helper.getUserNotifications(user["googleId"])
+    notifications_data = [
+        {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
+        for notification in notifications
+    ]
+
+    return render_template("/html/dashboard-student.html", user=user_data, notifications=notifications_data)
 
 @app.route("/logged/dashboard/company")
 @au.session_middleware.loginRequired(role="company")
@@ -325,6 +338,22 @@ def getUserRoutes():
     print(routes)
 
     return jsonify(routes)
+
+@app.route("/api/users/notifications/read", methods=["POST"])
+@au.session_middleware.loginRequired(role="user")
+def markNotificationRead():
+    data = request.get_json()
+
+    if not data or "notification_id" not in data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    user = session["user"]
+    success = database_helper.markNotificationRead(user["googleId"], data["notification_id"])
+
+    if not success:
+        return jsonify({"error": "Notification not found"}), 404
+
+    return jsonify({"message": "Notification marked as read"}), 200
 
 @app.route("/api/data", methods=["GET", "POST"])
 def getAndSendData():

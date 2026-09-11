@@ -914,16 +914,104 @@ function showToast(msg) {
     toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
-let notificationsMuted = false;
+let notifications = [];
+let expandedNotifId = null;
 
-function updateNotificationsToggle() {
+function loadNotificationsData() {
+    const el = document.getElementById("notifications-data");
+    if (!el) return;
+    try {
+        notifications = JSON.parse(el.textContent) || [];
+    } catch {
+        notifications = [];
+    }
+}
+
+function formatNotifTime(iso) {
+    const date = new Date(iso);
+    if (isNaN(date)) return "";
+    return date.toLocaleString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function renderNotifications() {
+    const list = document.getElementById("notifList");
+    const empty = document.getElementById("notifEmpty");
+    const badge = document.getElementById("notifBadge");
+    if (!list || !empty || !badge) return;
+
+    const unreadCount = notifications.filter((n) => !n.is_read).length;
+    badge.textContent = String(unreadCount);
+    badge.classList.toggle("hidden", unreadCount === 0);
+
+    if (notifications.length === 0) {
+        list.innerHTML = "";
+        empty.classList.remove("hidden");
+        return;
+    }
+
+    empty.classList.add("hidden");
+    list.innerHTML = notifications
+        .map(
+            (n) => `
+        <div class="notif-item ${n.is_read ? "read" : "unread"}${n.id === expandedNotifId ? " expanded" : ""}" data-notif-id="${n.id}">
+            <div class="notif-item-dot"></div>
+            <div class="notif-item-body">
+                <div class="notif-item-top">
+                    <span class="notif-item-title">${escapeHtml(n.title)}</span>
+                    <span class="notif-item-time">${formatNotifTime(n.created_at)}</span>
+                </div>
+                ${n.sender ? `<div class="notif-item-sender">${escapeHtml(n.sender)}</div>` : ""}
+                <div class="notif-item-message">${escapeHtml(n.message)}</div>
+            </div>
+            ${
+                !n.is_read
+                    ? `<button class="notif-item-check" type="button" title="Segna come letta" data-notif-check="${n.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg>
+                </button>`
+                    : ""
+            }
+        </div>`,
+        )
+        .join("");
+}
+
+async function markNotificationRead(id) {
+    const notif = notifications.find((n) => n.id === id);
+    if (!notif || notif.is_read) return;
+
+    notif.is_read = true;
+    renderNotifications();
+
+    try {
+        await fetch("/api/users/notifications/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notification_id: id }),
+        });
+    } catch {
+        // Stato locale già aggiornato; un eventuale errore di rete non blocca la UI.
+    }
+}
+
+function toggleNotifPanel() {
+    const panel = document.getElementById("notifPanel");
     const btn = document.getElementById("notificationsToggle");
-    if (!btn) return;
-    btn.classList.toggle("muted", notificationsMuted);
-    btn.setAttribute("aria-pressed", String(notificationsMuted));
-    btn.title = notificationsMuted
-        ? "Riattiva notifiche"
-        : "Disattiva notifiche";
+    if (!panel || !btn) return;
+    const isActive = panel.classList.toggle("active");
+    btn.setAttribute("aria-expanded", String(isActive));
+}
+
+function closeNotifPanel() {
+    const panel = document.getElementById("notifPanel");
+    const btn = document.getElementById("notificationsToggle");
+    if (!panel || !btn) return;
+    panel.classList.remove("active");
+    btn.setAttribute("aria-expanded", "false");
 }
 
 function esportaDati() {
@@ -968,7 +1056,8 @@ function closeSidebar() {
 
 document.addEventListener("DOMContentLoaded", () => {
     loadRoutes();
-    updateNotificationsToggle();
+    loadNotificationsData();
+    renderNotifications();
     loadProfiloData();
 
     document.getElementById("overlay").addEventListener("click", closeSidebar);
@@ -1063,16 +1152,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const notificationsToggle = document.getElementById("notificationsToggle");
     if (notificationsToggle) {
-        notificationsToggle.addEventListener("click", () => {
-            notificationsMuted = !notificationsMuted;
-            updateNotificationsToggle();
-            showToast(
-                notificationsMuted
-                    ? "Notifiche silenziate"
-                    : "Notifiche riattivate",
-            );
+        notificationsToggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleNotifPanel();
         });
     }
+
+    const notifList = document.getElementById("notifList");
+    if (notifList) {
+        notifList.addEventListener("click", (e) => {
+            const checkBtn = e.target.closest("[data-notif-check]");
+            if (checkBtn) {
+                e.stopPropagation();
+                markNotificationRead(Number(checkBtn.dataset.notifCheck));
+                return;
+            }
+
+            const item = e.target.closest(".notif-item");
+            if (!item) return;
+
+            const id = Number(item.dataset.notifId);
+            expandedNotifId = expandedNotifId === id ? null : id;
+            markNotificationRead(id);
+            renderNotifications();
+        });
+    }
+
+    document.addEventListener("click", (e) => {
+        const wrap = document.getElementById("notifWrap");
+        if (wrap && !wrap.contains(e.target)) closeNotifPanel();
+    });
 
     document.querySelectorAll(".t-pill").forEach((pill) => {
         pill.addEventListener("click", () => {
@@ -1183,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
             closeLogoutModal();
             closeProfiloModal();
             closeImpModal();
+            closeNotifPanel();
         }
     });
 });

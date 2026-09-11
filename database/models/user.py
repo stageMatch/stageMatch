@@ -47,6 +47,13 @@ class User(Base):
         cascade="all, delete-orphan",
         order_by="desc(UserRoute.id)"
 )
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Notification.id)"
+    )
+
     @validates("codice_fiscale")
     def validateCodiceFiscale(self, key, value):
         if not value:

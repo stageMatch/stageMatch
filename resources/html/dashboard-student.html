@@ -233,11 +233,22 @@
                     <div class="topbar-greeting">Buonasera, <span>{{ user.name }}</span></div>
                 </div>
                 <div class="topbar-right">
-                    <button class="topbar-icon-btn" id="notificationsToggle" type="button" aria-pressed="false" title="Disattiva notifiche">
-                        <span class="icon icon-bell-on"><svg><use href="#i-bell"></use></svg></span>
-                        <span class="icon icon-bell-off"><svg><use href="#i-bell-off"></use></svg></span>
-                        <span class="mute-bar" aria-hidden="true"></span>
-                    </button>
+                    <div class="notif-wrap" id="notifWrap">
+                        <button class="topbar-icon-btn" id="notificationsToggle" type="button" aria-expanded="false" title="Notifiche">
+                            <span class="icon"><svg><use href="#i-bell"></use></svg></span>
+                            <span class="notif-badge hidden" id="notifBadge">0</span>
+                        </button>
+                        <div class="notif-panel" id="notifPanel">
+                            <div class="notif-panel-head">
+                                <span class="notif-panel-title"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</span>
+                            </div>
+                            <div class="notif-panel-body" id="notifList"></div>
+                            <div class="notif-empty hidden" id="notifEmpty">
+                                <div class="empty-state-icon"><span class="icon"><svg><use href="#i-bell-off"></use></svg></span></div>
+                                <span>Nessuna notifica</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="topbar-icon-btn" id="profiloButton" title="Profilo"><span class="icon"><svg><use href="#i-user"></use></svg></span></div>
                 </div>
             </header>
@@ -918,6 +929,7 @@
         </div>
     </div>
 
+    <script id="notifications-data" type="application/json">{{ notifications | tojson }}</script>
     <script src="{{ url_for('static', filename='js/dashboard-student.js') }}"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ from .models.user_preferences import UserPreferences
 from .models.skill import Skill
 from .models.soft_skill import SoftSkill
 from .models.route import UserRoute
+from .models.notification import Notification
 from .models.privacy_consent import PrivacyConsent
 from .models.active_session import ActiveSession
 
@@ -220,6 +221,49 @@ def addUserRoute(user_id: str, route_data: dict):
         session.commit()
 
         return route
+
+def getUserNotifications(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Notification)
+            .filter_by(user_id=user_id)
+            .order_by(Notification.id.desc())
+            .all()
+        )
+
+def markNotificationRead(user_id: str, notification_id: int) -> bool:
+    with Session() as session:
+        notification = session.get(Notification, notification_id)
+
+        if not notification or notification.user_id != user_id:
+            return False
+
+        notification.is_read = True
+        session.commit()
+
+        return True
+
+def addNotification(user_id: str, title: str, message: str, sender: str | None = None):
+    """Create a notification for a user. Ready for future automatic/system or admin use."""
+    with Session() as session:
+        user = session.query(User).filter_by(googleId=user_id).first()
+
+        if not user:
+            return None
+
+        notification = Notification(title=title, message=message, sender=sender)
+        user.notifications.append(notification)
+
+        session.commit()
+
+        return {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
 
 def addActiveSession(session_id: str, email: str):
     with Session() as session:
