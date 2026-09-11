@@ -408,10 +408,16 @@ def routejson():
 
     if response.ok and "error" not in response_data:
         try:
-            distance_m = response_data["features"][0]["properties"]["summary"]["distance"]
-            data["distance_km"] = distance_m / 1000
+            summary = response_data["features"][0]["properties"]["summary"]
+            data["distance_km"] = summary["distance"] / 1000
         except (KeyError, IndexError, TypeError):
             data["distance_km"] = None
+
+        try:
+            summary = response_data["features"][0]["properties"]["summary"]
+            data["duration_min"] = summary["duration"] / 60
+        except (KeyError, IndexError, TypeError):
+            data["duration_min"] = None
 
         database_helper.addUserRoute(user["googleId"], data)
 

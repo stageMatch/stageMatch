@@ -304,13 +304,12 @@ function renderRoutes(routes, filter = "all") {
             const label = modeLabel[r.mode] || r.mode;
             const icon = modeIcon[r.mode] || svgIcon("i-car");
             const badge = modeBadge[r.mode] || "car";
-            const safeR = encodeURIComponent(JSON.stringify(r));
 
             return `
-        <div class="route-card" data-mode="${r.mode}">
+        <div class="route-card" data-mode="${r.mode}" data-id="${r.id}">
           <div class="route-card-icon">${icon}</div>
           <div class="route-card-info">
-            <div class="route-card-title">${r.from} → ${r.to}</div>
+            <div class="route-card-title">${escapeHtml(r.from)} → ${escapeHtml(r.to)}</div>
             <div class="route-card-meta">
               <span><strong>${r.date || "--"}</strong></span>
               <span><strong>${r.distanceKm || "--"} km</strong></span>
@@ -319,7 +318,7 @@ function renderRoutes(routes, filter = "all") {
             </div>
           </div>
           <div class="route-card-actions">
-            <button class="btn-repeat" onclick="repeatRoute(decodeURIComponent('${safeR}'))">
+            <button class="btn-repeat" type="button" data-action="repeat-route" data-id="${r.id}">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
                    fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -345,9 +344,9 @@ async function loadRoutes() {
             to: r.end_address,
             startaddress: r.start_address,
             endaddress: r.end_address,
-            distanceKm: null, // Non presente nel DB
-            durationMin: null, // Non presente nel DB
-            date: null // Non presente nel DB
+            distanceKm: r.distance_km != null ? r.distance_km.toFixed(1) : null,
+            durationMin: r.duration_min != null ? Math.round(r.duration_min) : null,
+            date: r.updated_at ? new Date(r.updated_at).toLocaleDateString("it-IT") : null
         }));
 
         percorsiLoaded = true;
@@ -358,14 +357,57 @@ async function loadRoutes() {
     }
 }
 
-function repeatRoute(routeJSON) {
-    const r = JSON.parse(routeJSON);
+function getUserRouteById(routeId) {
+    return userRoutes.find((r) => String(r.id) === String(routeId));
+}
+
+function repeatRoute(route) {
+    if (!route) return;
     const params = new URLSearchParams({
-        startaddress: r.startaddress,
-        endaddress: r.endaddress,
-        routemode: r.mode,
+        startaddress: route.startaddress,
+        endaddress: route.endaddress,
+        routemode: route.mode,
     });
     window.location.href = `/logged/map?${params.toString()}`;
+}
+
+function renderRouteDetailsModal(route) {
+    const content = document.getElementById("routeDetailsContent");
+    const label = modeLabel[route.mode] || route.mode;
+    const icon = modeIcon[route.mode] || svgIcon("i-car");
+
+    content.innerHTML = `
+      <div class="pro-rows">
+        <div class="pro-row"><span class="pro-lbl">Partenza</span><span class="pro-val">${escapeHtml(route.from)}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Destinazione</span><span class="pro-val">${escapeHtml(route.to)}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Mezzo</span><span class="pro-val">${icon} ${label}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Distanza</span><span class="pro-val">${route.distanceKm || "--"} km</span></div>
+        <div class="pro-row"><span class="pro-lbl">Durata</span><span class="pro-val">${route.durationMin || "--"} min</span></div>
+        <div class="pro-row"><span class="pro-lbl">Data</span><span class="pro-val">${route.date || "--"}</span></div>
+      </div>
+      <button class="co-map-btn" type="button" data-action="repeat-route" data-id="${route.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+             fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Ripeti
+      </button>
+    `;
+}
+
+function openRouteDetails(routeId) {
+    const route = getUserRouteById(routeId);
+    const overlay = document.getElementById("routeDetailsOverlay");
+    if (!route || !overlay) return;
+
+    renderRouteDetailsModal(route);
+    overlay.classList.add("active");
+}
+
+function closeRouteDetails() {
+    const overlay = document.getElementById("routeDetailsOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("active");
 }
 
 function goToMap(companyId) {
@@ -395,10 +437,10 @@ function renderRecentRoutes() {
     list.innerHTML = recent
         .map(
             (r) => `
-      <div class="route-item">
+      <div class="route-item" data-id="${r.id}">
         <div class="route-icon">${modeIcon[r.mode] || svgIcon("i-car")}</div>
         <div class="route-info">
-          <div class="route-from-to">${r.from} → ${r.to}</div>
+          <div class="route-from-to">${escapeHtml(r.from)} → ${escapeHtml(r.to)}</div>
           <div class="route-meta">${r.date || "--"} · ${r.distanceKm || "--"} km · ${r.durationMin || "--"} min</div>
         </div>
         <span class="route-badge ${modeBadge[r.mode] || "car"}">${modeLabel[r.mode] || "Auto"}</span>
@@ -1167,9 +1209,53 @@ document.addEventListener("DOMContentLoaded", () => {
         showSection("aziende");
         setActive(document.getElementById("navAziende"));
     });
-    document.getElementById("btnVediPercorsi").addEventListener("click", () => {
+    function goToPercorsiSection() {
         showSection("percorsi");
         setActive(document.getElementById("navPercorsi"));
+    }
+
+    document
+        .getElementById("btnVediPercorsi")
+        .addEventListener("click", goToPercorsiSection);
+
+    document.getElementById("recentRoutesList").addEventListener("click", (e) => {
+        if (e.target.closest(".route-item")) goToPercorsiSection();
+    });
+
+    document.getElementById("percorsiList").addEventListener("click", (e) => {
+        const repeatButton = e.target.closest('[data-action="repeat-route"]');
+        if (repeatButton) {
+            repeatRoute(getUserRouteById(repeatButton.dataset.id));
+            return;
+        }
+
+        const card = e.target.closest(".route-card");
+        if (card) openRouteDetails(card.dataset.id);
+    });
+
+    document
+        .getElementById("routeDetailsClose")
+        .addEventListener("click", closeRouteDetails);
+    document
+        .getElementById("routeDetailsOverlay")
+        .addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeRouteDetails();
+        });
+    document
+        .getElementById("routeDetailsContent")
+        .addEventListener("click", (e) => {
+            const repeatButton = e.target.closest('[data-action="repeat-route"]');
+            if (repeatButton) repeatRoute(getUserRouteById(repeatButton.dataset.id));
+        });
+    document.addEventListener("keydown", (e) => {
+        if (
+            e.key === "Escape" &&
+            document
+                .getElementById("routeDetailsOverlay")
+                .classList.contains("active")
+        ) {
+            closeRouteDetails();
+        }
     });
 
     const notificationsToggle = document.getElementById("notificationsToggle");

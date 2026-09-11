@@ -307,7 +307,7 @@
                             <div class="stat-lbl">Mezzo preferito</div>
                         </div>
                         {% else %}
-                        <div class="stat-icon"><span class="icon"><svg><use href="#i-car"></use></svg></span></div>
+                        <div class="stat-icon"><span class="icon"><svg><use href="#i-info"></use></svg></span></div>
                         <div>
                             <div class="stat-num" style="font-size:15px;">Nessun mezzo preferito</div>
                             <div class="stat-lbl">Mezzo preferito</div>
@@ -951,6 +951,19 @@
                 <button class="profilo-modal-close" id="notifDetailsClose" type="button">✕</button>
             </div>
             <div class="notif-details-message" id="notifDetailsMessage"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="routeDetailsOverlay">
+        <div class="modal-box company-details-modal">
+            <div class="company-details-header">
+                <div>
+                    <div class="modal-title">Dettagli percorso</div>
+                    <div class="modal-desc company-details-subtitle">Informazioni sul percorso selezionato.</div>
+                </div>
+                <button class="profilo-modal-close" id="routeDetailsClose" type="button">✕</button>
+            </div>
+            <div id="routeDetailsContent"></div>
         </div>
     </div>
 

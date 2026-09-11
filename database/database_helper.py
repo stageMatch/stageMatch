@@ -203,6 +203,7 @@ def addUserRoute(user_id: str, route_data: dict):
             return None
 
         distance_km = route_data.get("distance_km")
+        duration_min = route_data.get("duration_min")
 
         existing = next(
             (
@@ -216,6 +217,7 @@ def addUserRoute(user_id: str, route_data: dict):
 
         if existing:
             existing.distance_km = distance_km
+            existing.duration_min = duration_min
             existing.updated_at = datetime.now(timezone.utc)
             route = existing
         else:
@@ -223,7 +225,8 @@ def addUserRoute(user_id: str, route_data: dict):
                 start_address=route_data["startaddress"],
                 end_address=route_data["endaddress"],
                 mode=route_data["routemode"],
-                distance_km=distance_km
+                distance_km=distance_km,
+                duration_min=duration_min
             )
             user.routes.append(route)
 

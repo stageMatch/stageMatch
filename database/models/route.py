@@ -14,6 +14,7 @@ class UserRoute(Base):
     end_address = Column(String, nullable=False)
     mode = Column(String, nullable=False)
     distance_km = Column(Float, nullable=True)
+    duration_min = Column(Float, nullable=True)
     updated_at = Column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),
