@@ -456,7 +456,7 @@
                     <div class="profilo-avatar">MR</div>
                     <div class="profilo-hero-info">
                         <div class="profilo-hero-name">{{user.name}} {{user.surname}}</div>
-                        <div class="profilo-hero-sub">Studente · {{user.classe}} · ITIS Paleocapa, Bergamo</div>
+                        <div class="profilo-hero-sub">Studente · {{user.classe}} · {{ user.istituto }}, Bergamo</div>
                         <div class="profilo-hero-tags">
                             <span class="pro-tag"><span class="icon"><svg><use href="#i-graduate"></use></svg></span>Diploma 2025</span>
                             <span class="pro-tag"><span class="icon"><svg><use href="#i-pin"></use></svg></span>Bergamo</span>
@@ -486,13 +486,10 @@
                     <div class="pro-card">
                         <div class="pro-card-head"><span class="icon"><svg><use href="#i-graduate"></use></svg></span>Percorso scolastico</div>
                         <div class="pro-rows" id="proScuola">
-                            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">ITIS
-                                    Paleocapa</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">{{ user.istituto }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">{{user.indirizzo_studio}}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Classe</span><span class="pro-val">{{user.classe}}</span>
                             </div>
-                            <div class="pro-row"><span class="pro-lbl">Anno diploma</span><span
-                                    class="pro-val">2025</span></div>
                         </div>
                     </div>
 
@@ -552,45 +549,12 @@
 
                     <div class="pro-card">
                         <div class="pro-card-head"><span class="icon"><svg><use href="#i-globe"></use></svg></span>Lingue straniere</div>
-                        <div class="pro-rows" id="proLingue">
-                            <div class="pro-row"><span class="pro-lbl">Inglese</span><span class="pro-val"><span
-                                        class="pro-badge blue">B2</span> Cambridge FCE</span></div>
-                            <div class="pro-row"><span class="pro-lbl">Spagnolo</span><span class="pro-val"><span
-                                        class="pro-badge gray">A2</span> Scolastico</span></div>
-                        </div>
+                        <div class="pro-rows" id="proLingue"></div>
                     </div>
 
                     <div class="pro-card pro-card-wide">
                         <div class="pro-card-head"><span class="icon"><svg><use href="#i-folder"></use></svg></span>Esperienze e progetti</div>
-                        <div class="pro-exp-list" id="proEsperienze">
-                            <div class="pro-exp-item">
-                                <div class="pro-exp-dot"></div>
-                                <div class="pro-exp-body">
-                                    <div class="pro-exp-title">Stage — TechLab Srl <span
-                                            class="pro-badge blue">2024</span></div>
-                                    <div class="pro-exp-desc">Sviluppo di un'applicazione web con Flask e PostgreSQL per
-                                        la gestione degli ordini interni. 4 settimane.</div>
-                                </div>
-                            </div>
-                            <div class="pro-exp-item">
-                                <div class="pro-exp-dot"></div>
-                                <div class="pro-exp-body">
-                                    <div class="pro-exp-title">Progetto scolastico — stageMatch <span
-                                            class="pro-badge purple">PCTO</span></div>
-                                    <div class="pro-exp-desc">Piattaforma per il matching studenti-aziende con mappa
-                                        interattiva, sviluppata come progetto di classe.</div>
-                                </div>
-                            </div>
-                            <div class="pro-exp-item">
-                                <div class="pro-exp-dot"></div>
-                                <div class="pro-exp-body">
-                                    <div class="pro-exp-title">Progetto personale — BudgetTracker <span
-                                            class="pro-badge gray">GitHub</span></div>
-                                    <div class="pro-exp-desc">App Python/Tkinter per il tracciamento delle spese
-                                        personali. Disponibile su GitHub.</div>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="pro-exp-list" id="proEsperienze"></div>
                     </div>
 
                 </div>
@@ -847,48 +811,30 @@
             </div>
 
             <div class="pro-modal-tabs">
-                <button class="pro-tab active" data-tab="anagrafica">Anagrafica</button>
-                <button class="pro-tab" data-tab="skills">Hard skills</button>
+                <button class="pro-tab active" data-tab="skills">Hard skills</button>
                 <button class="pro-tab" data-tab="soft">Soft skills</button>
+                <button class="pro-tab" data-tab="lingue">Lingue</button>
+                <button class="pro-tab" data-tab="esperienze">Esperienze</button>
             </div>
 
-            <div class="pro-tab-panel active" id="tabAnagrafica">
-                <div class="pro-form-grid">
-                    <div class="pro-field">
-                        <label>Nome</label>
-                        <input type="text" id="fNome" value="Marco" placeholder="Nome" />
-                    </div>
-                    <div class="pro-field">
-                        <label>Cognome</label>
-                        <input type="text" id="fCognome" value="Rossi" placeholder="Cognome" />
-                    </div>
-                    <div class="pro-field">
-                        <label>Data di nascita</label>
-                        <input type="date" id="fNascita" value="2007-03-14" />
-                    </div>
-                    <div class="pro-field">
-                        <label>Codice fiscale</label>
-                        <input type="text" id="fCF" value="RSSMRC07C14A794Z" placeholder="Codice fiscale" />
-                    </div>
-                    <div class="pro-field">
-                        <label>Comune di residenza</label>
-                        <input type="text" id="fComune" value="{{ user.indirizzo[3] }}" placeholder="Comune di residenza" />
-                    </div>
-                    <div class="pro-field">
-                        <label>Telefono</label>
-                        <input type="tel" id="fTel" value="+39 333 456 7890" placeholder="+39 …" />
-                    </div>
-                </div>
-            </div>
-
-            <div class="pro-tab-panel" id="tabSkills">
+            <div class="pro-tab-panel active" id="tabSkills">
                 <div id="proSkillsEditor" class="pro-skills-editor"></div>
-                <button class="pro-add-btn">+ Aggiungi competenza</button>
+                <button class="pro-add-btn" id="btnAddSkill">+ Aggiungi competenza</button>
             </div>
 
             <div class="pro-tab-panel" id="tabSoft">
                 <div class="pro-soft-check-grid" id="proSoftEditor">
                 </div>
+            </div>
+
+            <div class="pro-tab-panel" id="tabLingue">
+                <div id="proLangEditor" class="pro-skills-editor"></div>
+                <button class="pro-add-btn" id="btnAddLanguage">+ Aggiungi lingua</button>
+            </div>
+
+            <div class="pro-tab-panel" id="tabEsperienze">
+                <div id="proExpEditor" class="pro-exp-editor"></div>
+                <button class="pro-add-btn" id="btnAddExperience">+ Aggiungi esperienza</button>
             </div>
 
             <div class="profilo-modal-footer">

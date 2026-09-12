@@ -9,6 +9,8 @@ from .models.company import Company
 from .models.user_preferences import UserPreferences
 from .models.skill import Skill
 from .models.soft_skill import SoftSkill
+from .models.language import Language
+from .models.experience import Experience
 from .models.route import UserRoute
 from .models.notification import Notification
 from .models.privacy_consent import PrivacyConsent
@@ -21,6 +23,10 @@ from .models.match import Match
 
 # global
 Session = None
+
+# Delimitatore usato per campi "lista" salvati come singola stringa (stessa
+# convenzione di `indirizzo`, vedi app.py e CLAUDE.md).
+LABEL_DELIMITER = " ££ "
 
 def initDB(connstr: str):
     """Initialize the database engine and session."""
@@ -39,6 +45,8 @@ def getUserById(user_id: str):
                 selectinload(User.preferences),
                 selectinload(User.skills),
                 selectinload(User.soft_skills),
+                selectinload(User.languages),
+                selectinload(User.experiences),
                 selectinload(User.routes),
                 selectinload(User.notifications),
                 selectinload(User.applications),
@@ -139,7 +147,9 @@ def updateUser(user_data: dict):
         user = session.query(User).filter_by(googleId=user_data["googleId"]).options(
             selectinload(User.preferences),
             selectinload(User.skills),
-            selectinload(User.soft_skills)
+            selectinload(User.soft_skills),
+            selectinload(User.languages),
+            selectinload(User.experiences)
         ).first()
 
         if not user:
@@ -191,6 +201,48 @@ def updateUser(user_data: dict):
                     icon=skill_item["icon"]
                 )
                 user.soft_skills.append(nuova_skill)
+
+        # Languages
+        languages = user_data.get("languages")
+        if languages is not None:
+            user.languages.clear()
+
+            for lang_item in languages:
+                name = str(lang_item.get("name", "")).strip()
+                if not name:
+                    continue
+
+                user.languages.append(Language(
+                    name=name,
+                    level=lang_item.get("level", "A1"),
+                    certification=(str(lang_item["certification"]).strip() or None)
+                        if lang_item.get("certification") else None
+                ))
+
+        # Experiences
+        experiences = user_data.get("experiences")
+        if experiences is not None:
+            user.experiences.clear()
+
+            for exp_item in experiences:
+                title = str(exp_item.get("title", "")).strip()
+                if not title:
+                    continue
+
+                labels = exp_item.get("labels") or []
+                sanitized_labels = [
+                    str(label).strip().replace(LABEL_DELIMITER.strip(), "")
+                    for label in labels if str(label).strip()
+                ]
+
+                user.experiences.append(Experience(
+                    title=title,
+                    description=(str(exp_item["description"]).strip() or None)
+                        if exp_item.get("description") else None,
+                    link=(str(exp_item["link"]).strip() or None)
+                        if exp_item.get("link") else None,
+                    labels=LABEL_DELIMITER.join(sanitized_labels)
+                ))
 
         # Commit changes
         session.add(user)
@@ -605,7 +657,9 @@ def getStudentMatchingProfile(user_id: str):
             session.query(User)
             .options(
                 selectinload(User.skills),
-                selectinload(User.soft_skills)
+                selectinload(User.soft_skills),
+                selectinload(User.languages),
+                selectinload(User.experiences)
             )
             .filter_by(googleId=user_id)
             .first()
@@ -618,7 +672,23 @@ def getStudentMatchingProfile(user_id: str):
             "googleId": user.googleId,
             "indirizzo": user.indirizzo,
             "skills": [{"name": s.name, "livello": s.livello} for s in user.skills],
-            "soft_skills": [{"label": s.label} for s in user.soft_skills]
+            "soft_skills": [{"label": s.label} for s in user.soft_skills],
+            # Dato oggettivo, utilizzabile come criterio di matching: niente certification.
+            "languages": [{"name": l.name, "level": l.level} for l in user.languages],
+            # Dato qualitativo: valutato dall'AI refiner, non dallo scoring deterministico.
+            # Il link non viene mai esposto al motore di matching.
+            "experiences": [
+                {
+                    "title": e.title,
+                    "description": e.description,
+                    "labels": [
+                        label.strip()
+                        for label in (e.labels or "").split(LABEL_DELIMITER.strip())
+                        if label.strip()
+                    ]
+                }
+                for e in user.experiences
+            ]
         }
 
 def upsertMatch(user_id: str, job_offer_id: int, deterministic_score: float,

@@ -25,15 +25,26 @@ def _isEnabled() -> bool:
 def buildAnonymizedPayload(deterministic_result: dict, student_skills: list[dict],
                             student_soft_skills: list[dict], offer_title: str,
                             offer_description: str | None, required_skills: list[dict],
-                            required_soft_skills: list[dict]) -> dict:
+                            required_soft_skills: list[dict],
+                            student_languages: list[dict] | None = None,
+                            student_experiences: list[dict] | None = None) -> dict:
     """Costruisce il payload da inviare all'AI. Nessun nome/email/googleId/indirizzo/foto:
-    solo skill, soft skill, distanza/durata già calcolata e testo dell'annuncio."""
+    solo skill, soft skill, distanza/durata già calcolata e testo dell'annuncio.
+
+    Lingue ed esperienze/progetti dello studente vengono passate solo qui, come
+    contesto extra per la rifinitura AI: non esiste ancora, lato JobOffer/azienda,
+    un campo "lingue richieste"/"esperienza richiesta" con cui confrontarle
+    oggettivamente, quindi non entrano nello scoring deterministico (scorer.py).
+    Il link delle esperienze non viene mai incluso (già escluso a monte da
+    database_helper.getStudentMatchingProfile)."""
     return {
         "punteggio_deterministico": deterministic_result["score"],
         "distanza_km": deterministic_result["distance_km"],
         "durata_min": deterministic_result["duration_min"],
         "skill_studente": student_skills,
         "soft_skill_studente": student_soft_skills,
+        "lingue_studente": student_languages or [],
+        "esperienze_studente": student_experiences or [],
         "annuncio": {
             "titolo": offer_title,
             "descrizione": offer_description,

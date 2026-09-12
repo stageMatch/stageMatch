@@ -48,7 +48,9 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
         job_offer.title,
         job_offer.description,
         required_skills,
-        required_soft_skills
+        required_soft_skills,
+        student_languages=student_profile.get("languages", []),
+        student_experiences=student_profile.get("experiences", [])
     )
 
     refined = ai_refiner.refineScore(deterministic, anonymized_payload)

@@ -496,8 +496,11 @@ const EMPTY_PROFILO_DATA = {
     classe: "",
     indirizzo: "",
     picture: "",
+    istituto: "",
     skills: [],
     soft_skills: [],
+    languages: [],
+    experiences: [],
 };
 let profiloData = { ...EMPTY_PROFILO_DATA };
 let profiloLoaded = false;
@@ -518,6 +521,17 @@ const ALL_SOFT_SKILLS = [
 const SKILL_LV_MAP = { Base: 33, Intermedio: 65, Avanzato: 90 };
 const SKILL_LV_DB_MAP = { Base: 1, Intermedio: 2, Avanzato: 3 };
 const SKILL_LV_LABEL_MAP = { 1: "Base", 2: "Intermedio", 3: "Avanzato" };
+const LANGUAGE_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+function sanitizeUrl(url) {
+    const value = String(url || "").trim();
+    if (!value) return "";
+
+    if (/^(https?:)?\/\//i.test(value)) return value;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return "";
+
+    return `https://${value}`;
+}
 
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -557,20 +571,17 @@ function splitIndirizzo(value) {
         .map((part) => part.trim());
 }
 
-function getComuneResidenza(indirizzo) {
-    return splitIndirizzo(indirizzo)[3] || "";
+function splitLabels(value) {
+    if (Array.isArray(value)) return value.map((v) => String(v || "").trim()).filter(Boolean);
+
+    return String(value || "")
+        .split("££")
+        .map((label) => label.trim())
+        .filter(Boolean);
 }
 
-function setComuneResidenza(indirizzo, comune) {
-    const parts = splitIndirizzo(indirizzo);
-
-    while (parts.length < 4) {
-        parts.push("");
-    }
-
-    parts[3] = comune;
-
-    return parts.join(" ££ ");
+function getComuneResidenza(indirizzo) {
+    return splitIndirizzo(indirizzo)[3] || "";
 }
 
 function normalizeProfiloData(data) {
@@ -591,6 +602,21 @@ function normalizeProfiloData(data) {
             ? data.soft_skills.map((soft) => ({
                 label: soft.label || "",
                 icon: soft.icon || "i-brain",
+            }))
+            : [],
+        languages: Array.isArray(data.languages)
+            ? data.languages.map((l) => ({
+                name: l.name || "",
+                level: l.level || "A1",
+                certification: l.certification || "",
+            }))
+            : [],
+        experiences: Array.isArray(data.experiences)
+            ? data.experiences.map((e) => ({
+                title: e.title || "",
+                link: e.link || "",
+                description: e.description || "",
+                labels: splitLabels(e.labels),
             }))
             : [],
     };
@@ -679,22 +705,18 @@ function openProfiloModal() {
         return;
     }
 
-    // Anagrafica
-    document.getElementById("fNome").value = profiloData.name;
-    document.getElementById("fCognome").value = profiloData.surname;
-    document.getElementById("fNascita").value = profiloData.data_nascita;
-    document.getElementById("fCF").value = profiloData.codice_fiscale;
-    document.getElementById("fComune").value = getComuneResidenza(profiloData.indirizzo);
-    document.getElementById("fTel").value = profiloData.telefono;
-
     renderSkillsEditor();
 
     renderSoftEditor();
 
+    renderLangEditor();
+
+    renderExpEditor();
+
     setApiStatus("", "");
 
     document.getElementById("profiloOverlay").classList.add("active");
-    switchTab("anagrafica");
+    switchTab("skills");
 }
 
 function closeProfiloModal() {
@@ -767,6 +789,80 @@ function toggleSoft(el, label) {
     }
 }
 
+function renderLangEditor() {
+    const el = document.getElementById("proLangEditor");
+    el.innerHTML = profiloData.languages
+        .map((l, i) => `
+            <div class="pro-skill-edit-row">
+                <input type="text" value="${escapeHtml(l.name)}" placeholder="Es. Inglese" data-lang-index="${i}" data-lang-field="name"/>
+                <select data-lang-index="${i}" data-lang-field="level">
+                    ${LANGUAGE_LEVELS
+                    .map((lv) =>
+                        `<option value="${lv}"${l.level === lv ? " selected" : ""}>${lv}</option>`,
+                    ).join("")}
+                </select>
+                <input type="text" value="${escapeHtml(l.certification)}" placeholder="Certificazione (opz.)" data-lang-index="${i}" data-lang-field="certification"/>
+                <button class="pro-del-btn" data-lang-remove="${i}">✕</button>
+            </div>
+        `).join("");
+}
+
+function addLangRow() {
+    profiloData.languages.push({ name: "", level: "A1", certification: "" });
+    renderLangEditor();
+}
+
+function removeLang(i) {
+    profiloData.languages.splice(i, 1);
+    renderLangEditor();
+}
+
+function renderExpEditor() {
+    const el = document.getElementById("proExpEditor");
+    el.innerHTML = profiloData.experiences
+        .map((e, i) => `
+            <div class="pro-exp-edit-row" data-exp-index="${i}">
+                <input type="text" value="${escapeHtml(e.title)}" placeholder="Titolo (es. Stage — TechLab Srl)" data-exp-index="${i}" data-exp-field="title"/>
+                <input type="text" value="${escapeHtml(e.link)}" placeholder="Link (opzionale)" data-exp-index="${i}" data-exp-field="link"/>
+                <textarea placeholder="Breve descrizione" data-exp-index="${i}" data-exp-field="description">${escapeHtml(e.description)}</textarea>
+                <div class="pro-exp-labels-editor">
+                    ${e.labels
+                    .map((label, li) => `
+                        <span class="pro-chip">${escapeHtml(label)}<button type="button" class="pro-chip-remove" data-exp-index="${i}" data-label-remove="${li}">✕</button></span>
+                    `).join("")}
+                    <input type="text" class="pro-chip-input" placeholder="Aggiungi etichetta e premi Invio" data-exp-label-input="${i}"/>
+                </div>
+                <button class="pro-del-btn" data-exp-remove="${i}">✕ Rimuovi esperienza</button>
+            </div>
+        `).join("");
+}
+
+function addExpRow() {
+    profiloData.experiences.push({ title: "", link: "", description: "", labels: [] });
+    renderExpEditor();
+}
+
+function removeExp(i) {
+    profiloData.experiences.splice(i, 1);
+    renderExpEditor();
+}
+
+function addExpLabel(expIndex, text) {
+    const label = String(text || "").trim();
+    if (!label) return;
+
+    const exp = profiloData.experiences[expIndex];
+    const alreadyPresent = exp.labels.some((l) => l.toLowerCase() === label.toLowerCase());
+    if (!alreadyPresent) exp.labels.push(label);
+
+    renderExpEditor();
+}
+
+function removeExpLabel(expIndex, labelIndex) {
+    profiloData.experiences[expIndex].labels.splice(labelIndex, 1);
+    renderExpEditor();
+}
+
 function setApiStatus(msg, cls) {
     const el = document.getElementById("proApiStatus");
     el.textContent = msg;
@@ -778,18 +874,6 @@ function setApiStatus(msg, cls) {
 
 function buildProfiloPayload() {
     return {
-        name: profiloData.name,
-        surname: profiloData.surname,
-        email: profiloData.email,
-        data_nascita: profiloData.data_nascita,
-        sesso: profiloData.sesso,
-        comune_nascita: profiloData.comune_nascita,
-        codice_fiscale: profiloData.codice_fiscale,
-        telefono: profiloData.telefono,
-        indirizzo_studio: profiloData.indirizzo_studio,
-        classe: profiloData.classe,
-        indirizzo: profiloData.indirizzo,
-        picture: profiloData.picture,
         skills: profiloData.skills
             .filter((skill) => String(skill.name || "").trim())
             .map((skill) => ({
@@ -800,20 +884,25 @@ function buildProfiloPayload() {
             label: soft.label,
             icon: soft.icon || "i-brain",
         })),
+        languages: profiloData.languages
+            .filter((l) => String(l.name || "").trim())
+            .map((l) => ({
+                name: String(l.name).trim(),
+                level: l.level,
+                certification: String(l.certification || "").trim() || null,
+            })),
+        experiences: profiloData.experiences
+            .filter((e) => String(e.title || "").trim())
+            .map((e) => ({
+                title: String(e.title).trim(),
+                link: String(e.link || "").trim() || null,
+                description: String(e.description || "").trim() || null,
+                labels: e.labels || [],
+            })),
     };
 }
 
 async function salvaProfilo() {
-    // Leggi valori dal form anagrafica
-    profiloData.name = document.getElementById("fNome").value.trim();
-    profiloData.surname = document.getElementById("fCognome").value.trim();
-    profiloData.data_nascita = document.getElementById("fNascita").value;
-    profiloData.codice_fiscale = document.getElementById("fCF").value.trim().toUpperCase();
-    profiloData.indirizzo = setComuneResidenza(
-        profiloData.indirizzo,
-        document.getElementById("fComune").value.trim(),
-    );
-    profiloData.telefono = document.getElementById("fTel").value.trim();
     const payload = buildProfiloPayload();
     const btn = document.getElementById("btnSalvaProfilo");
     btn.textContent = "Salvataggio...";
@@ -852,7 +941,7 @@ async function salvaProfilo() {
 function updateProfiloUI(apiResult) {
     // Nome hero
     document.querySelector(".profilo-hero-name").textContent = profiloData.name + " " + profiloData.surname;
-    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ITIS Paleocapa, Bergamo`;
+    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ${profiloData.istituto || ""}, Bergamo`;
     const sidebarRole = document.querySelector(".user-role");
 
     if (sidebarRole) {
@@ -874,10 +963,9 @@ function updateProfiloUI(apiResult) {
     const scuolaEl = document.getElementById("proScuola");
     if (scuolaEl) {
         scuolaEl.innerHTML = `
-            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">ITIS Paleocapa</span></div>
+            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">${escapeHtml(profiloData.istituto)}</span></div>
             <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">${escapeHtml(profiloData.indirizzo_studio)}</span></div>
-            <div class="pro-row"><span class="pro-lbl">Classe</span><span class="pro-val">${escapeHtml(profiloData.classe)}</span></div>
-            <div class="pro-row"><span class="pro-lbl">Anno diploma</span><span class="pro-val">2025</span></div>`;
+            <div class="pro-row"><span class="pro-lbl">Classe</span><span class="pro-val">${escapeHtml(profiloData.classe)}</span></div>`;
     }
 
     // Aggiorna suggerimento come tag (se presente)
@@ -920,6 +1008,44 @@ function updateProfiloUI(apiResult) {
                 `;
             })
             .join("");
+    }
+
+    const linguaEl = document.getElementById("proLingue");
+    if (linguaEl) {
+        linguaEl.innerHTML = profiloData.languages
+            .map((l) => `
+                <div class="pro-row">
+                    <span class="pro-lbl">${escapeHtml(l.name)}</span>
+                    <span class="pro-val"><span class="pro-badge">${escapeHtml(l.level)}</span>${l.certification ? " " + escapeHtml(l.certification) : ""}</span>
+                </div>
+            `)
+            .join("") || `<div class="section-state profile-state"><span>Nessuna lingua inserita.</span></div>`;
+    }
+
+    const espEl = document.getElementById("proEsperienze");
+    if (espEl) {
+        espEl.innerHTML = profiloData.experiences
+            .map((e) => {
+                const safeLink = sanitizeUrl(e.link);
+                const title = safeLink
+                    ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(e.title)}</a>`
+                    : escapeHtml(e.title);
+                const labels = e.labels
+                    .map((label) => `<span class="pro-badge">${escapeHtml(label)}</span>`)
+                    .join("");
+
+                return `
+                    <div class="pro-exp-item">
+                        <div class="pro-exp-dot"></div>
+                        <div class="pro-exp-body">
+                            <div class="pro-exp-title">${title}</div>
+                            ${e.description ? `<div class="pro-exp-desc">${escapeHtml(e.description)}</div>` : ""}
+                            ${labels ? `<div class="pro-exp-labels">${labels}</div>` : ""}
+                        </div>
+                    </div>
+                `;
+            })
+            .join("") || `<div class="section-state profile-state"><span>Nessuna esperienza inserita.</span></div>`;
     }
 }
 
@@ -1393,7 +1519,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .addEventListener("click", closeProfiloModal);
 
     document
-        .querySelector(".pro-add-btn")
+        .getElementById("btnAddSkill")
         .addEventListener("click", addSkillRow);
 
     document.getElementById("proSkillsEditor").addEventListener("change", (e) => {
@@ -1407,6 +1533,58 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!removeButton) return;
 
         removeSkill(Number(removeButton.dataset.skillRemove));
+    });
+
+    document
+        .getElementById("btnAddLanguage")
+        .addEventListener("click", addLangRow);
+
+    document.getElementById("proLangEditor").addEventListener("change", (e) => {
+        const { langIndex, langField } = e.target.dataset;
+        if (langIndex === undefined || !langField) return;
+
+        profiloData.languages[Number(langIndex)][langField] = e.target.value;
+    });
+    document.getElementById("proLangEditor").addEventListener("click", (e) => {
+        const removeButton = e.target.closest("[data-lang-remove]");
+        if (!removeButton) return;
+
+        removeLang(Number(removeButton.dataset.langRemove));
+    });
+
+    document
+        .getElementById("btnAddExperience")
+        .addEventListener("click", addExpRow);
+
+    document.getElementById("proExpEditor").addEventListener("change", (e) => {
+        const { expIndex, expField } = e.target.dataset;
+        if (expIndex === undefined || !expField) return;
+
+        profiloData.experiences[Number(expIndex)][expField] = e.target.value;
+    });
+    document.getElementById("proExpEditor").addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const expIndex = e.target.dataset.expLabelInput;
+        if (expIndex === undefined) return;
+
+        e.preventDefault();
+        addExpLabel(Number(expIndex), e.target.value);
+        e.target.value = "";
+    });
+    document.getElementById("proExpEditor").addEventListener("click", (e) => {
+        const removeExpButton = e.target.closest("[data-exp-remove]");
+        if (removeExpButton) {
+            removeExp(Number(removeExpButton.dataset.expRemove));
+            return;
+        }
+
+        const removeLabelButton = e.target.closest("[data-label-remove]");
+        if (removeLabelButton) {
+            removeExpLabel(
+                Number(removeLabelButton.dataset.expIndex),
+                Number(removeLabelButton.dataset.labelRemove),
+            );
+        }
     });
 
     document

@@ -21,6 +21,7 @@ const fields = {
     comune_nascita_code: document.getElementById("comune_nascita_code"),
     codice_fiscale: document.getElementById("codice_fiscale"),
     telefono: document.getElementById("telefono"),
+    istituto: document.getElementById("istituto"),
     indirizzo_studio: document.getElementById("indirizzo_studio"),
     classe: document.getElementById("classe"),
     classe_custom: document.getElementById("classe_custom"),
@@ -31,14 +32,20 @@ const fields = {
     privacy_ack: document.getElementById("privacy_ack"),
 };
 
-const STUDY_CLASS_CODES = {
-    "Informatica e Telecomunicazioni": "I",
-    "Meccanica, Meccatronica ed Energia": "M",
-    "Elettronica, Elettrotecnica ed Automazione": "E",
-    "Sistema Moda Tessile": "T",
+// Dati per istituto: per ora c'è solo ITIS Paleocapa hardcoded qui; in futuro
+// verranno caricati da un file JSON con tutti gli istituti supportati.
+const INSTITUTES_DATA = {
+    "ITIS Paleocapa": {
+        studyClassCodes: {
+            "Informatica e Telecomunicazioni": "I",
+            "Meccanica, Meccatronica ed Energia": "M",
+            "Elettronica, Elettrotecnica ed Automazione": "E",
+            "Sistema Moda Tessile": "T",
+        },
+        years: ["1", "2", "3", "4", "5"],
+        sections: ["A", "B", "C", "D", "E", "F", "G"],
+    },
 };
-const CLASS_YEARS = ["1", "2", "3", "4", "5"];
-const CLASS_SECTIONS = ["A", "B", "C", "D", "E", "F", "G"];
 const CUSTOM_CLASS_VALUE = "__custom__";
 
 let comuniDB = [];
@@ -76,12 +83,13 @@ function findComuneByName(name) {
 
 function populateClassSelect(indirizzo) {
     const select = fields.classe;
-    const studyCode = STUDY_CLASS_CODES[indirizzo];
+    const institute = INSTITUTES_DATA[fields.istituto?.value];
+    const studyCode = institute?.studyClassCodes[indirizzo];
     if (!select || !studyCode) return;
 
     select.innerHTML = '<option value="" disabled selected>Seleziona classe...</option>';
-    CLASS_YEARS.forEach(y => {
-        CLASS_SECTIONS.forEach(s => {
+    institute.years.forEach(y => {
+        institute.sections.forEach(s => {
             const code = `${y}${studyCode}${s}`;
             const opt = document.createElement("option");
             opt.value = code;
@@ -100,6 +108,9 @@ function populateClassSelect(indirizzo) {
 }
 
 fields.indirizzo_studio?.addEventListener("change", e => populateClassSelect(e.target.value));
+fields.istituto?.addEventListener("change", () => {
+    if (fields.indirizzo_studio.value) populateClassSelect(fields.indirizzo_studio.value);
+});
 fields.classe?.addEventListener("change", e => {
     const isCustom = e.target.value === CUSTOM_CLASS_VALUE;
     fields.classe_custom.hidden = !isCustom;
@@ -178,7 +189,7 @@ function validate() {
         if (msg) valid = false;
     };
 
-    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
+    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "istituto", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
         if (!fields[id].value.trim()) err(id, "Campo obbligatorio");
         else err(id, "");
     });

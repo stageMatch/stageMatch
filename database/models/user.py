@@ -22,6 +22,7 @@ class User(Base):
     classe = Column(String)
     indirizzo = Column(String)
     picture = Column(String)
+    istituto = Column(String)
 
     preferences = relationship(
         "UserPreferences",
@@ -40,6 +41,20 @@ class User(Base):
         "SoftSkill",
         back_populates="user",
         cascade="all, delete-orphan"
+    )
+
+    languages = relationship(
+        "Language",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Language.name"
+    )
+
+    experiences = relationship(
+        "Experience",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Experience.id"
     )
     routes = relationship(
         "UserRoute",

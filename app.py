@@ -238,6 +238,7 @@ def completeLogin():
             "telefono": data["telefono"],
             "indirizzo_studio": data["indirizzo_studio"],
             "classe": data["classe"],
+            "istituto": data["istituto"],
             "indirizzo": f"{data['via']} ££ {data['civico']} ££ {data['cap']} ££ {data['citta_residenza']}",
             "picture": user["picture"]
         }
