@@ -153,6 +153,9 @@ body {
 }
 
 .btn-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--text-muted);
     text-decoration: none;
     font-size: 0.9rem;
@@ -161,6 +164,19 @@ body {
 
 .btn-back-link:hover {
     color: var(--accent);
+}
+
+.icon-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.85em;
+    height: 0.85em;
+    flex-shrink: 0;
+}
+
+.icon-arrow.is-back {
+    transform: scaleX(-1);
 }
 
 [data-reveal] {
@@ -294,5 +310,20 @@ footer {
     footer {
         flex-direction: column;
         text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .chooser-main {
+        padding: 1.5rem 1.25rem;
+        gap: 2rem;
+    }
+
+    .chooser-card {
+        padding: 28px 24px;
+    }
+
+    footer {
+        padding: 40px 6%;
     }
 }

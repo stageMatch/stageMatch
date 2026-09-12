@@ -81,6 +81,7 @@ body {
 .shell {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -402,6 +403,17 @@ body {
     pointer-events: all;
 }
 
+@media (max-width: 480px) {
+    .notif-panel {
+        position: fixed;
+        top: calc(var(--tb-h) + 8px);
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+    }
+}
+
 .notif-panel-head {
     padding: 16px 18px;
     border-bottom: 1px solid var(--border);
@@ -549,7 +561,9 @@ body {
 .content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 26px 28px;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -651,7 +665,7 @@ body {
 
 .stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
 }
 
@@ -665,6 +679,11 @@ body {
     gap: 14px;
     transition: all 0.25s;
     position: relative;
+    overflow: hidden;
+}
+
+.stat-card > div:last-child {
+    min-width: 0;
     overflow: hidden;
 }
 
@@ -713,6 +732,9 @@ body {
     font-weight: 800;
     color: var(--emerald-green);
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stat-lbl {
@@ -724,7 +746,7 @@ body {
 
 .dash-grid {
     display: grid;
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: 20px;
     align-items: start;
 }
@@ -736,6 +758,7 @@ body {
     padding: 26px 26px 22px;
     position: relative;
     overflow: hidden;
+    min-width: 0;
 }
 
 .hero-card::before {
@@ -859,6 +882,18 @@ body {
     display: flex;
     align-items: center;
     gap: 7px;
+    max-width: calc(100% - 20px);
+}
+
+.map-chip svg {
+    flex-shrink: 0;
+}
+
+.map-chip-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .transport-pills {
@@ -905,6 +940,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 18px 20px;
+    min-width: 0;
 }
 
 .card-head {
@@ -925,6 +961,9 @@ body {
 }
 
 .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -1667,7 +1706,7 @@ body {
 
 @media (max-width: 1060px) {
     .dash-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .companies-grid {
@@ -1677,7 +1716,7 @@ body {
 
 @media (max-width: 900px) {
     .stats-row {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .companies-grid {
@@ -1691,6 +1730,7 @@ body {
         top: 0;
         left: 0;
         height: 100vh;
+        height: 100dvh;
         transform: translateX(-100%);
         z-index: 400;
     }
@@ -2487,6 +2527,9 @@ body {
 }
 
 .imp-btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     background: none;
     border: none;
     color: var(--emerald-green);
@@ -2770,4 +2813,35 @@ body {
 
 .modal-btn-confirm:active {
     transform: scale(0.97);
+}
+
+@media (max-width: 480px) {
+    .topbar {
+        padding: 0 14px;
+    }
+
+    .content {
+        padding: 16px 14px;
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+
+    .stats-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stat-card {
+        padding: 14px;
+    }
+
+    .hero-card {
+        padding: 20px 18px 18px;
+    }
+
+    .card {
+        padding: 16px;
+    }
+
+    .page-title {
+        font-size: 20px;
+    }
 }

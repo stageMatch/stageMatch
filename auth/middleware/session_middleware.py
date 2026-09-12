@@ -147,7 +147,9 @@ ERROR_TEMPLATE = """
         h1 { color: var(--text); font-size: 22px; margin-bottom: 12px; font-weight: 600; }
         .message { color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 32px; }
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: var(--accent);
             color: var(--midnight-blue);
             padding: 13px 32px;
@@ -161,6 +163,17 @@ ERROR_TEMPLATE = """
             background: var(--emerald-green-dark);
             transform: translateY(-1px);
         }
+        .icon-arrow {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 0.85em;
+            height: 0.85em;
+            flex-shrink: 0;
+        }
+        .icon-arrow.is-back {
+            transform: scaleX(-1);
+        }
     </style>
 </head>
 <body>
@@ -168,7 +181,7 @@ ERROR_TEMPLATE = """
         <div class="icon">{{ icon }}</div>
         <h1>{{ title }}</h1>
         <p class="message">{{ error_message }}</p>
-        <a href="{{ back_url }}" class="btn">← {{ back_label }}</a>
+        <a href="{{ back_url }}" class="btn"><svg class="icon-arrow is-back" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>{{ back_label }}</a>
     </div>
 </body>
 </html>

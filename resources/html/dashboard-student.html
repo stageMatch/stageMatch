@@ -157,6 +157,9 @@
             <path d="M14 3v5h5" />
             <path d="M10 13h4M10 17h4" />
         </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+        </symbol>
     </svg>
 
     <div class="sidebar-overlay" id="overlay"></div>
@@ -339,11 +342,13 @@
                                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                         <circle cx="12" cy="10" r="3" />
                                     </svg>
+                                    <span class="map-chip-text">
                                     {% if stats.lastRoute %}
                                     Ultimo: {{ stats.lastRoute.start_address }} → {{ stats.lastRoute.end_address }}{% if stats.lastRoute.distance_km %} · {{ "%.1f"|format(stats.lastRoute.distance_km) }} km{% endif %}
                                     {% else %}
                                     Nessun percorso disponibile
                                     {% endif %}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -369,7 +374,7 @@
                         <div class="card-head">
                             <span class="card-title-inline"><span class="icon"><svg><use href="#i-route"></use></svg></span>Percorsi recenti</span>
                             <button class="card-link" id="btnVediPercorsi">
-                                Vedi tutti →
+                                Vedi tutti<span class="icon"><svg><use href="#i-chevron"></use></svg></span>
                             </button>
                         </div>
                         <div id="recentRoutesList"></div>
@@ -805,19 +810,19 @@
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Termini di servizio</div>
                             </div>
-                            <button class="imp-btn-link">Leggi →</button>
+                            <button class="imp-btn-link">Leggi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
                         </div>
                         <div class="imp-row-item">
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Informativa privacy</div>
                             </div>
-                            <button class="imp-btn-link" data-action="openPrivacy">Leggi →</button>
+                            <button class="imp-btn-link" data-action="openPrivacy">Leggi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
                         </div>
                         <div class="imp-row-item">
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Contatta il supporto</div>
                             </div>
-                            <button class="imp-btn-link">Scrivi →</button>
+                            <button class="imp-btn-link">Scrivi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
                         </div>
                     </div>
 

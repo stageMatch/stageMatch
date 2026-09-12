@@ -202,7 +202,7 @@ body {
 /* ─── Form Grid ─── */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
 }
 
@@ -488,7 +488,7 @@ body {
 /* ─── Responsive ─── */
 @media (max-width: 640px) {
     .form-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .col-full, .col-2-1 {
@@ -497,10 +497,21 @@ body {
 
     .modal {
         max-height: 100vh;
+        max-height: 100dvh;
         border-radius: 0;
     }
 
     .modal-header, .modal-body, .modal-footer {
         padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-header, .modal-body, .modal-footer {
+        padding: 1.1rem;
+    }
+
+    .modal-title {
+        font-size: 1.4rem;
     }
 }
