@@ -1459,11 +1459,15 @@ body {
     min-width: 0;
 }
 
-.co-contact-row span,
+.co-contact-row span:not(.icon),
 .co-contact-row a {
     flex: 1 1 auto;
     min-width: 0;
     overflow-wrap: break-word;
+}
+
+.co-contact-row .icon {
+    flex: 0 0 auto;
 }
 
 .co-contact-row a {
@@ -2146,6 +2150,7 @@ body {
     cursor: pointer;
     width: 32px;
     height: 32px;
+    flex-shrink: 0;
     border-radius: 50%;
     display: flex;
     align-items: center;
