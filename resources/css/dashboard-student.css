@@ -1197,8 +1197,8 @@ body {
 
 .companies-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 16px;
     align-items: start;
 }
 
@@ -1267,7 +1267,7 @@ body {
 }
 
 .co-top {
-    padding: 13px 13px 0;
+    padding: 16px 16px 0;
     cursor: pointer;
     user-select: none;
     border-radius: 16px 16px 0 0;
@@ -1281,9 +1281,9 @@ body {
 }
 
 .co-logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--border);
     display: flex;
@@ -1398,24 +1398,33 @@ body {
     color: var(--muted2);
 }
 
-/* Toggle espandi/comprimi */
+/* Azioni card: "Dettagli e contatti" + "Candidati" */
+.co-card-actions {
+    display: flex;
+    flex-direction: column;
+}
+
 .co-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.04);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 700;
     color: var(--emerald-green);
     transition: background 0.15s;
     user-select: none;
-    border-radius: 0 0 16px 16px;
     background: transparent;
     border: none;
+    text-align: center;
+}
+
+.co-card-actions .co-toggle:last-child {
+    border-radius: 0 0 16px 16px;
 }
 
 .co-toggle:hover {
@@ -1480,6 +1489,37 @@ body {
 .co-map-btn:hover {
     background: var(--emerald-green-dark);
     transform: translateY(-1px);
+}
+
+.co-map-btn:disabled {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.co-map-btn-outline {
+    background: transparent;
+    color: var(--emerald-green);
+    border: 1px solid rgba(46, 204, 113, 0.35);
+    box-shadow: none;
+}
+
+.co-map-btn-outline:hover {
+    background: rgba(46, 204, 113, 0.08);
+    transform: translateY(-1px);
+}
+
+.company-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 2px;
+}
+
+.company-modal-actions .co-map-btn {
+    margin-bottom: 0;
 }
 
 .company-details-modal {

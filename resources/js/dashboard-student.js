@@ -114,13 +114,21 @@ function renderCompanies(offers) {
     renderCompanyCards();
 }
 
+function getApplyLabel(company) {
+    return company.applicationStatus
+        ? APPLICATION_STATUS_LABEL[company.applicationStatus] || "Candidato"
+        : "Candidati";
+}
+
 function renderCompanyCards() {
     const list = document.getElementById("aziendeList");
     const empty = document.getElementById("aziendeEmpty");
     const badge = document.getElementById("badgeAziende");
+    const statAziende = document.getElementById("statAziendeMatch");
     const subtitle = document.getElementById("aziendeSubtitle");
 
     badge.textContent = currentCompanies.length;
+    if (statAziende) statAziende.textContent = currentCompanies.length;
 
     if (currentCompanies.length === 0) {
         list.style.display = "none";
@@ -154,9 +162,7 @@ function renderCompanyCards() {
                     <div class="co-pct-label">In elaborazione…</div>
                   </div>`;
 
-        const applyLabel = c.applicationStatus
-            ? APPLICATION_STATUS_LABEL[c.applicationStatus] || "Candidato"
-            : "Candidati";
+        const applyLabel = getApplyLabel(c);
 
         card.innerHTML = `
           <div class="co-top">
@@ -176,11 +182,11 @@ function renderCompanyCards() {
               <div class="co-meta-item">${svgIcon("i-route")}<span>${c.durationMin != null ? c.durationMin + " min in auto" : "durata n/d"}</span></div>
             </div>
           </div>
-          <div class="co-card-actions" style="display:flex; gap:8px;">
-            <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}" style="flex:1;">
+          <div class="co-card-actions">
+            <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}">
               Dettagli e contatti
             </button>
-            <button class="co-toggle" type="button" data-action="apply-offer" data-company-id="${c.id}" ${c.applicationStatus ? "disabled" : ""} style="flex:1;">
+            <button class="co-toggle" type="button" data-action="apply-offer" data-company-id="${c.id}" ${c.applicationStatus ? "disabled" : ""}>
               ${applyLabel}
             </button>
           </div>
@@ -277,13 +283,19 @@ function renderCompanyDetailsModal(company) {
           </div>
         </div>
       </div>
-      <button class="co-map-btn" type="button" data-action="go-to-company-map" data-company-id="${company.id}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-             fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-        Mostra percorso sulla mappa
-      </button>
+      <div class="company-modal-actions">
+        <button class="co-map-btn" type="button" data-action="apply-offer" data-company-id="${company.id}" ${company.applicationStatus ? "disabled" : ""}>
+          ${svgIcon("i-check")}
+          ${getApplyLabel(company)}
+        </button>
+        <button class="co-map-btn co-map-btn-outline" type="button" data-action="go-to-company-map" data-company-id="${company.id}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Mostra percorso sulla mappa
+        </button>
+      </div>
     `;
 }
 
@@ -1145,6 +1157,8 @@ document.addEventListener("DOMContentLoaded", () => {
     loadNotificationsData();
     renderNotifications();
     loadProfiloData();
+    aziendeLoaded = true;
+    loadCompanies();
 
     document.getElementById("overlay").addEventListener("click", closeSidebar);
 
@@ -1216,10 +1230,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     document
         .getElementById("companyDetailsContent")
-        .addEventListener("click", (e) => {
+        .addEventListener("click", async (e) => {
             const mapButton = e.target.closest('[data-action="go-to-company-map"]');
             if (mapButton) {
                 goToMap(mapButton.dataset.companyId);
+                return;
+            }
+
+            const applyButton = e.target.closest('[data-action="apply-offer"]');
+            if (applyButton && !applyButton.disabled) {
+                await applyToOffer(applyButton.dataset.companyId);
+                const company = getCompanyById(applyButton.dataset.companyId);
+                if (company) renderCompanyDetailsModal(company);
             }
         });
     document.addEventListener("keydown", (e) => {
