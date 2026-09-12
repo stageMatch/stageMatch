@@ -1440,12 +1440,14 @@ body {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.52);
     line-height: 1.65;
+    overflow-wrap: break-word;
 }
 
 .co-contacts {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
 }
 
 .co-contact-row {
@@ -1454,6 +1456,14 @@ body {
     gap: 7px;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.48);
+    min-width: 0;
+}
+
+.co-contact-row span,
+.co-contact-row a {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: break-word;
 }
 
 .co-contact-row a {
@@ -1597,6 +1607,7 @@ body {
 
 .company-modal-grid {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
     margin-bottom: 1rem;
 }
@@ -1614,6 +1625,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
     padding: 14px;
+    min-width: 0;
 }
 
 .company-modal-section-title {
@@ -2774,6 +2786,8 @@ body {
     border-radius: 20px;
     padding: 2.2rem;
     width: min(400px, 90vw);
+    max-height: 88vh;
+    overflow-y: auto;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
     transform: translateY(20px) scale(0.96);
     transition: transform 0.28s cubic-bezier(0.34, 1.36, 0.64, 1);

@@ -201,9 +201,11 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("");
     }
 
-    async function loadOffers() {
-        document.getElementById("annunciLoading").style.display = "flex";
-        document.getElementById("annunciList").style.display = "none";
+    async function loadOffers({ silent } = {}) {
+        if (!silent) {
+            document.getElementById("annunciLoading").style.display = "flex";
+            document.getElementById("annunciList").style.display = "none";
+        }
 
         try {
             const res = await fetch("/api/company/offers");
@@ -211,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderOffers(await res.json());
         } catch (err) {
             console.error("Errore caricamento annunci:", err);
-            showToast("Errore nel caricamento degli annunci");
+            if (!silent) showToast("Errore nel caricamento degli annunci");
         } finally {
             document.getElementById("annunciLoading").style.display = "none";
         }
@@ -367,7 +369,30 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         const closeBtn = e.target.closest('[data-action="close-offer"]');
-        if (closeBtn) closeOfferAnnuncio(closeBtn.dataset.id);
+        if (closeBtn) openCloseOfferConfirm(closeBtn.dataset.id);
+    });
+
+    let pendingCloseOfferId = null;
+    const closeOfferOverlay = document.getElementById("closeOfferOverlay");
+
+    function openCloseOfferConfirm(id) {
+        pendingCloseOfferId = id;
+        closeOfferOverlay?.classList.add("active");
+    }
+
+    function closeCloseOfferConfirm() {
+        pendingCloseOfferId = null;
+        closeOfferOverlay?.classList.remove("active");
+    }
+
+    document.getElementById("closeOfferCancel")?.addEventListener("click", closeCloseOfferConfirm);
+    document.getElementById("closeOfferConfirm")?.addEventListener("click", () => {
+        const id = pendingCloseOfferId;
+        closeCloseOfferConfirm();
+        if (id) closeOfferAnnuncio(id);
+    });
+    closeOfferOverlay?.addEventListener("click", (e) => {
+        if (e.target === closeOfferOverlay) closeCloseOfferConfirm();
     });
 
     // ============ CANDIDATURE ============
@@ -457,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Errore caricamento candidature:", err);
             if (!silent) showToast("Errore nel caricamento delle candidature");
         } finally {
-            if (!silent) document.getElementById("candidatureLoading").style.display = "none";
+            document.getElementById("candidatureLoading").style.display = "none";
         }
     }
 
@@ -496,6 +521,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Precarica le candidature per la card "Candidature Recenti" della dashboard.
     loadApplications({ silent: true }).then(() => {
         candidatureLoaded = true;
+    });
+
+    // Precarica gli annunci per aggiornare subito il numerino nella sidebar.
+    loadOffers({ silent: true }).then(() => {
+        annunciLoaded = true;
     });
 
     // ============ PROFILO AZIENDALE ============
@@ -704,6 +734,7 @@ document.addEventListener("DOMContentLoaded", () => {
             overlay.classList.remove("active");
             logoutOverlay.classList.remove("active");
             closeOfferModal();
+            closeCloseOfferConfirm();
             closeCompanyProfileModal();
             closeNotifDetails();
             closeNotifPanel();
