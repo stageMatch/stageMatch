@@ -8,6 +8,10 @@ from datetime import timedelta
 import auth.auth as au
 from auth.auth_google.auth import initGoogleAuth, getGoogleUserInfo
 from database import database_helper
+from database.database_helper import ApplicationAlreadyExistsError
+from matching import worker as matching_worker
+from matching import engine as matching_engine
+from matching import geo as matching_geo
 
 load_dotenv()
 
@@ -52,6 +56,8 @@ try:
 except Exception as e:
     app.logger.error(f"[ERROR] database initialization failed: {e}")
     raise e
+
+matching_worker.startWorker()
 
 def _completeLogin(user_data: dict):
     email = user_data.get("email", "")
@@ -310,7 +316,31 @@ def dashboardCompany():
 
     company_data = database_helper.modelToDict(data)
 
-    return render_template("/html/home-company.html", company=company_data)
+    offers = database_helper.getJobOffersByCompany(user["googleId"])
+    stats = {
+        "activeOffers": sum(1 for o in offers if o.attivo),
+        "totalApplications": sum(len(o.applications) for o in offers)
+    }
+
+    notifications = database_helper.getCompanyNotifications(user["googleId"])
+    notifications_data = [
+        {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
+        for notification in notifications
+    ]
+
+    return render_template(
+        "/html/home-company.html",
+        company=company_data,
+        stats=stats,
+        notifications=notifications_data
+    )
 
 @app.route('/logged/map')
 @au.session_middleware.loginRequired(role="user")
@@ -342,6 +372,8 @@ def saveProfile():
 
         if not updated_user:
             return jsonify({"error": "User not found"}), 404
+
+        matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForStudent(session_user["googleId"]))
 
         return jsonify({
             "message": "Profile updated",
@@ -381,6 +413,257 @@ def markNotificationRead():
         return jsonify({"error": "Notification not found"}), 404
 
     return jsonify({"message": "Notification marked as read"}), 200
+
+@app.route("/api/company/profile/save", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def saveCompanyProfile():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        company_user = session["user"]
+        data["googleId"] = company_user["googleId"]
+
+        company = database_helper.updateCompany(data)
+
+        if not company:
+            return jsonify({"error": "Company not found"}), 404
+
+        return jsonify({"message": "Profile updated"}), 200
+    except Exception:
+        app.logger.exception("[ERROR] company profile save endpoint failed")
+
+        return jsonify({"error": "Internal server error"}), 500
+
+def _jobOfferToDict(job_offer):
+    return {
+        "id": job_offer.id,
+        "title": job_offer.title,
+        "description": job_offer.description,
+        "attivo": job_offer.attivo,
+        "required_skills": [{"name": s.name, "livello_min": s.livello_min} for s in job_offer.required_skills],
+        "required_soft_skills": [{"label": s.label, "icon": s.icon} for s in job_offer.required_soft_skills],
+        "created_at": job_offer.created_at.isoformat()
+    }
+
+@app.route("/api/company/offers")
+@au.session_middleware.loginRequired(role="company")
+def getCompanyOffers():
+    company = session["user"]
+    offers = database_helper.getJobOffersByCompany(company["googleId"])
+
+    return jsonify([
+        {**_jobOfferToDict(o), "applications_count": len(o.applications)}
+        for o in offers
+    ])
+
+@app.route("/api/company/offers", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def createCompanyOffer():
+    company = session["user"]
+    data = request.get_json()
+
+    if not data or not str(data.get("title", "")).strip():
+        return jsonify({"error": "Titolo obbligatorio"}), 400
+
+    offer_id = database_helper.addJobOffer(company["googleId"], data)
+
+    if offer_id is None:
+        return jsonify({"error": "Azienda non trovata"}), 404
+
+    matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForJobOffer(offer_id))
+
+    return jsonify({"message": "Annuncio creato", "id": offer_id}), 201
+
+@app.route("/api/company/offers/<int:offer_id>/update", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def updateCompanyOffer(offer_id):
+    company = session["user"]
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    updated = database_helper.updateJobOffer(offer_id, company["googleId"], data)
+
+    if not updated:
+        return jsonify({"error": "Annuncio non trovato"}), 404
+
+    matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForJobOffer(offer_id))
+
+    return jsonify({"message": "Annuncio aggiornato"}), 200
+
+@app.route("/api/company/offers/<int:offer_id>/close", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def closeCompanyOffer(offer_id):
+    company = session["user"]
+    success = database_helper.closeJobOffer(offer_id, company["googleId"])
+
+    if not success:
+        return jsonify({"error": "Annuncio non trovato"}), 404
+
+    return jsonify({"message": "Annuncio chiuso"}), 200
+
+@app.route("/api/company/applications")
+@au.session_middleware.loginRequired(role="company")
+def getCompanyApplications():
+    company = session["user"]
+    applications = database_helper.getApplicationsForCompany(company["googleId"])
+
+    return jsonify([
+        {
+            "id": a.id,
+            "status": a.status,
+            "message": a.message,
+            "created_at": a.created_at.isoformat(),
+            "job_offer_id": a.job_offer_id,
+            "job_offer_title": a.job_offer.title,
+            "student": {
+                "name": a.user.name,
+                "surname": a.user.surname,
+                "email": a.user.email,
+                "classe": a.user.classe
+            }
+        }
+        for a in applications
+    ])
+
+@app.route("/api/company/applications/<int:application_id>/status", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def updateCompanyApplicationStatus(application_id):
+    company = session["user"]
+    data = request.get_json()
+    status = data.get("status") if data else None
+
+    if status not in ("vista", "accettata", "rifiutata"):
+        return jsonify({"error": "Stato non valido"}), 400
+
+    application = database_helper.updateApplicationStatus(application_id, status, company["googleId"])
+
+    if not application:
+        return jsonify({"error": "Candidatura non trovata"}), 404
+
+    return jsonify({"message": "Stato aggiornato"}), 200
+
+@app.route("/api/company/notifications")
+@au.session_middleware.loginRequired(role="company")
+def getCompanyNotificationsRoute():
+    company = session["user"]
+    notifications = database_helper.getCompanyNotifications(company["googleId"])
+
+    return jsonify([
+        {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "sender": n.sender,
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat()
+        }
+        for n in notifications
+    ])
+
+@app.route("/api/company/notifications/read", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def markCompanyNotificationReadRoute():
+    data = request.get_json()
+
+    if not data or "notification_id" not in data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    company = session["user"]
+    success = database_helper.markCompanyNotificationRead(company["googleId"], data["notification_id"])
+
+    if not success:
+        return jsonify({"error": "Notification not found"}), 404
+
+    return jsonify({"message": "Notification marked as read"}), 200
+
+@app.route("/api/students/offers")
+@au.session_middleware.loginRequired(role="user")
+def getStudentOffers():
+    user = session["user"]
+    student = database_helper.getUserById(user["googleId"])
+
+    if not student:
+        return jsonify([])
+
+    flat_student_address = matching_geo.flattenAddress(student.indirizzo)
+    matches = database_helper.getMatchesForStudent(user["googleId"])
+    applications = database_helper.getApplicationsByStudent(user["googleId"])
+    application_status_by_offer = {a.job_offer_id: a.status for a in applications}
+    matched_offer_ids = {m.job_offer_id for m in matches}
+
+    def offerCardData(offer, final_score, ai_status, explanation):
+        company = offer.company
+        flat_company_address = matching_geo.flattenAddress(company.address)
+        cached_route = None
+
+        if flat_student_address and flat_company_address:
+            cached_route = database_helper.getUserRouteByAddresses(
+                user["googleId"], flat_student_address, flat_company_address, "driving-car"
+            )
+
+        return {
+            "id": offer.id,
+            "title": offer.title,
+            "description": offer.description,
+            "company_name": company.name,
+            "company_settore": company.settore,
+            "company_descrizione": company.descrizione,
+            "company_address": flat_company_address,
+            "company_email": company.email,
+            "company_sito_web": company.sito_web,
+            "company_telefono": company.telefono,
+            "required_skills": [{"name": s.name, "livello_min": s.livello_min} for s in offer.required_skills],
+            "required_soft_skills": [{"label": s.label, "icon": s.icon} for s in offer.required_soft_skills],
+            "final_score": final_score,
+            "ai_status": ai_status,
+            "explanation": explanation,
+            "distance_km": cached_route.distance_km if cached_route else None,
+            "duration_min": cached_route.duration_min if cached_route else None,
+            "application_status": application_status_by_offer.get(offer.id)
+        }
+
+    result = [
+        offerCardData(m.job_offer, m.final_score, m.ai_status, m.explanation)
+        for m in matches
+    ]
+
+    for offer in database_helper.getActiveJobOffers():
+        if offer.id in matched_offer_ids:
+            continue
+
+        result.append(offerCardData(offer, None, "pending", None))
+
+    return jsonify(result)
+
+@app.route("/api/students/offers/<int:job_offer_id>/apply", methods=["POST"])
+@au.session_middleware.loginRequired(role="user")
+def applyToOffer(job_offer_id):
+    user = session["user"]
+    data = request.get_json(silent=True) or {}
+    message = data.get("message")
+
+    try:
+        database_helper.addApplication(user["googleId"], job_offer_id, message)
+    except ApplicationAlreadyExistsError:
+        return jsonify({"error": "Ti sei già candidato a questo annuncio"}), 409
+
+    job_offer = database_helper.getJobOfferById(job_offer_id)
+
+    if job_offer:
+        student = database_helper.getUserById(user["googleId"])
+        database_helper.addCompanyNotification(
+            job_offer.company_id,
+            "Nuova candidatura ricevuta",
+            f"{student.name} {student.surname} si è candidato/a per l'annuncio \"{job_offer.title}\".",
+            sender="stageMatch"
+        )
+
+    return jsonify({"message": "Candidatura inviata"}), 201
 
 @app.route("/api/data", methods=["GET", "POST"])
 def getAndSendData():

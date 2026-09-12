@@ -6,3 +6,4 @@ Authlib==1.8.0
 aiohttp==3.14.3
 requests==2.34.2
 python-dotenv==1.2.3
+anthropic==1.5.0

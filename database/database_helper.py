@@ -13,6 +13,11 @@ from .models.route import UserRoute
 from .models.notification import Notification
 from .models.privacy_consent import PrivacyConsent
 from .models.active_session import ActiveSession
+from .models.job_offer import JobOffer
+from .models.job_offer_skill import JobOfferSkill
+from .models.job_offer_soft_skill import JobOfferSoftSkill
+from .models.application import Application
+from .models.match import Match
 
 # global
 Session = None
@@ -35,7 +40,9 @@ def getUserById(user_id: str):
                 selectinload(User.skills),
                 selectinload(User.soft_skills),
                 selectinload(User.routes),
-                selectinload(User.notifications)
+                selectinload(User.notifications),
+                selectinload(User.applications),
+                selectinload(User.matches)
             )
             .filter_by(googleId=user_id)
             .first()
@@ -57,13 +64,37 @@ def existCompany(google_id: str) -> bool:
 
 def getCompanyByGoogleId(google_id: str):
     with Session() as session:
-        return session.query(Company).filter_by(googleId=google_id).first()
+        return (
+            session.query(Company)
+            .options(
+                selectinload(Company.job_offers),
+                selectinload(Company.notifications)
+            )
+            .filter_by(googleId=google_id)
+            .first()
+        )
 
 def addCompany(company_data: dict):
     with Session() as session:
         company = Company(**company_data)
         session.add(company)
         session.commit()
+
+def updateCompany(company_data: dict):
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_data["googleId"]).first()
+
+        if not company:
+            return None
+
+        for field in ["name", "address", "picture", "settore", "descrizione", "sito_web", "telefono"]:
+            if field in company_data:
+                setattr(company, field, company_data[field])
+
+        session.commit()
+        session.refresh(company)
+
+        return company
 
 def getUserColumn(user_id: str, column: str):
     """Return a single column value of a user by id."""
@@ -237,6 +268,30 @@ def addUserRoute(user_id: str, route_data: dict):
 
         return route
 
+def getStudentIdsWithAddress():
+    """Studenti con un indirizzo compilato, candidati al calcolo del matching."""
+    with Session() as session:
+        rows = (
+            session.query(User.googleId)
+            .filter(User.indirizzo.isnot(None), User.indirizzo != "")
+            .all()
+        )
+
+        return [row[0] for row in rows]
+
+def getUserRouteByAddresses(user_id: str, start_address: str, end_address: str, mode: str):
+    with Session() as session:
+        return (
+            session.query(UserRoute)
+            .filter_by(
+                user_id=user_id,
+                start_address=start_address,
+                end_address=end_address,
+                mode=mode
+            )
+            .first()
+        )
+
 def getRouteStats(routes: list):
     """Aggrega la lista di percorsi (dict, es. user_data["routes"]) in statistiche
     per la dashboard: km totali, numero percorsi, mezzo preferito e ultimo percorso."""
@@ -314,6 +369,297 @@ def addNotification(user_id: str, title: str, message: str, sender: str | None =
             "is_read": notification.is_read,
             "created_at": notification.created_at.isoformat()
         }
+
+def addCompanyNotification(company_id: str, title: str, message: str, sender: str | None = None):
+    """Create a notification for a company (e.g. a new application received)."""
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_id).first()
+
+        if not company:
+            return None
+
+        notification = Notification(title=title, message=message, sender=sender)
+        company.notifications.append(notification)
+
+        session.commit()
+
+        return {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
+
+def getCompanyNotifications(company_id: str):
+    with Session() as session:
+        return (
+            session.query(Notification)
+            .filter_by(company_id=company_id)
+            .order_by(Notification.id.desc())
+            .all()
+        )
+
+def markCompanyNotificationRead(company_id: str, notification_id: int) -> bool:
+    with Session() as session:
+        notification = session.get(Notification, notification_id)
+
+        if not notification or notification.company_id != company_id:
+            return False
+
+        notification.is_read = True
+        session.commit()
+
+        return True
+
+# ============================================================
+# JOB OFFERS
+# ============================================================
+
+def _applyJobOfferSkills(job_offer: JobOffer, data: dict):
+    skills = data.get("required_skills")
+    if skills is not None:
+        job_offer.required_skills.clear()
+
+        for skill_item in skills:
+            job_offer.required_skills.append(JobOfferSkill(
+                name=skill_item["name"],
+                livello_min=skill_item["livello_min"]
+            ))
+
+    soft_skills = data.get("required_soft_skills")
+    if soft_skills is not None:
+        job_offer.required_soft_skills.clear()
+
+        for skill_item in soft_skills:
+            job_offer.required_soft_skills.append(JobOfferSoftSkill(
+                label=skill_item["label"],
+                icon=skill_item["icon"]
+            ))
+
+def addJobOffer(company_id: str, data: dict):
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_id).first()
+
+        if not company:
+            return None
+
+        job_offer = JobOffer(
+            title=data["title"],
+            description=data.get("description")
+        )
+        _applyJobOfferSkills(job_offer, data)
+
+        company.job_offers.append(job_offer)
+        session.commit()
+        session.refresh(job_offer)
+
+        return job_offer.id
+
+def getJobOfferById(job_offer_id: int):
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.company),
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills)
+            )
+            .filter_by(id=job_offer_id)
+            .first()
+        )
+
+def getJobOffersByCompany(company_id: str):
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills),
+                selectinload(JobOffer.applications)
+            )
+            .filter_by(company_id=company_id)
+            .order_by(JobOffer.created_at.desc())
+            .all()
+        )
+
+def getActiveJobOffers():
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.company),
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills)
+            )
+            .filter_by(attivo=True)
+            .all()
+        )
+
+def updateJobOffer(job_offer_id: int, company_id: str, data: dict):
+    with Session() as session:
+        job_offer = session.query(JobOffer).filter_by(id=job_offer_id).first()
+
+        if not job_offer or job_offer.company_id != company_id:
+            return None
+
+        for field in ["title", "description"]:
+            if field in data:
+                setattr(job_offer, field, data[field])
+
+        _applyJobOfferSkills(job_offer, data)
+
+        session.commit()
+        session.refresh(job_offer)
+
+        return job_offer
+
+def closeJobOffer(job_offer_id: int, company_id: str) -> bool:
+    with Session() as session:
+        job_offer = session.query(JobOffer).filter_by(id=job_offer_id).first()
+
+        if not job_offer or job_offer.company_id != company_id:
+            return False
+
+        job_offer.attivo = False
+        session.commit()
+
+        return True
+
+# ============================================================
+# APPLICATIONS (CANDIDATURE)
+# ============================================================
+
+def addApplication(user_id: str, job_offer_id: int, message: str | None = None):
+    with Session() as session:
+        existing = (
+            session.query(Application)
+            .filter_by(user_id=user_id, job_offer_id=job_offer_id)
+            .first()
+        )
+
+        if existing:
+            raise ApplicationAlreadyExistsError(
+                f"Application for job offer {job_offer_id} by user {user_id} already exists!"
+            )
+
+        application = Application(user_id=user_id, job_offer_id=job_offer_id, message=message)
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+
+        return application.id
+
+def getApplicationsByStudent(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Application)
+            .options(
+                selectinload(Application.job_offer).selectinload(JobOffer.company)
+            )
+            .filter_by(user_id=user_id)
+            .all()
+        )
+
+def getApplicationsForCompany(company_id: str):
+    with Session() as session:
+        return (
+            session.query(Application)
+            .join(JobOffer, Application.job_offer_id == JobOffer.id)
+            .options(
+                selectinload(Application.user),
+                selectinload(Application.job_offer)
+            )
+            .filter(JobOffer.company_id == company_id)
+            .order_by(Application.created_at.desc())
+            .all()
+        )
+
+def updateApplicationStatus(application_id: int, status: str, company_google_id: str):
+    with Session() as session:
+        application = (
+            session.query(Application)
+            .options(selectinload(Application.job_offer))
+            .filter_by(id=application_id)
+            .first()
+        )
+
+        if not application or application.job_offer.company_id != company_google_id:
+            return None
+
+        application.status = status
+        session.commit()
+        session.refresh(application)
+
+        return application
+
+# ============================================================
+# MATCHES
+# ============================================================
+
+def getStudentMatchingProfile(user_id: str):
+    """Solo i dati necessari al motore di matching (skill, soft skill, indirizzo)."""
+    with Session() as session:
+        user = (
+            session.query(User)
+            .options(
+                selectinload(User.skills),
+                selectinload(User.soft_skills)
+            )
+            .filter_by(googleId=user_id)
+            .first()
+        )
+
+        if not user:
+            return None
+
+        return {
+            "googleId": user.googleId,
+            "indirizzo": user.indirizzo,
+            "skills": [{"name": s.name, "livello": s.livello} for s in user.skills],
+            "soft_skills": [{"label": s.label} for s in user.soft_skills]
+        }
+
+def upsertMatch(user_id: str, job_offer_id: int, deterministic_score: float,
+                 ai_score: float | None, final_score: float,
+                 explanation: str | None, ai_status: str):
+    with Session() as session:
+        match = (
+            session.query(Match)
+            .filter_by(user_id=user_id, job_offer_id=job_offer_id)
+            .first()
+        )
+
+        if not match:
+            match = Match(user_id=user_id, job_offer_id=job_offer_id)
+            session.add(match)
+
+        match.deterministic_score = deterministic_score
+        match.ai_score = ai_score
+        match.final_score = final_score
+        match.explanation = explanation
+        match.ai_status = ai_status
+        match.computed_at = datetime.now(timezone.utc)
+
+        session.commit()
+
+        return match.id
+
+def getMatchesForStudent(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Match)
+            .options(
+                selectinload(Match.job_offer).selectinload(JobOffer.company),
+                selectinload(Match.job_offer).selectinload(JobOffer.required_skills),
+                selectinload(Match.job_offer).selectinload(JobOffer.required_soft_skills)
+            )
+            .join(JobOffer, Match.job_offer_id == JobOffer.id)
+            .filter(Match.user_id == user_id, JobOffer.attivo.is_(True))
+            .order_by(Match.final_score.desc())
+            .all()
+        )
 
 def addActiveSession(session_id: str, email: str):
     with Session() as session:
@@ -408,5 +754,10 @@ def modelToDict(obj, include_relationships=True):
 
 class UserAlreadyExistsError(Exception):
     """Raised when trying to add a user that already exists."""
+
+    pass
+
+class ApplicationAlreadyExistsError(Exception):
+    """Raised when a student tries to apply twice to the same job offer."""
 
     pass

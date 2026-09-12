@@ -54,6 +54,18 @@ class User(Base):
         order_by="desc(Notification.id)"
     )
 
+    applications = relationship(
+        "Application",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    matches = relationship(
+        "Match",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     @validates("codice_fiscale")
     def validateCodiceFiscale(self, key, value):
         if not value:

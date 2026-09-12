@@ -1,83 +1,5 @@
-const MOCK_COMPANIES = [
-    {
-        id: 1,
-        initials: "AT",
-        name: "Alpha Tech Srl",
-        sector: "Sviluppo Software",
-        matchPct: 94,
-        tags: ["Python", "JavaScript", "Flask"],
-        description:
-            "Azienda bergamasca specializzata nello sviluppo di applicazioni web e mobile per il settore industriale.",
-        distanceKm: 12,
-        durationMin: 18,
-        city: "Dalmine",
-        address: "Via Roma 12, Dalmine BG",
-        contacts: {
-            email: "stage@alphatech.it",
-            web: "www.alphatech.it",
-            phone: "035 123 456",
-        },
-    },
-    {
-        id: 2,
-        initials: "BS",
-        name: "Beta Systems",
-        sector: "Cybersecurity",
-        matchPct: 81,
-        tags: ["Networking", "Linux", "Python"],
-        description:
-            "Società di consulenza specializzata in sicurezza informatica e infrastrutture di rete per PMI lombarde.",
-        distanceKm: 8,
-        durationMin: 12,
-        city: "Seriate",
-        address: "Via Industria 5, Seriate BG",
-        contacts: {
-            email: "hr@betasystems.it",
-            web: "www.betasystems.it",
-            phone: "035 654 321",
-        },
-    },
-    {
-        id: 3,
-        initials: "GI",
-        name: "Gamma Informatica",
-        sector: "Cloud & DevOps",
-        matchPct: 74,
-        tags: ["Docker", "AWS", "CI/CD"],
-        description:
-            "Provider di servizi cloud e automazione per aziende del territorio bergamasco e bresciano.",
-        distanceKm: 7,
-        durationMin: 10,
-        city: "Curno",
-        address: "Via Milano 88, Curno BG",
-        contacts: {
-            email: "tirocini@gammainf.it",
-            web: "www.gammainformatica.it",
-            phone: "035 789 000",
-        },
-    },
-    {
-        id: 4,
-        initials: "DN",
-        name: "Delta Networks",
-        sector: "Telecomunicazioni",
-        matchPct: 61,
-        tags: ["SQL", "Java", "IoT"],
-        description:
-            "Azienda nel settore delle reti di telecomunicazione con focus su soluzioni IoT industriali.",
-        distanceKm: 15,
-        durationMin: 22,
-        city: "Stezzano",
-        address: "Via Orio 3, Stezzano BG",
-        contacts: {
-            email: "info@deltanetworks.it",
-            web: "www.deltanetworks.it",
-            phone: "035 901 234",
-        },
-    },
-];
-
 let userRoutes = [];
+let currentCompanies = [];
 
 const svgIcon = (id, extraClass = "icon") =>
     `<span class="${extraClass}"><svg><use href="#${id}"></use></svg></span>`;
@@ -141,62 +63,127 @@ function setActive(el) {
     if (el) el.classList.add("active");
 }
 
-function renderCompanies(companies) {
+const APPLICATION_STATUS_LABEL = {
+    inviata: "Candidatura inviata",
+    vista: "Candidatura visualizzata",
+    accettata: "Candidatura accettata",
+    rifiutata: "Candidatura rifiutata",
+};
+
+function offerInitials(name) {
+    return String(name || "?")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join("")
+        .toUpperCase();
+}
+
+function mapOfferToCard(offer) {
+    const tags = [
+        ...offer.required_skills.map((s) => s.name),
+        ...offer.required_soft_skills.map((s) => s.label),
+    ];
+
+    return {
+        id: offer.id,
+        initials: offerInitials(offer.company_name),
+        name: offer.company_name,
+        sector: offer.title,
+        companySector: offer.company_settore || "Settore non specificato",
+        matchPct: offer.final_score != null ? Math.round(offer.final_score) : null,
+        aiStatus: offer.ai_status,
+        explanation: offer.explanation,
+        tags,
+        description: offer.description || offer.company_descrizione || "Nessuna descrizione disponibile.",
+        distanceKm: offer.distance_km != null ? offer.distance_km.toFixed(1) : null,
+        durationMin: offer.duration_min != null ? Math.round(offer.duration_min) : null,
+        address: offer.company_address || "Indirizzo non disponibile",
+        contacts: {
+            email: offer.company_email,
+            web: offer.company_sito_web,
+            phone: offer.company_telefono,
+        },
+        applicationStatus: offer.application_status,
+    };
+}
+
+function renderCompanies(offers) {
+    currentCompanies = Array.isArray(offers) ? offers.map(mapOfferToCard) : [];
+    renderCompanyCards();
+}
+
+function renderCompanyCards() {
     const list = document.getElementById("aziendeList");
     const empty = document.getElementById("aziendeEmpty");
     const badge = document.getElementById("badgeAziende");
     const subtitle = document.getElementById("aziendeSubtitle");
 
-    currentCompanies = Array.isArray(companies) ? companies : [];
+    badge.textContent = currentCompanies.length;
 
-    badge.textContent = companies.length;
-
-    if (!companies || companies.length === 0) {
+    if (currentCompanies.length === 0) {
         list.style.display = "none";
         empty.style.display = "flex";
-        subtitle.textContent = "Nessuna azienda compatibile trovata";
+        subtitle.textContent = "Nessun annuncio compatibile trovato";
         return;
     }
 
-    const n = companies.length;
-    subtitle.textContent = `${n} aziend${n === 1 ? "a" : "e"} compatibil${n === 1 ? "e" : "i"} con il tuo profilo`;
+    const n = currentCompanies.length;
+    subtitle.textContent = `${n} annunci${n === 1 ? "o" : ""} compatibil${n === 1 ? "e" : "i"} con il tuo profilo`;
     empty.style.display = "none";
     list.style.display = "grid";
     list.innerHTML = "";
 
-    companies.forEach((c, i) => {
-        const isBest = i === 0;
+    currentCompanies.forEach((c, i) => {
+        const isBest = i === 0 && c.matchPct != null;
         const tags = c.tags
-            .map((t) => `<span class="co-tag">${t}</span>`)
+            .map((t) => `<span class="co-tag">${escapeHtml(t)}</span>`)
             .join("");
         const card = document.createElement("div");
         card.className = `co-card${isBest ? " best" : ""}`;
         card.dataset.id = c.id;
+
+        const matchBlock =
+            c.matchPct != null
+                ? `<div class="co-match">
+                    <div class="co-pct">${c.matchPct}%</div>
+                    <div class="co-pct-label">match</div>
+                  </div>`
+                : `<div class="co-match">
+                    <div class="co-pct-label">In elaborazione…</div>
+                  </div>`;
+
+        const applyLabel = c.applicationStatus
+            ? APPLICATION_STATUS_LABEL[c.applicationStatus] || "Candidato"
+            : "Candidati";
 
         card.innerHTML = `
           <div class="co-top">
             <div class="co-row1">
               <div class="co-logo">${c.initials}</div>
               <div class="co-info">
-                <div class="co-name">${c.name}</div>
-                <div class="co-sector">${c.sector}</div>
+                <div class="co-name">${escapeHtml(c.name)}</div>
+                <div class="co-sector">${escapeHtml(c.sector)}</div>
               </div>
-              <div class="co-match">
-                <div class="co-pct">${c.matchPct}%</div>
-                <div class="co-pct-label">match</div>
-              </div>
+              ${matchBlock}
             </div>
-            <div class="co-bar-wrap"><div class="co-bar" style="width:${c.matchPct}%"></div></div>
+            ${c.matchPct != null ? `<div class="co-bar-wrap"><div class="co-bar" style="width:${c.matchPct}%"></div></div>` : ""}
             <div class="co-tags">${tags}</div>
             <div class="co-meta">
-              <div class="co-meta-item">${svgIcon("i-pin")}<span>${c.city} · ${c.distanceKm} km</span></div>
+              <div class="co-meta-item">${svgIcon("i-pin")}<span>${c.distanceKm != null ? c.distanceKm + " km" : "distanza n/d"}</span></div>
               <div class="co-meta-sep">·</div>
-              <div class="co-meta-item">${svgIcon("i-route")}<span>${c.durationMin} min in auto</span></div>
+              <div class="co-meta-item">${svgIcon("i-route")}<span>${c.durationMin != null ? c.durationMin + " min in auto" : "durata n/d"}</span></div>
             </div>
           </div>
-          <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}">
-            Dettagli e contatti
-          </button>
+          <div class="co-card-actions" style="display:flex; gap:8px;">
+            <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}" style="flex:1;">
+              Dettagli e contatti
+            </button>
+            <button class="co-toggle" type="button" data-action="apply-offer" data-company-id="${c.id}" ${c.applicationStatus ? "disabled" : ""} style="flex:1;">
+              ${applyLabel}
+            </button>
+          </div>
         `;
         list.appendChild(card);
     });
@@ -206,10 +193,37 @@ async function loadCompanies() {
     document.getElementById("aziendeLoading").style.display = "flex";
     document.getElementById("aziendeList").style.display = "none";
 
-    await new Promise((r) => setTimeout(r, 700));
+    try {
+        const res = await fetch("/api/students/offers");
+        if (!res.ok) throw new Error(`http ${res.status}`);
+        renderCompanies(await res.json());
+    } catch (err) {
+        console.error("Errore caricamento annunci:", err);
+        renderCompanies([]);
+    } finally {
+        document.getElementById("aziendeLoading").style.display = "none";
+    }
+}
 
-    document.getElementById("aziendeLoading").style.display = "none";
-    renderCompanies(MOCK_COMPANIES);
+async function applyToOffer(companyId) {
+    try {
+        const res = await fetch(`/api/students/offers/${companyId}/apply`, { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            showToast(data.error || "Errore durante l'invio della candidatura");
+            return;
+        }
+
+        const offer = currentCompanies.find((c) => String(c.id) === String(companyId));
+        if (offer) offer.applicationStatus = "inviata";
+
+        showToast("Candidatura inviata");
+        renderCompanyCards();
+    } catch (err) {
+        console.error("Errore candidatura:", err);
+        showToast("Errore durante l'invio della candidatura");
+    }
 }
 
 function getCompanyById(companyId) {
@@ -218,40 +232,48 @@ function getCompanyById(companyId) {
 
 function renderCompanyDetailsModal(company) {
     const content = document.getElementById("companyDetailsContent");
+    const explanationBlock =
+        company.aiStatus === "ok" && company.explanation
+            ? `<div class="co-desc">${escapeHtml(company.explanation)}</div>`
+            : `<div class="co-desc">Punteggio calcolato automaticamente in base a skill, soft skill e distanza.</div>`;
 
     content.innerHTML = `
       <div class="company-modal-hero">
         <div class="company-modal-logo">${company.initials}</div>
         <div class="company-modal-head">
-          <div class="company-modal-name">${company.name}</div>
-          <div class="company-modal-sector">${company.sector}</div>
+          <div class="company-modal-name">${escapeHtml(company.name)}</div>
+          <div class="company-modal-sector">${escapeHtml(company.sector)} · ${escapeHtml(company.companySector)}</div>
         </div>
         <div class="company-modal-match">
-          <div class="company-modal-match-pct">${company.matchPct}%</div>
+          <div class="company-modal-match-pct">${company.matchPct != null ? company.matchPct + "%" : "--"}</div>
           <div class="company-modal-match-label">match</div>
         </div>
       </div>
       <div class="company-modal-tags">
-        ${company.tags.map((tag) => `<span class="co-tag">${tag}</span>`).join("")}
+        ${company.tags.map((tag) => `<span class="co-tag">${escapeHtml(tag)}</span>`).join("")}
       </div>
       <div class="company-modal-grid">
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Descrizione</div>
-          <div class="co-desc">${company.description}</div>
+          <div class="co-desc">${escapeHtml(company.description)}</div>
+        </div>
+        <div class="company-modal-panel">
+          <div class="company-modal-section-title">Perché questo match</div>
+          ${explanationBlock}
         </div>
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Dettagli</div>
           <div class="company-modal-info-list">
-            <div class="co-contact-row">${svgIcon("i-pin")}<span>${company.address}</span></div>
-            <div class="co-contact-row">${svgIcon("i-route")}<span>${company.city} · ${company.distanceKm} km · ${company.durationMin} min in auto</span></div>
+            <div class="co-contact-row">${svgIcon("i-pin")}<span>${escapeHtml(company.address)}</span></div>
+            <div class="co-contact-row">${svgIcon("i-route")}<span>${company.distanceKm != null ? company.distanceKm + " km · " + company.durationMin + " min in auto" : "Distanza non disponibile"}</span></div>
           </div>
         </div>
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Contatti</div>
           <div class="co-contacts">
-            <div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${company.contacts.email}">${company.contacts.email}</a></div>
-            <div class="co-contact-row">${svgIcon("i-link")}<a href="https://${company.contacts.web}" target="_blank" rel="noopener noreferrer">${company.contacts.web}</a></div>
-            <div class="co-contact-row">${svgIcon("i-phone")}<span>${company.contacts.phone}</span></div>
+            ${company.contacts.email ? `<div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${company.contacts.email}">${escapeHtml(company.contacts.email)}</a></div>` : ""}
+            ${company.contacts.web ? `<div class="co-contact-row">${svgIcon("i-link")}<a href="https://${company.contacts.web}" target="_blank" rel="noopener noreferrer">${escapeHtml(company.contacts.web)}</a></div>` : ""}
+            ${company.contacts.phone ? `<div class="co-contact-row">${svgIcon("i-phone")}<span>${escapeHtml(company.contacts.phone)}</span></div>` : ""}
           </div>
         </div>
       </div>
@@ -1168,6 +1190,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("aziendeList").addEventListener("click", (e) => {
+        const applyButton = e.target.closest('[data-action="apply-offer"]');
+        if (applyButton) {
+            if (!applyButton.disabled) applyToOffer(applyButton.dataset.companyId);
+            return;
+        }
+
         const detailsButton = e.target.closest('[data-action="open-company-details"]');
         if (detailsButton) {
             openCompanyDetails(detailsButton.dataset.companyId);
