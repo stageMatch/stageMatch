@@ -273,6 +273,14 @@ body {
     text-decoration: none;
 }
 
+.nav-logo .logo-img {
+    height: 42px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    transition: var(--transition);
+}
+
 footer {
     padding: 60px 5%;
     background: rgba(10, 14, 26, 0.5);
@@ -282,6 +290,12 @@ footer {
     align-items: center;
     flex-wrap: wrap;
     gap: 30px;
+}
+
+footer > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .footer-links {

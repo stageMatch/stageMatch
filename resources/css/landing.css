@@ -366,6 +366,12 @@ footer {
     gap: 30px;
 }
 
+footer > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .footer-links {
     display: flex;
     gap: 20px;
@@ -429,12 +435,6 @@ footer {
     footer {
         flex-direction: column;
         text-align: center;
-    }
-
-    footer > div {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
     }
 }
 
