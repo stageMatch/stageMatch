@@ -1,5 +1,6 @@
-"""Rifinitura del punteggio deterministico tramite un modello AI (Anthropic),
-su un payload anonimizzato (nessun dato identificativo dello studente).
+"""Rifinitura del punteggio deterministico tramite un modello AI (Anthropic o DeepSeek,
+a seconda di MATCH_AI_PROVIDER), su un payload anonimizzato (nessun dato identificativo
+dello studente).
 
 Se l'AI è disabilitata, mancante di API key, sotto la soglia minima di rilevanza,
 o la chiamata fallisce per qualunque motivo, si ritorna sempre il punteggio
@@ -15,11 +16,29 @@ logger = logging.getLogger(__name__)
 MATCH_AI_MIN_SCORE = 40
 AI_TIMEOUT_SECONDS = 10
 
+SYSTEM_PROMPT = (
+    "Sei un assistente che valuta la compatibilità tra il profilo anonimizzato di uno "
+    "studente e un annuncio di stage aziendale. Ricevi solo dati anonimi: skill, soft "
+    "skill, lingue parlate, esperienze/progetti pregressi, distanza di spostamento e "
+    "durata del tragitto, titolo e descrizione dell'annuncio, oltre a un punteggio "
+    "deterministico di partenza (0-100) già calcolato su skill/soft skill/distanza. "
+    "Lingue ed esperienze non entrano nel punteggio deterministico: usale come contesto "
+    "aggiuntivo per affinare la valutazione.\n\n"
+    "Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza altro testo, in questa forma:\n"
+    '{"score": <numero 0-100>, "explanation": "<spiegazione breve in italiano, massimo due frasi>"}'
+)
+
 
 def _isEnabled() -> bool:
     enabled = os.getenv("ANTHROPIC_MATCHING_ENABLED", "True").lower() == "true"
 
-    return enabled and bool(os.getenv("ANTHROPIC_API_KEY"))
+    if not enabled:
+        return False
+
+    if os.getenv("MATCH_AI_PROVIDER", "anthropic").lower() == "deepseek":
+        return bool(os.getenv("DEEPSEEK_API_KEY"))
+
+    return bool(os.getenv("ANTHROPIC_API_KEY"))
 
 
 def buildAnonymizedPayload(deterministic_result: dict, student_skills: list[dict],
@@ -71,26 +90,17 @@ def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
         return _fallbackResult(deterministic_result["score"], "disabled")
 
     try:
-        import anthropic
-
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-
-        prompt = (
-            "Sei un assistente che valuta la compatibilità tra il profilo anonimizzato di uno "
-            "studente e un annuncio di stage aziendale. Ricevi solo dati anonimi (skill, soft "
-            "skill, distanza di spostamento, titolo e descrizione dell'annuncio) e un punteggio "
-            "deterministico di partenza (0-100) già calcolato sugli stessi criteri.\n\n"
-            "Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza altro testo, in questa forma:\n"
-            '{"score": <numero 0-100>, "explanation": "<spiegazione breve in italiano, massimo due frasi>"}\n\n'
-            f"Dati:\n{json.dumps(anonymized_payload, ensure_ascii=False)}"
-        )
+        client, model = _buildClient()
 
         message = client.messages.create(
             model=model,
-            max_tokens=300,
+            max_tokens=32000,
             timeout=AI_TIMEOUT_SECONDS,
-            messages=[{"role": "user", "content": prompt}]
+            system=SYSTEM_PROMPT,
+            messages=[{
+                "role": "user",
+                "content": f"Dati:\n{json.dumps(anonymized_payload, ensure_ascii=False)}"
+            }]
         )
 
         text = message.content[0].text.strip()
@@ -108,3 +118,22 @@ def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
         logger.warning(f"[matching.ai_refiner] rifinitura AI fallita, uso il punteggio deterministico: {e}")
 
         return _fallbackResult(deterministic_result["score"], "fallback")
+
+
+def _buildClient():
+    """DeepSeek espone un endpoint compatibile con la Messages API di Anthropic
+    (https://api-docs.deepseek.com/guides/anthropic_api): stesso SDK, cambiano solo
+    base_url/api_key/model."""
+    import anthropic
+
+    if os.getenv("MATCH_AI_PROVIDER", "anthropic").lower() == "deepseek":
+        client = anthropic.Anthropic(
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com/anthropic"
+        )
+        model = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
+    else:
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+
+    return client, model
