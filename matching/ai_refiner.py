@@ -100,6 +100,7 @@ def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
             model=model,
             max_tokens=32000,
             timeout=AI_TIMEOUT_SECONDS,
+            thinking={"type": "disabled"},
             system=SYSTEM_PROMPT,
             messages=[{
                 "role": "user",
@@ -107,7 +108,12 @@ def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
             }]
         )
 
-        text = message.content[0].text.strip()
+        text_block = next((b for b in message.content if getattr(b, "type", None) == "text"), None)
+
+        if text_block is None:
+            raise ValueError("risposta AI priva di un blocco di testo (solo thinking?)")
+
+        text = text_block.text.strip()
         parsed = json.loads(text[text.index("{"):text.rindex("}") + 1])
 
         ai_score = max(0.0, min(100.0, float(parsed["score"])))

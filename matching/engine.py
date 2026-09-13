@@ -17,22 +17,56 @@ def _requiredSkillsFor(job_offer) -> list[dict]:
 def _requiredSoftSkillsFor(job_offer) -> list[dict]:
     return [{"label": s.label} for s in job_offer.required_soft_skills]
 
+def _skillFitPhrase(score: float) -> str:
+    if score >= 85:
+        return "corrispondono pienamente ai requisiti richiesti"
+    if score >= 60:
+        return "coprono buona parte dei requisiti richiesti"
+    if score >= 30:
+        return "coprono solo in parte i requisiti richiesti"
+    return "coprono solo una minima parte dei requisiti richiesti"
+
+def _softSkillFitPhrase(score: float) -> str:
+    if score >= 85:
+        return "sono pienamente in linea con quanto cercato"
+    if score >= 60:
+        return "sono in buona parte in linea con quanto cercato"
+    if score >= 30:
+        return "sono solo in parte in linea con quanto cercato"
+    return "si discostano da quanto cercato"
+
+def _commutePhrase(duration_min: float) -> str:
+    if duration_min <= 15:
+        return "un tragitto molto breve"
+    if duration_min <= 30:
+        return "un tragitto comodo"
+    if duration_min <= 60:
+        return "un tragitto di media durata"
+    return "un tragitto piuttosto lungo"
+
 def _buildDeterministicExplanation(deterministic: dict) -> str:
     """Spiegazione testuale generata dai sotto-punteggi deterministici, usata quando
     l'AI non è disponibile/fallisce: varia da annuncio ad annuncio (a differenza di
     una frase fissa) perché riflette i dati reali del singolo match."""
+    skill_score = deterministic["skill_score"]
+    soft_score = deterministic["soft_score"]
     distance_km = deterministic["distance_km"]
     duration_min = deterministic["duration_min"]
 
-    if distance_km is not None and duration_min is not None:
-        distanza_txt = f"a {distance_km:.1f} km ({round(duration_min)} min)"
-    else:
-        distanza_txt = "distanza non disponibile"
-
-    return (
-        f"Corrispondenza competenze: {deterministic['skill_score']:.0f}%, "
-        f"soft skill: {deterministic['soft_score']:.0f}%, {distanza_txt}."
+    frase = (
+        f"Le tue competenze tecniche {_skillFitPhrase(skill_score)} ({skill_score:.0f}%), "
+        f"mentre le tue soft skill {_softSkillFitPhrase(soft_score)} ({soft_score:.0f}%)."
     )
+
+    if distance_km is not None and duration_min is not None:
+        frase += (
+            f" Lo stage dista {distance_km:.1f} km, {_commutePhrase(duration_min)} "
+            f"di circa {round(duration_min)} minuti."
+        )
+    else:
+        frase += " La distanza dallo stage non è al momento disponibile."
+
+    return frase
 
 def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
     if not job_offer.company:
