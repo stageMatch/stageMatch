@@ -45,35 +45,107 @@ L'applicazione è composta da due processi Flask indipendenti che comunicano tra
 
 ```
 stageMatch/
-├── app.py                  # App principale Flask (porta 5000)
-├── server.py                # Geo-proxy Flask (porta 5001)
-├── auth/                     # Autenticazione: Google OAuth, sessioni, rate limiter
+├── app.py                        # App principale Flask (porta 5000)
+├── server.py                     # Geo-proxy Flask (porta 5001)
+├── auth/                         # Autenticazione: Google OAuth, sessioni, rate limiter
 │   ├── auth.py
 │   ├── rate_limiter.py
-│   ├── middleware/session_middleware.py
-│   └── auth_google/auth.py
-├── database/                 # Livello dati SQLAlchemy
-│   ├── database_helper.py    # Unico punto di accesso al DB
-│   └── models/                # User, Company, UserPreferences, Skill, SoftSkill, Language, Experience,
-│                               # JobOffer, JobOfferSkill, JobOfferSoftSkill, Application, Match,
-│                               # Notification, UserRoute, PrivacyConsent, ActiveSession
-├── matching/                  # Motore di matching studente/annuncio (deterministico + rifinitura AI)
-│   ├── engine.py               # Orchestrazione: database_helper + scorer + geo + ai_refiner
-│   ├── scorer.py                # Punteggio deterministico (funzioni pure, no DB/rete)
-│   ├── geo.py                   # Distanza/durata casa-azienda (cache UserRoute + geo-proxy)
+│   ├── middleware/
+│   │   └── session_middleware.py
+│   └── auth_google/
+│       └── auth.py
+├── database/                     # Livello dati SQLAlchemy
+│   ├── database_helper.py        # Unico punto di accesso al DB
+│   └── models/                   # Un file per tabella
+│       ├── active_session.py
+│       ├── application.py
+│       ├── base.py
+│       ├── company.py
+│       ├── experience.py
+│       ├── job_offer.py
+│       ├── job_offer_skill.py
+│       ├── job_offer_soft_skill.py
+│       ├── language.py
+│       ├── match.py
+│       ├── notification.py
+│       ├── privacy_consent.py
+│       ├── route.py
+│       ├── skill.py
+│       ├── soft_skill.py
+│       ├── user.py
+│       └── user_preferences.py
+├── matching/                     # Motore di matching studente/annuncio (deterministico + rifinitura AI)
+│   ├── __init__.py
+│   ├── engine.py                 # Orchestrazione: database_helper + scorer + geo + ai_refiner
+│   ├── scorer.py                 # Punteggio deterministico (funzioni pure, no DB/rete)
+│   ├── geo.py                    # Distanza/durata casa-azienda (cache UserRoute + geo-proxy)
 │   ├── ai_refiner.py             # Rifinitura via Anthropic/DeepSeek su payload anonimizzato
 │   └── worker.py                 # Coda in-memory a thread singolo per l'esecuzione in background
-├── resources/                 # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
-│   ├── html/                  # Una pagina per file (landing, login, dashboard, mappa, ...)
-│   ├── css/                   # Stili, incluse le variabili del design system
-│   ├── js/                    # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js)
-│   └── img/                   # Immagini e asset statici
-├── scripts/                   # Migrazioni one-off dello schema DB (nessun Alembic/Flask-Migrate)
-├── ARCHITECTURE.md           # Diagramma del flusso richieste/dati
-├── CONTRIBUTING.md           # Regole di branch, commit e Pull Request
-├── docker-compose.yml        # Orchestrazione dei due servizi (web + api)
+├── resources/                     # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
+│   ├── html/                      # Una pagina per file
+│   │   ├── complete-login.html
+│   │   ├── dashboard-student.html
+│   │   ├── home-company.html
+│   │   ├── landing.html
+│   │   ├── login-company.html
+│   │   ├── login-student.html
+│   │   ├── login.html
+│   │   ├── map-view.html
+│   │   └── privacy.html
+│   ├── css/                       # Stili, incluse le variabili del design system
+│   │   ├── complete-login.css
+│   │   ├── dashboard-student.css
+│   │   ├── home-company.css
+│   │   ├── landing.css
+│   │   ├── login-company.css
+│   │   ├── login-student.css
+│   │   ├── login.css
+│   │   ├── map-view.css
+│   │   └── privacy.css
+│   ├── js/                        # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js)
+│   │   ├── complete-login.js
+│   │   ├── dashboard-student.js
+│   │   ├── home-company.js
+│   │   ├── landing.js
+│   │   ├── login-company.js
+│   │   ├── login-student.js
+│   │   ├── login.js
+│   │   ├── map-view.js
+│   │   └── theme.js
+│   └── img/                       # Immagini e asset statici
+│       ├── android-chrome-icon.svg
+│       ├── apple-touch-icon.svg
+│       ├── bergamoalto.jpg
+│       ├── favicon.svg
+│       └── logo.svg
+├── .agents/
+│   └── skills -> .claude/skills   # Symlink per tool che cercano le skill in .agents/
+├── .claude/
+│   └── skills/stagematch-design/  # Skill di design usata da Claude Code (vedi sezione Design)
+│       ├── SKILL.md
+│       ├── assets/brand-variables.css
+│       └── references/design-system.md
+├── .devcontainer/
+│   └── devcontainer.json          # Configurazione Dev Container
+├── .dockerignore
+├── .editorconfig
+├── .env.example                   # Variabili d'ambiente di esempio (copiare in .env)
+├── .gitattributes
+├── .gitignore
+├── AGENTS.md -> CLAUDE.md         # Symlink, stesse istruzioni di CLAUDE.md per altri agenti AI
+├── ARCHITECTURE.md                # Diagramma del flusso richieste/dati
+├── CLAUDE.md                      # Istruzioni per Claude Code
+├── CONTRIBUTING.md                # Regole di branch, commit e Pull Request
+├── Dockerfile
+├── LICENSE
+├── NOTICE
+├── README.md
+├── docker-compose.yml             # Orchestrazione dei due servizi (web + api)
+├── jsconfig.json
 └── requirements.txt
 ```
+
+> Nota: `scripts/` (migrazioni one-off dello schema DB) può esistere in locale ma è ignorato tramite `.gitignore` e quindi non versionato: non compare nell'albero sopra.
 
 `resources/js/theme.js` è l'unica eccezione alla convenzione "un JS per pagina": è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato). Su una pagina con sessione utente/azienda attiva legge la preferenza da un meta tag server-side (`<meta name="app-theme" data-role="user|company">`) e, se diverge dal valore in `localStorage`, sincronizza quest'ultimo verso il database tramite `/api/users/preferences/save` o `/api/companies/preferences/save`; sulle pagine pubbliche usa solo `localStorage`, con fallback a `prefers-color-scheme`.
 
