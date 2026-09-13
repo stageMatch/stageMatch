@@ -48,6 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const next = current === 'light' ? 'dark' : 'light';
+            if (window.__setTheme) window.__setTheme(next);
+        });
+    }
+
     const blobs = document.querySelectorAll('.blob');
     window.addEventListener('mousemove', (e) => {
         const x = e.clientX / window.innerWidth;

@@ -127,7 +127,39 @@ nav.scrolled .logo-img {
 
 .nav-cta {
     display: flex;
+    align-items: center;
     gap: 1rem;
+}
+
+.theme-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-toggle-btn:hover {
+    border-color: var(--c-accent);
+    color: var(--c-accent);
+}
+
+.theme-toggle-btn .icon-sun {
+    display: none;
+}
+
+:root[data-theme="light"] .theme-toggle-btn .icon-moon {
+    display: none;
+}
+
+:root[data-theme="light"] .theme-toggle-btn .icon-sun {
+    display: inline-flex;
 }
 
 .btn {

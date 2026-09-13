@@ -88,7 +88,23 @@ def _completeLogin(user_data: dict):
 
 @app.route('/')
 def mainPage():
-    return render_template("html/landing.html")
+    color_mode = None
+    auth_type = None
+    if "user" in session:
+        auth_type = session.get("auth_type", "user")
+        google_id = session["user"]["googleId"]
+        if auth_type == "company":
+            company = database_helper.getCompanyByGoogleId(google_id)
+            color_mode = company.color_mode if company else None
+        else:
+            preferences = database_helper.getUserPreferences(google_id)
+            color_mode = preferences.color_mode if preferences else None
+
+    return render_template(
+        "html/landing.html",
+        color_mode=color_mode,
+        auth_type=auth_type
+    )
 
 @app.route('/login')
 def login():
@@ -196,7 +212,8 @@ def completeLogin():
                 "email": user["email"],
                 "access_code": pending_data["access_code"],
                 "address": f"{pending_data['via']} ££ {pending_data['civico']} ££ {pending_data['cap']} ££ {pending_data['citta']}",
-                "picture": user["picture"]
+                "picture": user["picture"],
+                "color_mode": pending_data.get("color_mode", "dark")
             }
             database_helper.addCompany(company_data)
             session.pop("pending_company_data", None)
@@ -248,7 +265,8 @@ def completeLogin():
             user_data,
             privacy_consent={
                 "privacy_version": PRIVACY_POLICY_VERSION
-            }
+            },
+            color_mode=data.get("color_mode") or "dark"
         )
 
         database_helper.addNotification(
@@ -269,9 +287,7 @@ def completeLogin():
     return render_template(
         "/html/complete-login.html",
         user=user_data,
-        privacy_version=PRIVACY_POLICY_VERSION,
-        color_mode="dark",
-        lingua="it"
+        privacy_version=PRIVACY_POLICY_VERSION
     )
 
 @app.route("/logged/dashboard/student")
@@ -330,6 +346,7 @@ def dashboardCompany():
         )
 
     company_data = database_helper.modelToDict(data)
+    color_mode = company_data.get("color_mode") or "dark"
 
     offers = database_helper.getJobOffersByCompany(user["googleId"])
     stats = {
@@ -354,7 +371,8 @@ def dashboardCompany():
         "/html/home-company.html",
         company=company_data,
         stats=stats,
-        notifications=notifications_data
+        notifications=notifications_data,
+        color_mode=color_mode
     )
 
 @app.route('/logged/map')
@@ -437,6 +455,30 @@ def savePreferences():
         "color_mode": preferences.color_mode,
         "lingua": preferences.lingua
     }), 200
+
+@app.route("/api/companies/preferences/save", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def saveCompanyPreferences():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    color_mode = data.get("color_mode")
+
+    if color_mode is not None and color_mode not in ("dark", "light"):
+        return jsonify({"error": "color_mode non valido"}), 400
+
+    update_data = {"googleId": session["user"]["googleId"]}
+    if color_mode is not None:
+        update_data["color_mode"] = color_mode
+
+    company = database_helper.updateCompany(update_data)
+
+    if company is None:
+        return jsonify({"error": "Company not found"}), 404
+
+    return jsonify({"color_mode": company.color_mode}), 200
 
 @app.route("/api/users/sessions")
 @au.session_middleware.loginRequired(role="user")

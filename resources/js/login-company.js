@@ -83,7 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 const response = await fetch('/auth/company/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, access_code, via, civico, cap, citta }),
+                    body: JSON.stringify({
+                        name, access_code, via, civico, cap, citta,
+                        color_mode: document.documentElement.getAttribute('data-theme') || 'dark'
+                    }),
                 });
 
                 if (response.ok) {

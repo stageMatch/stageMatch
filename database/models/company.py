@@ -15,6 +15,7 @@ class Company(Base):
     descrizione = Column(Text, nullable=True)
     sito_web = Column(String, nullable=True)
     telefono = Column(String, nullable=True)
+    color_mode = Column(String, default='dark')
 
     job_offers = relationship(
         "JobOffer",

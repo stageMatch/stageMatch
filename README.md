@@ -16,7 +16,7 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 - **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
 - **Gestione privacy**: tracciamento del consenso privacy per utente, con versionamento della policy (`PRIVACY_POLICY_VERSION`).
 - **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database. Ogni utente può inoltre consultare le proprie sessioni attive e terminarle da Impostazioni.
-- **Tema chiaro/scuro**: preferenza persistita per utente (`UserPreferences.color_mode`) e applicata a tutte le pagine tramite `resources/js/theme.js`. La preferenza di lingua è persistita allo stesso modo, ma al momento non traduce ancora l'interfaccia (nessun sistema i18n implementato).
+- **Tema chiaro/scuro**: preferenza persistita per utente (`UserPreferences.color_mode`) e per azienda (`Company.color_mode`), applicata a tutte le pagine tramite `resources/js/theme.js`. Sulle pagine pubbliche (es. la landing) il tema è scelto liberamente e salvato solo in `localStorage`, con fallback alla preferenza di sistema (`prefers-color-scheme`) se non è mai stato impostato nulla; se l'utente è loggato, al primo caricamento successivo di una pagina con sessione attiva viene confrontato con il valore nel database e, in caso di discrepanza, il database viene aggiornato. Il tema scelto prima della registrazione viene salvato come preferenza iniziale al completamento dell'iscrizione. La preferenza di lingua è persistita allo stesso modo per gli studenti, ma al momento non traduce ancora l'interfaccia (nessun sistema i18n implementato).
 
 ## Stack tecnologico
 
@@ -62,7 +62,7 @@ stageMatch/
 └── requirements.txt
 ```
 
-`resources/js/theme.js` è l'unica eccezione alla convenzione "un JS per pagina": è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato), leggendo la preferenza da un meta tag server-side (per pagine con sessione utente) o da `localStorage` (per pagine pubbliche).
+`resources/js/theme.js` è l'unica eccezione alla convenzione "un JS per pagina": è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato). Su una pagina con sessione utente/azienda attiva legge la preferenza da un meta tag server-side (`<meta name="app-theme" data-role="user|company">`) e, se diverge dal valore in `localStorage`, sincronizza quest'ultimo verso il database tramite `/api/users/preferences/save` o `/api/companies/preferences/save`; sulle pagine pubbliche usa solo `localStorage`, con fallback a `prefers-color-scheme`.
 
 Per il diagramma completo del flusso richieste/dati, consulta [ARCHITECTURE.md](./ARCHITECTURE.md).
 

@@ -11,6 +11,11 @@ const submitBtn = document.getElementById("submitBtn");
 const submitLabel = document.getElementById("submitLabel");
 const progressFill = document.getElementById("progressFill");
 
+const colorModeInput = document.getElementById("color_mode");
+if (colorModeInput) {
+    colorModeInput.value = document.documentElement.getAttribute("data-theme") || "dark";
+}
+
 const fields = {
     nome: document.getElementById("nome"),
     cognome: document.getElementById("cognome"),

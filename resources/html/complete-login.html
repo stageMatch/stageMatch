@@ -2,7 +2,6 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8" />
-    <meta name="app-theme" content="{{ color_mode }}">
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>stageMatch - Completa il profilo</title>
@@ -259,6 +258,7 @@
 
                         <div class="privacy-panel col-full">
                             <input type="hidden" id="privacy_version" name="privacy_version" value="{{ privacy_version }}" />
+                            <input type="hidden" id="color_mode" name="color_mode" />
                             <div class="privacy-panel-head">
                                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>

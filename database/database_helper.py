@@ -95,7 +95,7 @@ def updateCompany(company_data: dict):
         if not company:
             return None
 
-        for field in ["name", "address", "picture", "settore", "descrizione", "sito_web", "telefono"]:
+        for field in ["name", "address", "picture", "settore", "descrizione", "sito_web", "telefono", "color_mode"]:
             if field in company_data:
                 setattr(company, field, company_data[field])
 
@@ -117,7 +117,7 @@ def getUserColumn(user_id: str, column: str):
 
         return getattr(user, column)
 
-def addUser(user_data: dict, privacy_consent: dict | None = None):
+def addUser(user_data: dict, privacy_consent: dict | None = None, color_mode: str = "light"):
     with Session() as session:
         existing = session.query(User).filter_by(googleId=user_data["googleId"]).options(
             selectinload(User.preferences)
@@ -129,7 +129,7 @@ def addUser(user_data: dict, privacy_consent: dict | None = None):
             )
 
         user = User(**user_data)
-        user.preferences = UserPreferences(color_mode="light")
+        user.preferences = UserPreferences(color_mode=color_mode)
 
         session.add(user)
         session.flush()
