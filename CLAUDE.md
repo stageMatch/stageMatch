@@ -71,3 +71,5 @@ Both students and companies log in the same way — Google OAuth — converging 
 ## Contribution workflow
 
 Full rules in `CONTRIBUTING.md`. Summary: anyone contributing branches from `main` using their own name capitalized (`git switch -c Cognome`), and every commit message must start with `NOME: ` (all caps) followed by a short description — avoid generic messages like "update files".
+
+Se una modifica incide su quanto descritto nel README (setup, comandi di avvio, dipendenze, architettura, ecc.), aggiorna anche il README nello stesso commit/PR.
