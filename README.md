@@ -15,7 +15,8 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 - **Autenticazione**: login di studenti e aziende tramite Google OAuth, gestito interamente dall'applicazione.
 - **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
 - **Gestione privacy**: tracciamento del consenso privacy per utente, con versionamento della policy (`PRIVACY_POLICY_VERSION`).
-- **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database.
+- **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database. Ogni utente può inoltre consultare le proprie sessioni attive e terminarle da Impostazioni.
+- **Tema chiaro/scuro**: preferenza persistita per utente (`UserPreferences.color_mode`) e applicata a tutte le pagine tramite `resources/js/theme.js`. La preferenza di lingua è persistita allo stesso modo, ma al momento non traduce ancora l'interfaccia (nessun sistema i18n implementato).
 
 ## Stack tecnologico
 
@@ -52,13 +53,16 @@ stageMatch/
 ├── resources/                 # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
 │   ├── html/                  # Una pagina per file (landing, login, dashboard, mappa, ...)
 │   ├── css/                   # Stili, incluse le variabili del design system
-│   ├── js/                    # Script lato client, vanilla JS (uno per pagina)
+│   ├── js/                    # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js)
 │   └── img/                   # Immagini e asset statici
+├── scripts/                   # Migrazioni one-off dello schema DB (nessun Alembic/Flask-Migrate)
 ├── ARCHITECTURE.md           # Diagramma del flusso richieste/dati
 ├── CONTRIBUTING.md           # Regole di branch, commit e Pull Request
 ├── docker-compose.yml        # Orchestrazione dei due servizi (web + api)
 └── requirements.txt
 ```
+
+`resources/js/theme.js` è l'unica eccezione alla convenzione "un JS per pagina": è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato), leggendo la preferenza da un meta tag server-side (per pagine con sessione utente) o da `localStorage` (per pagine pubbliche).
 
 Per il diagramma completo del flusso richieste/dati, consulta [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -93,6 +97,7 @@ Le principali variabili sono documentate in `.env.example`:
 | `MAX_SESSIONS_PER_USER` / `MAX_SESSIONS_GLOBAL` | Limiti del rate limiter sulle sessioni simultanee. |
 | `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
 | `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite. |
+| `APP_VERSION` | Versione applicativa mostrata in Impostazioni > Informazioni (default `1.0.0`). |
 | `PORT` | Porta di ascolto di `app.py` (default `5000`). Presente in `.env.example`. |
 | `PORT_API` | Porta di ascolto di `server.py` (default `5001`). Non è in `.env.example`: va impostata nell'ambiente (lo fa già `docker-compose.yml`) se si vuole un valore diverso dal default. |
 | `HOST` | Host di bind per `app.py` e `server.py` (default `127.0.0.1`). Non è in `.env.example`. |

@@ -16,6 +16,7 @@ from matching import geo as matching_geo
 load_dotenv()
 
 PRIVACY_POLICY_VERSION = os.getenv("PRIVACY_POLICY_VERSION")
+APP_VERSION = os.getenv("APP_VERSION")
 
 TRANSPORT_MODE_LABELS = {
     "driving-car": "Auto",
@@ -265,7 +266,13 @@ def completeLogin():
         "email": user["email"]
     }
 
-    return render_template("/html/complete-login.html", user=user_data, privacy_version=PRIVACY_POLICY_VERSION)
+    return render_template(
+        "/html/complete-login.html",
+        user=user_data,
+        privacy_version=PRIVACY_POLICY_VERSION,
+        color_mode="dark",
+        lingua="it"
+    )
 
 @app.route("/logged/dashboard/student")
 @au.session_middleware.loginRequired(role="user")
@@ -274,6 +281,10 @@ def dashboardStudent():
     data = database_helper.getUserById(user["googleId"])
     user_data = database_helper.modelToDict(data)
     user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
+
+    preferences = user_data.get("preferences") or {}
+    color_mode = preferences.get("color_mode") or "dark"
+    lingua = preferences.get("lingua") or "it"
 
     notifications = database_helper.getUserNotifications(user["googleId"])
     notifications_data = [
@@ -296,7 +307,10 @@ def dashboardStudent():
         "/html/dashboard-student.html",
         user=user_data,
         notifications=notifications_data,
-        stats=stats
+        stats=stats,
+        app_version=APP_VERSION,
+        color_mode=color_mode,
+        lingua=lingua
     )
 
 @app.route("/logged/dashboard/company")
@@ -346,7 +360,11 @@ def dashboardCompany():
 @app.route('/logged/map')
 @au.session_middleware.loginRequired(role="user")
 def map():
-    return render_template("/html/map-view.html")
+    preferences = database_helper.getUserPreferences(session["user"]["googleId"])
+    color_mode = (preferences.color_mode if preferences else None) or "dark"
+    lingua = (preferences.lingua if preferences else None) or "it"
+
+    return render_template("/html/map-view.html", color_mode=color_mode, lingua=lingua)
 
 @app.route("/api/users/profile")
 @au.session_middleware.loginRequired(role="user")
@@ -388,6 +406,62 @@ def saveProfile():
         app.logger.exception("[ERROR] profile save endpoint failed")
 
         return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/users/preferences/save", methods=["POST"])
+@au.session_middleware.loginRequired(role="user")
+def savePreferences():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    color_mode = data.get("color_mode")
+    lingua = data.get("lingua")
+
+    if color_mode is not None and color_mode not in ("dark", "light"):
+        return jsonify({"error": "color_mode non valido"}), 400
+
+    if lingua is not None and lingua not in ("it", "en"):
+        return jsonify({"error": "lingua non valida"}), 400
+
+    preferences = database_helper.updateUserPreferences(
+        session["user"]["googleId"],
+        color_mode=color_mode,
+        lingua=lingua
+    )
+
+    if preferences is None:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "color_mode": preferences.color_mode,
+        "lingua": preferences.lingua
+    }), 200
+
+@app.route("/api/users/sessions")
+@au.session_middleware.loginRequired(role="user")
+def getUserSessions():
+    email = session["user"]["email"]
+    current_session_id = session.get("session_id")
+    sessions = au.rate_limiter.getUserSessions(email)
+
+    return jsonify([
+        {
+            "created_at": s.created_at.isoformat(),
+            "last_seen": s.last_seen.isoformat(),
+            "is_current": s.session_id == current_session_id
+        }
+        for s in sessions
+    ])
+
+@app.route("/api/users/sessions/terminate-others", methods=["POST"])
+@au.session_middleware.loginRequired(role="user")
+def terminateOtherSessions():
+    email = session["user"]["email"]
+    current_session_id = session.get("session_id")
+    au.rate_limiter.removeAllSessionsForUser(email, keep_session_id=current_session_id)
+
+    return jsonify({"message": "Sessioni terminate"}), 200
 
 @app.route("/api/users/routes")
 def getUserRoutes():

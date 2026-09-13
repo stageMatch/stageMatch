@@ -16,6 +16,14 @@
     --radius-md: 12px;
 }
 
+:root[data-theme="dark"] {
+    --bg-map: var(--midnight-blue);
+    --panel-bg: var(--midnight-blue-light);
+    --text-primary: #E8E6F4;
+    --text-muted: #7B74A0;
+    --border-color: rgba(46, 204, 113, 0.15);
+}
+
 * {
     margin: 0;
     padding: 0;

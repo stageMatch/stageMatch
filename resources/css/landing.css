@@ -25,6 +25,15 @@
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+:root[data-theme="light"] {
+    --c-bg: #F7F9FC;
+    --c-surface: #FFFFFF;
+    --c-text: var(--midnight-blue);
+    --c-muted: #5B6478;
+    --c-border: rgba(10, 14, 26, 0.1);
+    --c-border-glow: rgba(46, 204, 113, 0.25);
+}
+
 html {
     scroll-behavior: smooth;
 }

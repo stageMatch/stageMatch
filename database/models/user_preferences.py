@@ -6,6 +6,7 @@ class UserPreferences(Base):
     __tablename__ = 'user_preferences'
 
     user_id = Column(String, ForeignKey('users.googleId'), primary_key=True, nullable=False)
-    color_mode = Column(String, default='light')
+    color_mode = Column(String, default='dark')
+    lingua = Column(String, default='it')
 
     user = relationship('User', back_populates='preferences', uselist=False)

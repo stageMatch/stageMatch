@@ -74,6 +74,16 @@ class RateLimiter:
         """Verifica se un session_id è ancora registrato e non scaduto."""
         return database_helper.isActiveSessionValid(session_id, self.sessionTtlSeconds)
 
+    def getUserSessions(self, email: str):
+        """Ritorna le sessioni attive (non scadute) di un utente."""
+        database_helper.deleteExpiredActiveSessions(self.sessionTtlSeconds)
+
+        return database_helper.getActiveSessionsByEmail(email)
+
+    def removeAllSessionsForUser(self, email: str, keep_session_id: str = None):
+        """Rimuove tutte le sessioni di un utente, opzionalmente escludendone una."""
+        database_helper.removeAllActiveSessionsForEmail(email, except_session_id=keep_session_id)
+
     def getStats(self) -> dict:
         """Ritorna statistiche correnti (per admin/debug)."""
         database_helper.deleteExpiredActiveSessions(self.sessionTtlSeconds)

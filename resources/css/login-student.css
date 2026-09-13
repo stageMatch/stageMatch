@@ -14,24 +14,36 @@
     --font-main: 'Inter', system-ui, -apple-system, sans-serif;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --transition: 0.3s var(--ease-out);
+
+    --page-bg: var(--midnight-blue);
+    --page-text: var(--white-modern);
+    --overlay-1: rgba(10, 14, 26, 0.4);
+    --overlay-2: rgba(10, 14, 26, 0.8);
+}
+
+:root[data-theme="light"] {
+    --page-bg: #F7F9FC;
+    --page-text: var(--midnight-blue);
+    --overlay-1: rgba(247, 249, 252, 0.5);
+    --overlay-2: rgba(247, 249, 252, 0.85);
 }
 
 body {
     min-height: 100dvh;
     background: url('../img/bergamoalto.jpg') center center / cover no-repeat fixed;
     font-family: var(--font-main);
-    color: var(--white-modern);
+    color: var(--page-text);
     overflow: hidden;
-    background-color: var(--midnight-blue);
+    background-color: var(--page-bg);
 }
 
 .overlay {
     position: fixed;
     inset: 0;
     background: linear-gradient(160deg,
-            rgba(10, 14, 26, 0.4) 0%,
-            rgba(10, 14, 26, 0.8) 60%,
-            var(--midnight-blue) 100%);
+            var(--overlay-1) 0%,
+            var(--overlay-2) 60%,
+            var(--page-bg) 100%);
     z-index: 0;
 }
 
@@ -146,7 +158,7 @@ body {
 
 .btn-back {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--white-modern);
+    color: var(--page-text);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
 }

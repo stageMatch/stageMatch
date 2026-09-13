@@ -25,6 +25,15 @@
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+:root[data-theme="light"] {
+    --bg: #F7F9FC;
+    --panel: #FFFFFF;
+    --text: var(--midnight-blue);
+    --text-muted: #5B6478;
+    --border: rgba(10, 14, 26, 0.1);
+    --border-glow: rgba(46, 204, 113, 0.25);
+}
+
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg);

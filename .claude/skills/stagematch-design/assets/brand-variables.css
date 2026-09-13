@@ -19,3 +19,16 @@
     --radius-md: 8px;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Tema chiaro: inverte sfondo/testo, mantiene --emerald-green invariato come accento.
+   Non ridefinire mai --midnight-blue/--emerald-green qui: sono costanti di brand
+   riusate anche per usi che devono restare fissi in entrambi i temi (es. testo
+   scuro su bottone verde). Il tema ridefinisce solo le variabili funzionali. */
+:root[data-theme="light"] {
+    --bg: #F7F9FC;
+    --panel: #FFFFFF;
+    --text: var(--midnight-blue);
+    --text-muted: #5B6478;
+    --border: rgba(10, 14, 26, 0.1);
+    --border-glow: rgba(46, 204, 113, 0.25);
+}

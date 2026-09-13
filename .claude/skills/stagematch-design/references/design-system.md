@@ -16,6 +16,20 @@ L'identità visiva si basa su un contrasto tra l'eleganza del **Blu Notte** e l'
 - **Bordi:** `1px solid rgba(46, 204, 113, 0.1)` (Verde trasparente per un effetto glow soffuso).
 - **Radius:** `12px` per card e pannelli, `8px` per pulsanti e input.
 
+## Tema chiaro
+
+Alcune pagine supportano anche un tema chiaro, attivato con l'attributo `data-theme="light"` sull'elemento `<html>` (vedi `resources/js/theme.js`). Il tema chiaro **inverte solo le variabili funzionali** (sfondo, pannelli, testo), non le costanti di brand:
+
+- **Midnight Blue / Emerald Green:** invariati in entrambi i temi — restano le costanti di brand, mai ridefinite dentro `[data-theme="light"]` (servono ancora, ad es., per il testo scuro su bottoni verdi).
+- **Sfondo (`--bg`):** `#F7F9FC` (quasi bianco) invece di Midnight Blue.
+- **Pannelli (`--panel`):** `#FFFFFF` invece di Midnight Blue Lighter.
+- **Testo primario (`--text`):** riusa il valore di Midnight Blue (`#0A0E1A`) come colore testo.
+- **Testo secondario (`--text-muted`):** `#5B6478`.
+- **Bordi (`--border`):** `rgba(10, 14, 26, 0.1)` invece del verde trasparente.
+- **Accento (`--emerald-green`):** invariato — resta il verde del brand in entrambi i temi.
+
+Vedi `assets/brand-variables.css` per il blocco `:root[data-theme="light"]` completo, da replicare (con lo stesso criterio: solo variabili funzionali, mai le costanti di brand) in ogni CSS di pagina che duplica le proprie variabili.
+
 ## Pattern UI
 
 ### Pulsanti

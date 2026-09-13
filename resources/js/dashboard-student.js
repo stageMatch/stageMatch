@@ -941,7 +941,7 @@ async function salvaProfilo() {
 function updateProfiloUI(apiResult) {
     // Nome hero
     document.querySelector(".profilo-hero-name").textContent = profiloData.name + " " + profiloData.surname;
-    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ${profiloData.istituto || ""}, Bergamo`;
+    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ${profiloData.istituto || ""}`;
     const sidebarRole = document.querySelector(".user-role");
 
     if (sidebarRole) {
@@ -1052,42 +1052,34 @@ function updateProfiloUI(apiResult) {
 }
 
 let impostazioniData = {
-    notifMatch: true,
-    notifPercorsi: true,
-    notifScuola: true,
-    notifScadenze: false,
-    notifEmail: true,
-    privVisibilita: "school",
-    privCondividi: true,
-    privLink: false,
     tema: "dark",
     mezzoDefault: "driving-car",
     lingua: "it",
-    reduceMotion: false,
 };
 
-function saveImpostazioni() {
-    impostazioniData.notifMatch =
-        document.getElementById("notifMatch")?.checked;
-    impostazioniData.notifPercorsi =
-        document.getElementById("notifPercorsi")?.checked;
-    impostazioniData.notifScuola =
-        document.getElementById("notifScuola")?.checked;
-    impostazioniData.notifScadenze =
-        document.getElementById("notifScadenze")?.checked;
-    impostazioniData.notifEmail =
-        document.getElementById("notifEmail")?.checked;
-    impostazioniData.privVisibilita =
-        document.getElementById("privVisibilita")?.value;
-    impostazioniData.privCondividi =
-        document.getElementById("privCondividi")?.checked;
-    impostazioniData.privLink = document.getElementById("privLink")?.checked;
+async function salvaPreferenzeRemote(payload) {
+    try {
+        const res = await fetch("/api/users/preferences/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Richiesta fallita");
+    } catch (err) {
+        console.error("Errore salvataggio preferenze:", err);
+        showToast("Errore nel salvataggio della preferenza");
+    }
+}
+
+function saveImpostazioni(e) {
     impostazioniData.mezzoDefault =
         document.getElementById("mezzoDefault")?.value;
     impostazioniData.lingua = document.getElementById("lingua")?.value;
-    impostazioniData.reduceMotion =
-        document.getElementById("reduceMotion")?.checked;
     showToast("Impostazione salvata");
+
+    if (e && e.target && e.target.id === "lingua") {
+        salvaPreferenzeRemote({ lingua: impostazioniData.lingua });
+    }
 }
 
 function setTema(btn) {
@@ -1096,6 +1088,8 @@ function setTema(btn) {
         .forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     impostazioniData.tema = btn.dataset.val;
+    if (window.__setTheme) window.__setTheme(btn.dataset.val);
+    salvaPreferenzeRemote({ color_mode: btn.dataset.val });
     showToast("Tema aggiornato");
 }
 
@@ -1116,6 +1110,72 @@ function showToast(msg) {
     t.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+let sessioniLoaded = false;
+
+function formatSessioneTime(iso) {
+    const date = new Date(iso);
+    if (isNaN(date)) return "";
+    return date.toLocaleString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function renderSessioni(sessions) {
+    const list = document.getElementById("sessioniList");
+    if (!list) return;
+
+    if (!sessions || sessions.length === 0) {
+        list.innerHTML = `<div class="imp-row-sub">Nessuna sessione attiva trovata.</div>`;
+        return;
+    }
+
+    list.innerHTML = sessions
+        .map(
+            (s) => `
+        <div class="imp-sessione-row">
+            <div class="imp-row-info">
+                <div class="imp-row-label">Ultimo utilizzo: ${formatSessioneTime(s.last_seen)}</div>
+                <div class="imp-row-sub">Accesso il ${formatSessioneTime(s.created_at)}</div>
+            </div>
+            ${s.is_current ? `<span class="imp-badge-current">Questo dispositivo</span>` : ""}
+        </div>`,
+        )
+        .join("");
+}
+
+async function loadSessioniData() {
+    const list = document.getElementById("sessioniList");
+    if (list) list.innerHTML = `<div class="imp-row-sub">Caricamento…</div>`;
+
+    try {
+        const res = await fetch("/api/users/sessions");
+        if (!res.ok) throw new Error("Richiesta fallita");
+        const sessions = await res.json();
+        renderSessioni(sessions);
+    } catch (err) {
+        console.error("Errore caricamento sessioni:", err);
+        if (list) list.innerHTML = `<div class="imp-row-sub">Errore nel caricamento delle sessioni.</div>`;
+    }
+}
+
+async function terminaAltreSessioni() {
+    try {
+        const res = await fetch("/api/users/sessions/terminate-others", {
+            method: "POST",
+        });
+        if (!res.ok) throw new Error("Richiesta fallita");
+        showToast("Sessioni terminate");
+        loadSessioniData();
+    } catch (err) {
+        console.error("Errore terminazione sessioni:", err);
+        showToast("Errore nella terminazione delle sessioni");
+    }
 }
 
 let notifications = [];
@@ -1240,27 +1300,6 @@ function closeNotifPanel() {
     btn.setAttribute("aria-expanded", "false");
 }
 
-function esportaDati() {
-    const payload = {
-        profilo: profiloData,
-        impostazioni: impostazioniData,
-        esportato: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "stagematch_dati.json";
-    a.click();
-    showToast("Download avviato");
-}
-
-function esportaCV() {
-    showToast("Generazione PDF in corso...");
-    setTimeout(() => showToast("CV pronto per il download"), 1800);
-}
-
 function openLogoutModal() {
     document.getElementById("logoutOverlay").classList.add("active");
     document.getElementById("logoutCancel").focus();
@@ -1325,6 +1364,10 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             showSection("impostazioni");
             setActive(e.currentTarget);
+            if (!sessioniLoaded) {
+                sessioniLoaded = true;
+                loadSessioniData();
+            }
         });
     document.getElementById("navLogout").addEventListener("click", (e) => {
         e.preventDefault();
@@ -1621,11 +1664,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document
-        .querySelector('[data-action="esportaDati"]')
-        .addEventListener("click", esportaDati);
-    document
-        .querySelector('[data-action="esportaCV"]')
-        .addEventListener("click", esportaCV);
+        .getElementById("btnTerminaSessioni")
+        .addEventListener("click", terminaAltreSessioni);
+
     document
         .querySelector('[data-action="openPrivacy"]')
         .addEventListener("click", () => {

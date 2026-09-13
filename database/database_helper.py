@@ -262,7 +262,7 @@ def getUserPreferences(user_id: str):
 
         return user.preferences
 
-def updateUserPreferences(user_id: str, color_mode: str):
+def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = None):
     with Session() as session:
         user = session.query(User).filter_by(googleId=user_id).first()
 
@@ -270,9 +270,15 @@ def updateUserPreferences(user_id: str, color_mode: str):
             return None
 
         if user.preferences is None:
-            user.preferences = UserPreferences(color_mode=color_mode)
+            user.preferences = UserPreferences(
+                color_mode=color_mode or "dark",
+                lingua=lingua or "it"
+            )
         else:
-            user.preferences.color_mode = color_mode
+            if color_mode is not None:
+                user.preferences.color_mode = color_mode
+            if lingua is not None:
+                user.preferences.lingua = lingua
 
         session.commit()
 
@@ -797,6 +803,16 @@ def deleteExpiredActiveSessions(ttl_seconds: int):
         session.query(ActiveSession).filter(
             ActiveSession.last_seen < cutoff
         ).delete()
+        session.commit()
+
+def removeAllActiveSessionsForEmail(email: str, except_session_id: str = None):
+    with Session() as session:
+        query = session.query(ActiveSession).filter_by(email=email.lower())
+
+        if except_session_id:
+            query = query.filter(ActiveSession.session_id != except_session_id)
+
+        query.delete()
         session.commit()
 
 def modelToDict(obj, include_relationships=True):

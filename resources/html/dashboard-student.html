@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="app-theme" content="{{ color_mode }}">
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -217,7 +219,7 @@
             </nav>
 
             <div class="sidebar-user">
-                <div class="user-avatar">MR</div>
+                <div class="user-avatar"><img src="{{ user.picture }}" alt=""></div>
                 <div class="user-info">
                     <div class="user-name">{{user.name}} {{user.surname}}</div>
                     <div class="user-role">Studente · {{user.classe}}</div>
@@ -453,15 +455,11 @@
                 </div>
 
                 <div class="profilo-hero animate-in">
-                    <div class="profilo-avatar">MR</div>
+                    <div class="profilo-avatar"><img src="{{ user.picture }}" alt=""></div>
                     <div class="profilo-hero-info">
                         <div class="profilo-hero-name">{{user.name}} {{user.surname}}</div>
-                        <div class="profilo-hero-sub">Studente · {{user.classe}} · {{ user.istituto }}, Bergamo</div>
-                        <div class="profilo-hero-tags">
-                            <span class="pro-tag"><span class="icon"><svg><use href="#i-graduate"></use></svg></span>Diploma 2025</span>
-                            <span class="pro-tag"><span class="icon"><svg><use href="#i-pin"></use></svg></span>Bergamo</span>
-                            <span class="pro-tag green"><span class="icon"><svg><use href="#i-check"></use></svg></span>Disponibile per stage</span>
-                        </div>
+                        <div class="profilo-hero-sub">Studente · {{user.classe}} · {{ user.istituto }}</div>
+                        <div class="profilo-hero-tags"></div>
                     </div>
                 </div>
 
@@ -581,113 +579,17 @@
                             </div>
                             <span class="imp-val-muted">{{ user.email }}</span>
                         </div>
-                    </div>
-
-                    <div class="imp-card">
-                        <div class="imp-card-head"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Nuovi match aziendali</div>
-                                <div class="imp-row-sub">Avviso quando un'azienda compatibile viene aggiunta</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="notifMatch" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Aggiornamenti percorsi</div>
-                                <div class="imp-row-sub">Modifiche a percorsi salvati</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="notifPercorsi" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Comunicazioni scuola</div>
-                                <div class="imp-row-sub">Messaggi dall'istituto e dai docenti referenti</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="notifScuola" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Promemoria scadenze</div>
-                                <div class="imp-row-sub">Avvisi prima della scadenza dello stage</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="notifScadenze" />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Riepilogo settimanale via email</div>
-                                <div class="imp-row-sub">Digest ogni lunedì con match e aggiornamenti</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="notifEmail" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="imp-card">
-                        <div class="imp-card-head"><span class="icon"><svg><use href="#i-shield"></use></svg></span>Privacy</div>
-
-                        <div class="imp-row-item">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Visibilità profilo</div>
-                                <div class="imp-row-sub">Chi può vedere il tuo profilo</div>
-                            </div>
-                            <select class="imp-select" id="privVisibilita">
-                                <option value="public">Tutti</option>
-                                <option value="school" selected>Solo scuola</option>
-                                <option value="private">Solo io</option>
-                            </select>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Condividi dati con aziende</div>
-                                <div class="imp-row-sub">Permetti alle aziende in match di vedere il tuo profilo</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="privCondividi" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Mostra link profilo pubblico</div>
-                                <div class="imp-row-sub">Genera un link condivisibile al tuo profilo</div>
-                            </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" id="privLink" />
-                                <span class="imp-toggle-track"></span>
-                            </label>
-                        </div>
 
                         <div class="imp-divider"></div>
 
                         <div class="imp-row-item">
                             <div class="imp-row-info">
-                                <div class="imp-row-label">Scarica i tuoi dati</div>
-                                <div class="imp-row-sub">Esporta tutto in formato JSON (GDPR Art. 20)</div>
+                                <div class="imp-row-label">Sessioni attive</div>
+                                <div class="imp-row-sub">Dispositivi attualmente connessi al tuo account</div>
                             </div>
-                            <button class="imp-btn-sm" data-action="esportaDati">Esporta</button>
+                            <button class="imp-btn-sm danger" id="btnTerminaSessioni">Termina tutte le altre</button>
                         </div>
+                        <div id="sessioniList" class="imp-sessioni-list"></div>
                     </div>
 
                     <div class="imp-card">
@@ -699,8 +601,8 @@
                                 <div class="imp-row-sub">Aspetto dell'interfaccia</div>
                             </div>
                             <div class="imp-segmented" id="temaSegmented">
-                                <button class="imp-seg active" data-val="dark"><span class="icon"><svg><use href="#i-moon"></use></svg></span>Scuro</button>
-                                <button class="imp-seg" data-val="light"><span class="icon"><svg><use href="#i-sun"></use></svg></span>Chiaro</button>
+                                <button class="imp-seg{{ ' active' if color_mode != 'light' }}" data-val="dark"><span class="icon"><svg><use href="#i-moon"></use></svg></span>Scuro</button>
+                                <button class="imp-seg{{ ' active' if color_mode == 'light' }}" data-val="light"><span class="icon"><svg><use href="#i-sun"></use></svg></span>Chiaro</button>
                             </div>
                         </div>
 
@@ -719,11 +621,11 @@
                         <div class="imp-row-item">
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Lingua</div>
-                                <div class="imp-row-sub">Lingua dell'interfaccia</div>
+                                <div class="imp-row-sub">Lingua dell'interfaccia (preferenza salvata, traduzione non ancora disponibile)</div>
                             </div>
                             <select class="imp-select" id="lingua">
-                                <option value="it" selected>Italiano</option>
-                                <option value="en">English</option>
+                                <option value="it"{{ ' selected' if lingua != 'en' }}>Italiano</option>
+                                <option value="en"{{ ' selected' if lingua == 'en' }}>English</option>
                             </select>
                         </div>
                     </div>
@@ -731,22 +633,9 @@
                     <div class="imp-card">
                         <div class="imp-card-head"><span class="icon"><svg><use href="#i-link"></use></svg></span>Integrazioni e connessioni</div>
 
-                        <div class="imp-row-item">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Google</div>
-                                <div class="imp-row-sub">Accesso rapido e sincronizzazione calendario</div>
-                            </div>
-                            <button class="imp-btn-sm connected" id="btnGoogle"><span class="icon"><svg><use href="#i-check"></use></svg></span>Connesso</button>
-                        </div>
-
-                        <div class="imp-divider"></div>
-
-                        <div class="imp-row-item">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Esporta profilo come CV</div>
-                                <div class="imp-row-sub">Genera un PDF con le tue informazioni</div>
-                            </div>
-                            <button class="imp-btn-sm" data-action="esportaCV"><span class="icon"><svg><use href="#i-file"></use></svg></span>PDF</button>
+                        <div class="imp-placeholder">
+                            <div class="empty-state-icon"><span class="icon"><svg><use href="#i-link"></use></svg></span></div>
+                            <span>Prossimamente disponibile</span>
                         </div>
                     </div>
 
@@ -756,7 +645,7 @@
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Versione</div>
                             </div>
-                            <span class="imp-val-muted">stageMatch v1.0.0</span>
+                            <span class="imp-val-muted">stageMatch v{{ app_version }}</span>
                         </div>
                         <div class="imp-divider"></div>
                         <div class="imp-row-item">
