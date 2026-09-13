@@ -48,6 +48,12 @@
     --green-text: #1B8A4C;
 }
 
+:root:not([data-theme="light"]) .hero-card,
+:root:not([data-theme="light"]) .co-card,
+:root:not([data-theme="light"]) .profilo-hero {
+    border: 1px solid var(--border);
+}
+
 html,
 body {
     height: 100%;
