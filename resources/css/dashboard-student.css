@@ -2299,9 +2299,14 @@ body {
 
 .pro-skill-edit-row {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
+}
+
+.pro-skill-edit-row input,
+.pro-skill-edit-row select {
+    min-width: 0;
 }
 
 .pro-skill-edit-row input,
@@ -2355,9 +2360,13 @@ body {
 
 .pro-del-btn-corner {
     position: absolute;
-    top: 10px;
+    top: 50%;
     right: 10px;
+    transform: translateY(-50%);
     padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .pro-del-btn:hover {
@@ -2422,7 +2431,7 @@ body {
 }
 
 .pro-exp-edit-row .pro-del-btn {
-    align-self: flex-start;
+    align-self: flex-end;
 }
 
 .pro-exp-labels-editor {
@@ -2603,6 +2612,10 @@ body {
     }
 
     .pro-lang-edit-row {
+        grid-template-columns: 1fr;
+    }
+
+    .pro-skill-edit-row {
         grid-template-columns: 1fr;
     }
 }
@@ -2984,7 +2997,8 @@ body {
 
 .modal-btn-cancel,
 .modal-btn-confirm {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     padding: 0.75rem 1rem;
     border-radius: 10px;
     font-family: inherit;
@@ -2992,6 +3006,10 @@ body {
     font-weight: 700;
     cursor: pointer;
     border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
     transition: all 0.2s ease;
 }
 
