@@ -24,8 +24,16 @@ SYSTEM_PROMPT = (
     "deterministico di partenza (0-100) già calcolato su skill/soft skill/distanza. "
     "Lingue ed esperienze non entrano nel punteggio deterministico: usale come contesto "
     "aggiuntivo per affinare la valutazione.\n\n"
+    "Nella spiegazione, cita SEMPRE 1-2 fattori concreti e specifici che hanno determinato "
+    "la valutazione, scegliendoli tra: skill richieste effettivamente possedute o mancanti "
+    "(nominale, es. 'possiedi Python al livello richiesto ma manca SQL'), un'esperienza o "
+    "lingua pertinente all'annuncio, oppure la distanza/durata del tragitto se rilevante "
+    "(es. 'a soli 8 minuti' o 'un tragitto di oltre un'ora'). Evita frasi generiche e "
+    "intercambiabili come 'buona corrispondenza complessiva' o 'profilo adatto al ruolo' "
+    "senza riferimenti concreti ai dati ricevuti: due spiegazioni per annunci diversi non "
+    "devono mai poter essere scambiate tra loro.\n\n"
     "Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza altro testo, in questa forma:\n"
-    '{"score": <numero 0-100>, "explanation": "<spiegazione breve in italiano, massimo due frasi>"}'
+    '{"score": <numero 0-100>, "explanation": "<spiegazione breve e specifica in italiano, massimo due frasi>"}'
 )
 
 def _isEnabled() -> bool:

@@ -80,6 +80,16 @@ function offerInitials(name) {
         .toUpperCase();
 }
 
+const MAX_VISIBLE_TAGS = 4;
+
+function renderTagsHtml(tags, max) {
+    const visible = tags.slice(0, max);
+    const remaining = tags.length - visible.length;
+    const chips = visible.map((t) => `<span class="co-tag">${escapeHtml(t)}</span>`).join("");
+    const moreChip = remaining > 0 ? `<span class="co-tag co-tag-more">+${remaining} altre</span>` : "";
+    return chips + moreChip;
+}
+
 function mapOfferToCard(offer) {
     const tags = [
         ...offer.required_skills.map((s) => s.name),
@@ -145,9 +155,7 @@ function renderCompanyCards() {
 
     currentCompanies.forEach((c, i) => {
         const isBest = i === 0 && c.matchPct != null;
-        const tags = c.tags
-            .map((t) => `<span class="co-tag">${escapeHtml(t)}</span>`)
-            .join("");
+        const tags = renderTagsHtml(c.tags, MAX_VISIBLE_TAGS);
         const card = document.createElement("div");
         card.className = `co-card${isBest ? " best" : ""}`;
         card.dataset.id = c.id;
@@ -238,10 +246,9 @@ function getCompanyById(companyId) {
 
 function renderCompanyDetailsModal(company) {
     const content = document.getElementById("companyDetailsContent");
-    const explanationBlock =
-        company.aiStatus === "ok" && company.explanation
-            ? `<div class="co-desc">${escapeHtml(company.explanation)}</div>`
-            : `<div class="co-desc">Punteggio calcolato automaticamente in base a skill, soft skill e distanza.</div>`;
+    const explanationBlock = company.explanation
+        ? `<div class="co-desc">${escapeHtml(company.explanation)}</div>`
+        : `<div class="co-desc">Punteggio calcolato automaticamente in base a skill, soft skill e distanza.</div>`;
 
     content.innerHTML = `
       <div class="company-modal-hero">

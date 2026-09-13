@@ -17,6 +17,23 @@ def _requiredSkillsFor(job_offer) -> list[dict]:
 def _requiredSoftSkillsFor(job_offer) -> list[dict]:
     return [{"label": s.label} for s in job_offer.required_soft_skills]
 
+def _buildDeterministicExplanation(deterministic: dict) -> str:
+    """Spiegazione testuale generata dai sotto-punteggi deterministici, usata quando
+    l'AI non è disponibile/fallisce: varia da annuncio ad annuncio (a differenza di
+    una frase fissa) perché riflette i dati reali del singolo match."""
+    distance_km = deterministic["distance_km"]
+    duration_min = deterministic["duration_min"]
+
+    if distance_km is not None and duration_min is not None:
+        distanza_txt = f"a {distance_km:.1f} km ({round(duration_min)} min)"
+    else:
+        distanza_txt = "distanza non disponibile"
+
+    return (
+        f"Corrispondenza competenze: {deterministic['skill_score']:.0f}%, "
+        f"soft skill: {deterministic['soft_score']:.0f}%, {distanza_txt}."
+    )
+
 def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
     if not job_offer.company:
         return
@@ -52,6 +69,7 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
     )
 
     refined = ai_refiner.refineScore(deterministic, anonymized_payload)
+    explanation = refined["explanation"] or _buildDeterministicExplanation(deterministic)
 
     database_helper.upsertMatch(
         user_id,
@@ -59,7 +77,7 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
         deterministic["score"],
         refined["ai_score"],
         refined["final_score"],
-        refined["explanation"],
+        explanation,
         refined["ai_status"]
     )
 

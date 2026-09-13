@@ -1231,7 +1231,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
     gap: 16px;
-    align-items: start;
+    align-items: stretch;
 }
 
 .section-state {
@@ -1269,6 +1269,9 @@ body {
     border-radius: 16px;
     transition: box-shadow 0.2s;
     animation: fadeSlide 0.35s ease both;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .co-card:nth-child(1) {
@@ -1300,6 +1303,7 @@ body {
     cursor: pointer;
     user-select: none;
     border-radius: 16px 16px 0 0;
+    flex: 1;
 }
 
 .co-row1 {
@@ -1344,6 +1348,10 @@ body {
 .co-sector {
     font-size: 11px;
     color: var(--muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .co-match {
@@ -1399,6 +1407,12 @@ body {
     background: rgba(46, 204, 113, 0.1);
     color: var(--green-text);
     border: 1px solid rgba(46, 204, 113, 0.15);
+}
+
+.co-tag-more {
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
 }
 
 .co-meta {
@@ -1679,6 +1693,10 @@ body {
 .notif-details-modal {
     width: min(480px, 92vw);
     padding: 1.5rem;
+}
+
+:root[data-theme="light"] .modal-box.notif-details-modal {
+    border: none;
 }
 
 .notif-details-message {
