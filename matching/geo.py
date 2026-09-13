@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODE = "driving-car"
 
-
 def flattenAddress(raw_address: str | None) -> str | None:
     """Converte un indirizzo composito '££'-delimited in una stringa geocodificabile."""
     if not raw_address:
@@ -22,7 +21,6 @@ def flattenAddress(raw_address: str | None) -> str | None:
     parts = [p.strip() for p in raw_address.split("££") if p.strip()]
 
     return ", ".join(parts) if parts else None
-
 
 def getOrComputeDistance(user_id: str, student_address: str | None, job_offer_address: str | None,
                           mode: str = DEFAULT_MODE) -> tuple[float | None, float | None]:

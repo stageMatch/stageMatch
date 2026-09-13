@@ -28,7 +28,6 @@ SYSTEM_PROMPT = (
     '{"score": <numero 0-100>, "explanation": "<spiegazione breve in italiano, massimo due frasi>"}'
 )
 
-
 def _isEnabled() -> bool:
     enabled = os.getenv("ANTHROPIC_MATCHING_ENABLED", "True").lower() == "true"
 
@@ -39,7 +38,6 @@ def _isEnabled() -> bool:
         return bool(os.getenv("DEEPSEEK_API_KEY"))
 
     return bool(os.getenv("ANTHROPIC_API_KEY"))
-
 
 def buildAnonymizedPayload(deterministic_result: dict, student_skills: list[dict],
                             student_soft_skills: list[dict], offer_title: str,
@@ -72,7 +70,6 @@ def buildAnonymizedPayload(deterministic_result: dict, student_skills: list[dict
         }
     }
 
-
 def _fallbackResult(deterministic_score: float, ai_status: str) -> dict:
     return {
         "final_score": deterministic_score,
@@ -80,7 +77,6 @@ def _fallbackResult(deterministic_score: float, ai_status: str) -> dict:
         "explanation": None,
         "ai_status": ai_status
     }
-
 
 def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
     if not _isEnabled():
@@ -118,7 +114,6 @@ def refineScore(deterministic_result: dict, anonymized_payload: dict) -> dict:
         logger.warning(f"[matching.ai_refiner] rifinitura AI fallita, uso il punteggio deterministico: {e}")
 
         return _fallbackResult(deterministic_result["score"], "fallback")
-
 
 def _buildClient():
     """DeepSeek espone un endpoint compatibile con la Messages API di Anthropic

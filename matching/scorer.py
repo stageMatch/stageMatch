@@ -10,7 +10,6 @@ DISTANCE_WEIGHT = 0.3
 NEUTRAL_SCORE_NO_REQUIREMENTS = 0.7
 MAX_ACCEPTABLE_DURATION_MIN = 60
 
-
 def _skillScore(student_skills: list[dict], required_skills: list[dict]) -> float:
     if not required_skills:
         return NEUTRAL_SCORE_NO_REQUIREMENTS
@@ -28,7 +27,6 @@ def _skillScore(student_skills: list[dict], required_skills: list[dict]) -> floa
 
     return sum(scores) / len(scores)
 
-
 def _softSkillScore(student_soft_skills: list[dict], required_soft_skills: list[dict]) -> float:
     if not required_soft_skills:
         return NEUTRAL_SCORE_NO_REQUIREMENTS
@@ -40,13 +38,11 @@ def _softSkillScore(student_soft_skills: list[dict], required_soft_skills: list[
 
     return len(matched) / len(required_labels)
 
-
 def _distanceScore(duration_min: float | None) -> float:
     if duration_min is None:
         return NEUTRAL_SCORE_NO_REQUIREMENTS
 
     return max(0.0, 1 - (duration_min / MAX_ACCEPTABLE_DURATION_MIN))
-
 
 def computeDeterministicScore(
     student_skills: list[dict],

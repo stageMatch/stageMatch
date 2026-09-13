@@ -10,14 +10,12 @@ from matching import scorer, geo, ai_refiner
 
 logger = logging.getLogger(__name__)
 
-
 def _requiredSkillsFor(job_offer) -> list[dict]:
     return [{"name": s.name, "livello_min": s.livello_min} for s in job_offer.required_skills]
 
 
 def _requiredSoftSkillsFor(job_offer) -> list[dict]:
     return [{"label": s.label} for s in job_offer.required_soft_skills]
-
 
 def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
     if not job_offer.company:
@@ -65,7 +63,6 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
         refined["ai_status"]
     )
 
-
 def recomputeMatchesForStudent(user_id: str):
     """Ricalcola il match dello studente con tutti gli annunci attivi.
     Chiamata quando lo studente aggiorna skill/soft skill/indirizzo."""
@@ -79,7 +76,6 @@ def recomputeMatchesForStudent(user_id: str):
             _computeAndStoreMatch(user_id, student_profile, job_offer)
         except Exception as e:
             logger.exception(f"[matching.engine] match {user_id} <-> offer {job_offer.id} failed: {e}")
-
 
 def recomputeMatchesForJobOffer(job_offer_id: int):
     """Ricalcola il match di tutti gli studenti (con profilo compilato) con un

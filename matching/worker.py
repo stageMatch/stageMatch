@@ -16,7 +16,6 @@ _queue: "queue.Queue" = queue.Queue()
 _started = False
 _lock = threading.Lock()
 
-
 def _runLoop():
     while True:
         job_fn = _queue.get()
@@ -27,7 +26,6 @@ def _runLoop():
             logger.exception(f"[matching.worker] background job failed: {e}")
         finally:
             _queue.task_done()
-
 
 def startWorker():
     """Avvia il thread worker una sola volta per processo."""
@@ -42,7 +40,6 @@ def startWorker():
         _started = True
 
         logger.info("[matching.worker] background matching worker started")
-
 
 def enqueue(job_fn):
     """Accoda un job (una funzione senza argomenti) per l'esecuzione in background."""
