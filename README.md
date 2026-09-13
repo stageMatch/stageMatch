@@ -10,8 +10,11 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 
 ## Funzionalità principali
 
-- **Profili studente**: dati anagrafici, competenze tecniche (skill) e trasversali (soft skill), preferenze e cronologia degli indirizzi/percorsi cercati.
-- **Profili azienda**: registrazione tramite Google OAuth e pubblicazione delle informazioni utili all'abbinamento con gli studenti.
+- **Profili studente**: dati anagrafici, competenze tecniche (skill) e trasversali (soft skill), lingue parlate (con livello CEFR ed eventuale certificazione), esperienze/progetti pregressi, preferenze e cronologia degli indirizzi/percorsi cercati.
+- **Profili azienda**: registrazione tramite Google OAuth, pubblicazione delle informazioni utili all'abbinamento con gli studenti e gestione dei propri annunci di stage.
+- **Annunci e candidature**: le aziende pubblicano annunci con requisiti di skill (con livello minimo) e soft skill; gli studenti consultano gli annunci attivi e si candidano, le aziende gestiscono lo stato delle candidature ricevute (inviata/vista/accettata/rifiutata).
+- **Motore di matching**: per ogni coppia studente/annuncio viene calcolato un punteggio deterministico (skill, soft skill e distanza/tempo di percorrenza casa-azienda, quest'ultima riusando la cache `UserRoute` e il geo-proxy), poi opzionalmente rifinito da un modello AI (Anthropic o DeepSeek, a seconda di `MATCH_AI_PROVIDER`) su un payload anonimizzato che include anche lingue ed esperienze come contesto aggiuntivo. Il calcolo gira in background tramite una coda in-memory a thread singolo (`matching/worker.py`), così da non bloccare le richieste HTTP; se l'AI è disabilitata, priva di API key o la chiamata fallisce, si usa sempre il punteggio deterministico come fallback.
+- **Notifiche**: notifiche in-app per studenti e aziende (es. aggiornamenti di stato su candidature/annunci), con stato letto/non letto.
 - **Autenticazione**: login di studenti e aziende tramite Google OAuth, gestito interamente dall'applicazione.
 - **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
 - **Gestione privacy**: tracciamento del consenso privacy per utente, con versionamento della policy (`PRIVACY_POLICY_VERSION`).
@@ -26,6 +29,7 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 | Autenticazione | Authlib (Google OAuth) |
 | Database | SQLAlchemy su SQLite |
 | Frontend | HTML/CSS/JS "vanilla" con template Jinja, senza framework né bundler; una coppia HTML/CSS/JS per ciascuna pagina in `resources/html` |
+| Matching AI | SDK `anthropic`, verso Anthropic o, in alternativa, l'endpoint compatibile di DeepSeek |
 | Servizi geografici esterni | Nominatim (geocoding), Photon (autocompletamento indirizzi), OpenRouteService (routing) |
 | Containerizzazione | Docker e Docker Compose per l'avvio coordinato di app principale e geo-proxy |
 
@@ -33,8 +37,9 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 
 L'applicazione è composta da due processi Flask indipendenti che comunicano tra loro via HTTP:
 
-- **`app.py`** (porta 5000) — l'app principale: serve le pagine (template Jinja in `resources/html/`), gestisce l'autenticazione e le sessioni utente/azienda ed è l'unico servizio che accede al database. Inoltra le chiamate `/photon` e `/routejson` provenienti dal frontend al geo-proxy.
+- **`app.py`** (porta 5000) — l'app principale: serve le pagine (template Jinja in `resources/html/`), gestisce l'autenticazione e le sessioni utente/azienda ed è l'unico servizio che accede al database. Inoltra le chiamate `/photon` e `/routejson` provenienti dal frontend al geo-proxy ed espone le API per annunci, candidature e notifiche.
 - **`server.py`** (porta 5001) — un proxy geografico interno, contattato solo da `app.py` (mai direttamente dal browser), che astrae le API esterne di Nominatim (geocoding), Photon (autocompletamento indirizzi) e OpenRouteService (routing).
+- **`matching/`** — motore di matching studente/annuncio, eseguito in background rispetto alla richiesta HTTP tramite una coda in-memory a thread singolo (`worker.py`): calcola un punteggio deterministico su skill/soft skill/distanza (`scorer.py`), risolve la distanza casa-azienda riusando il geo-proxy e la cache `UserRoute` (`geo.py`), quindi lo rifinisce opzionalmente con un modello AI su dati anonimizzati (`ai_refiner.py`, Anthropic o DeepSeek). `engine.py` orchestra i tre moduli e scrive il risultato nella tabella `matches` tramite `database_helper`.
 
 ### Struttura del progetto
 
@@ -49,7 +54,15 @@ stageMatch/
 │   └── auth_google/auth.py
 ├── database/                 # Livello dati SQLAlchemy
 │   ├── database_helper.py    # Unico punto di accesso al DB
-│   └── models/                # User, Company, UserPreferences, Skill, SoftSkill, UserRoute, PrivacyConsent, ActiveSession
+│   └── models/                # User, Company, UserPreferences, Skill, SoftSkill, Language, Experience,
+│                               # JobOffer, JobOfferSkill, JobOfferSoftSkill, Application, Match,
+│                               # Notification, UserRoute, PrivacyConsent, ActiveSession
+├── matching/                  # Motore di matching studente/annuncio (deterministico + rifinitura AI)
+│   ├── engine.py               # Orchestrazione: database_helper + scorer + geo + ai_refiner
+│   ├── scorer.py                # Punteggio deterministico (funzioni pure, no DB/rete)
+│   ├── geo.py                   # Distanza/durata casa-azienda (cache UserRoute + geo-proxy)
+│   ├── ai_refiner.py             # Rifinitura via Anthropic/DeepSeek su payload anonimizzato
+│   └── worker.py                 # Coda in-memory a thread singolo per l'esecuzione in background
 ├── resources/                 # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
 │   ├── html/                  # Una pagina per file (landing, login, dashboard, mappa, ...)
 │   ├── css/                   # Stili, incluse le variabili del design system
@@ -98,6 +111,10 @@ Le principali variabili sono documentate in `.env.example`:
 | `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
 | `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite. |
 | `APP_VERSION` | Versione applicativa mostrata in Impostazioni > Informazioni (default `1.0.0`). |
+| `ANTHROPIC_MATCHING_ENABLED` | Abilita/disabilita la rifinitura AI del punteggio di matching (default `True`); se disabilitata, priva di API key o in errore, si usa sempre il punteggio deterministico. |
+| `MATCH_AI_PROVIDER` | Provider usato per la rifinitura AI: `anthropic` (default) oppure `deepseek` (endpoint compatibile con la Messages API di Anthropic). |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Credenziali e modello Anthropic usati quando `MATCH_AI_PROVIDER=anthropic`. |
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` | Credenziali e modello DeepSeek usati quando `MATCH_AI_PROVIDER=deepseek`. |
 | `PORT` | Porta di ascolto di `app.py` (default `5000`). Presente in `.env.example`. |
 | `PORT_API` | Porta di ascolto di `server.py` (default `5001`). Non è in `.env.example`: va impostata nell'ambiente (lo fa già `docker-compose.yml`) se si vuole un valore diverso dal default. |
 | `HOST` | Host di bind per `app.py` e `server.py` (default `127.0.0.1`). Non è in `.env.example`. |

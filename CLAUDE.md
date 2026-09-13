@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-stageMatch is a full-stack Flask web app that matches student profiles with companies for internship opportunities. It authenticates entirely in-app via Google OAuth, stores data in SQLite via SQLAlchemy, and delegates geocoding/routing to a separate internal proxy service.
+stageMatch is a full-stack Flask web app that matches student profiles with companies for internship opportunities. It authenticates entirely in-app via Google OAuth, stores data in SQLite via SQLAlchemy, delegates geocoding/routing to a separate internal proxy service, and scores student/job-offer matches with an in-process background engine that can optionally refine its deterministic score via an LLM (Anthropic or DeepSeek).
 
 ## Running the app
 
@@ -27,12 +27,20 @@ There is no test suite, linter, or build step configured in this repo.
 
 Login (student or company) requires working Google OAuth credentials (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) even locally — there is no dev bypass.
 
+The AI refinement step in `matching/ai_refiner.py` is optional: with `ANTHROPIC_MATCHING_ENABLED=False`, or no API key for the selected `MATCH_AI_PROVIDER` (`anthropic` or `deepseek`), matching still works end-to-end using only the deterministic score.
+
 ## Architecture
 
 See `ARCHITECTURE.md` for a diagram. The key split:
 
 - **`app.py`** — the main Flask app (port 5000). Serves all HTML views (Jinja templates in `resources/html/`), owns user/company sessions, and is the only service that talks to the database.
 - **`server.py`** — an internal Flask "geo-proxy" (port 5001), called only by `app.py` (never directly by the browser). Abstracts three external APIs: Nominatim (geocoding), Photon (address autocomplete), and OpenRouteService (routing). `app.py` proxies `/photon` and `/routejson` requests to it via `API_URL`.
+- **`matching/`** — student/job-offer matching engine, run off the request thread:
+  - `worker.py` is a single daemon thread draining an in-memory `queue.Queue`; `startWorker()` is idempotent (guarded by a lock) and `enqueue(job_fn)` queues a zero-arg callable. Queue lives only in the current process — no cross-process/worker coordination.
+  - `scorer.py` computes the deterministic 0-100 score from skill/soft-skill match and commute duration; pure functions, no DB/network access.
+  - `geo.py` resolves student↔company commute distance/duration, reusing the same `UserRoute` cache and geo-proxy (`server.py`) as the student dashboard's "Percorsi" section.
+  - `ai_refiner.py` optionally refines the deterministic score via an LLM, sending only an anonymized payload (skills/soft skills/languages/experiences/distance, no identifying data). Provider is picked by `MATCH_AI_PROVIDER` (`anthropic` default, or `deepseek` — same `anthropic` SDK against DeepSeek's Anthropic-compatible endpoint, just a different `base_url`/key/model). Any failure, missing key, disabled flag, or low deterministic score short-circuits to the deterministic score (`ai_status`: `ok`/`fallback`/`disabled`).
+  - `engine.py` orchestrates the above plus `database_helper`, and is what `worker.py` jobs actually call; result is upserted into the `matches` table (unique per `user_id`+`job_offer_id`).
 - **`auth/`** — authentication layer:
   - `auth/auth.py` wires up the session middleware and rate limiter from env vars, and exposes email-parsing helpers (`getName`/`getSurname` prefer `surname.name@domain` email format, falling back to splitting the Google-provided full name for accounts that don't follow it).
   - `auth/rate_limiter.py` implements `RateLimiter`: per-user and global concurrent-session caps, persisted in the `active_sessions` DB table (via `database_helper`) — survives restarts and multiple workers. Exceeding the per-user cap evicts that user's oldest session rather than rejecting the new login.
@@ -40,7 +48,7 @@ See `ARCHITECTURE.md` for a diagram. The key split:
   - `auth/auth_google/auth.py` wires up Authlib/Google OAuth — the single login mechanism for both students and companies.
 - **`database/`** — SQLAlchemy layer:
   - `database/database_helper.py` is the single access point for all DB operations (no ORM session objects are passed around outside this module). It also has `modelToDict()`, a generic model-to-dict serializer that walks relationships recursively.
-  - `database/models/` — one file per table (`User`, `Company`, `UserPreferences`, `Skill`, `SoftSkill`, `UserRoute`, `PrivacyConsent`, `ActiveSession`). `User` is the hub, with cascading relationships to preferences/skills/soft_skills/routes. Primary keys are Google `sub` IDs (`googleId`), not autoincrement ints (except `UserRoute`, which is a per-user capped list — max 25 entries, deduped by address+mode — and `ActiveSession`, keyed by session id).
+  - `database/models/` — one file per table (`User`, `Company`, `UserPreferences`, `Skill`, `SoftSkill`, `Language`, `Experience`, `JobOffer`, `JobOfferSkill`, `JobOfferSoftSkill`, `Application`, `Match`, `Notification`, `UserRoute`, `PrivacyConsent`, `ActiveSession`). `User` and `Company` are the two hubs (`User` cascades to preferences/skills/soft_skills/languages/experiences/routes/applications/matches/notifications; `Company` cascades to job offers/notifications). Primary keys are Google `sub` IDs (`googleId`) on `User`/`Company`, not autoincrement ints — `JobOffer`, `Application`, `Match`, `Notification` use autoincrement ints instead, since they aren't 1:1 with a Google account. `UserRoute` is a per-user capped list (max 25 entries, deduped by address+mode) and `ActiveSession` is keyed by session id. `Match` is unique per (`user_id`, `job_offer_id`) and stores both `deterministic_score` and the optional `ai_score`/`explanation` from `matching/`.
 - **`resources/`** — the frontend, served as both static files and Jinja templates from the same folder (`app.py` sets `static_folder`/`template_folder` to `./resources`). One HTML/CSS/JS triplet per page, no bundler or framework — vanilla JS and CSS only.
 
 ### Design
@@ -53,6 +61,7 @@ Any work on layouts, components, or colors in `resources/html`/`resources/css` m
 2. Decorator checks `session['user']`, validates the rate-limiter session is still live, and touches its `last_seen`.
 3. Route handler calls into `database_helper` for data, converts models with `modelToDict()`, and renders a template from `resources/html/`.
 4. Any map/routing calls from the frontend hit `/photon` or `/routejson` on `app.py`, which forwards to `server.py` (port 5001) with a `requests` call.
+5. Routes that change a student's profile or a job offer's requirements call `matching/worker.py`'s `enqueue()` to recompute affected `Match` rows in the background thread, instead of blocking the response on `matching/engine.py` (which itself calls out to `server.py` for distance and, optionally, an LLM for score refinement).
 
 ### Auth flow
 

@@ -24,6 +24,7 @@ graph LR
     classDef backend fill:#fff3e0,stroke:#e65100,stroke-width:2px;
     classDef proxy fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
     classDef auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef matching fill:#ede7f6,stroke:#311b92,stroke-width:2px;
     classDef db fill:#eceff1,stroke:#263238,stroke-width:2px;
     classDef external fill:#fce4ec,stroke:#880e4f,stroke-width:2px;
     classDef note fill:#fff9c4,stroke:#fbc02d,stroke-width:1px,stroke-dasharray:5 5;
@@ -35,7 +36,14 @@ graph LR
     subgraph Core ["Core Application (Port 5000)"]
         App["Flask Main App<br/>(app.py)"]:::backend
         SSO["Auth Middleware<br/>(Google OAuth, RateLimit)"]:::auth
-        note_app["Serves Views, Sessions,<br/>User Profiles CRUD"]:::note
+        note_app["Serves Views, Sessions,<br/>User/Company Profiles,<br/>Job Offers & Applications CRUD"]:::note
+    end
+
+    subgraph Matching ["Matching Engine (in-process, matching/)"]
+        Worker["Background Worker<br/>(worker.py, in-memory queue)"]:::matching
+        Engine["engine.py + scorer.py<br/>(deterministic score)"]:::matching
+        AIRefiner["ai_refiner.py<br/>(AI score refinement)"]:::matching
+        note_matching["Runs off the HTTP request thread;<br/>always falls back to the<br/>deterministic score on AI failure"]:::note
     end
 
     subgraph Storage ["Data Layer"]
@@ -53,6 +61,7 @@ graph LR
         Photon["Photon API<br/>(Autocomplete)"]:::external
         Nominatim["Nominatim API<br/>(Geocoding)"]:::external
         ORS["OpenRouteService<br/>(Routing)"]:::external
+        AIProvider["Anthropic / DeepSeek<br/>(Match score refinement)"]:::external
     end
 
     %% Client Interactions
@@ -68,13 +77,22 @@ graph LR
 
     %% Proxy Flow
     App -->|"6. Internal Proxy"| Server
-    
+
     %% External API Flow
     Server -->|"7a"| Nominatim
     Server -->|"7b"| ORS
     Server -->|"7c"| Photon
 
+    %% Matching Flow (async, triggered on profile/offer changes)
+    App -->|"8. Enqueue match job"| Worker
+    Worker --> Engine
+    Engine -->|"9. Distance lookup"| Server
+    Engine -->|"10. Refine score"| AIRefiner
+    AIRefiner -->|"11. Anonymized payload"| AIProvider
+    Engine -->|"12. Store match"| ORM
+
     %% Notes
     App -.-> note_app
     Server -.-> note_server
+    Worker -.-> note_matching
 ```
