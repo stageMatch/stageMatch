@@ -2094,11 +2094,18 @@ body {
     background: var(--border);
 }
 
+.pro-exp-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
 .pro-exp-title {
     font-size: 13.5px;
     font-weight: 600;
     color: white;
-    margin-bottom: 4px;
 }
 
 .pro-exp-desc {
@@ -2121,7 +2128,6 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-top: 6px;
 }
 
 .profilo-modal {
@@ -2299,7 +2305,9 @@ body {
 }
 
 .pro-skill-edit-row input,
-.pro-skill-edit-row select {
+.pro-skill-edit-row select,
+.pro-lang-edit-row input,
+.pro-lang-edit-row select {
     background: rgba(255, 255, 255, .04);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -2311,12 +2319,27 @@ body {
 }
 
 .pro-skill-edit-row input:focus,
-.pro-skill-edit-row select:focus {
+.pro-skill-edit-row select:focus,
+.pro-lang-edit-row input:focus,
+.pro-lang-edit-row select:focus {
     border-color: var(--emerald-green);
 }
 
-.pro-skill-edit-row select option {
+.pro-skill-edit-row select option,
+.pro-lang-edit-row select option {
     background: var(--midnight-blue-light);
+}
+
+/* Languages editor — grouped like the experiences editor, remove button on the right */
+.pro-lang-edit-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 14px 44px 14px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .02);
 }
 
 .pro-del-btn {
@@ -2328,6 +2351,13 @@ body {
     padding: 6px 12px;
     font-size: 13px;
     transition: all .2s;
+}
+
+.pro-del-btn-corner {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
 }
 
 .pro-del-btn:hover {
@@ -2569,6 +2599,10 @@ body {
     }
 
     .pro-soft-check-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pro-lang-edit-row {
         grid-template-columns: 1fr;
     }
 }
@@ -2985,6 +3019,16 @@ body {
 
 .modal-btn-confirm:active {
     transform: scale(0.97);
+}
+
+.modal-btn-confirm.save {
+    background: var(--emerald-green);
+    color: #0A0E1A;
+}
+
+.modal-btn-confirm.save:hover {
+    background: var(--emerald-green-dark);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
 }
 
 @media (max-width: 480px) {

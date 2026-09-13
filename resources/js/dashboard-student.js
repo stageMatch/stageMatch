@@ -793,7 +793,7 @@ function renderLangEditor() {
     const el = document.getElementById("proLangEditor");
     el.innerHTML = profiloData.languages
         .map((l, i) => `
-            <div class="pro-skill-edit-row">
+            <div class="pro-lang-edit-row" data-lang-index="${i}">
                 <input type="text" value="${escapeHtml(l.name)}" placeholder="Es. Inglese" data-lang-index="${i}" data-lang-field="name"/>
                 <select data-lang-index="${i}" data-lang-field="level">
                     ${LANGUAGE_LEVELS
@@ -802,7 +802,7 @@ function renderLangEditor() {
                     ).join("")}
                 </select>
                 <input type="text" value="${escapeHtml(l.certification)}" placeholder="Certificazione (opz.)" data-lang-index="${i}" data-lang-field="certification"/>
-                <button class="pro-del-btn" data-lang-remove="${i}">✕</button>
+                <button class="pro-del-btn pro-del-btn-corner" data-lang-remove="${i}" title="Rimuovi lingua">✕</button>
             </div>
         `).join("");
 }
@@ -1038,9 +1038,11 @@ function updateProfiloUI(apiResult) {
                     <div class="pro-exp-item">
                         <div class="pro-exp-dot"></div>
                         <div class="pro-exp-body">
-                            <div class="pro-exp-title">${title}</div>
+                            <div class="pro-exp-title-row">
+                                <div class="pro-exp-title">${title}</div>
+                                ${labels ? `<div class="pro-exp-labels">${labels}</div>` : ""}
+                            </div>
                             ${e.description ? `<div class="pro-exp-desc">${escapeHtml(e.description)}</div>` : ""}
-                            ${labels ? `<div class="pro-exp-labels">${labels}</div>` : ""}
                         </div>
                     </div>
                 `;
