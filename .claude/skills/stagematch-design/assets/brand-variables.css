@@ -11,9 +11,10 @@
     --accent: var(--emerald-green);
     --text: #E8E6F4;
     --text-muted: #7B74A0;
-    --border: rgba(46, 204, 113, 0.15);
+    --border: rgba(255, 255, 255, 0.1);
     --border-glow: rgba(46, 204, 113, 0.3);
-    
+    --green-text: var(--emerald-green);
+
     /* Layout */
     --radius-lg: 12px;
     --radius-md: 8px;
@@ -29,6 +30,7 @@
     --panel: #FFFFFF;
     --text: var(--midnight-blue);
     --text-muted: #5B6478;
-    --border: rgba(10, 14, 26, 0.1);
+    --border: rgba(15, 23, 42, 0.13);
     --border-glow: rgba(46, 204, 113, 0.25);
+    --green-text: #1B8A4C;
 }
