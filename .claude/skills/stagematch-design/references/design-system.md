@@ -30,6 +30,21 @@ Alcune pagine supportano anche un tema chiaro, attivato con l'attributo `data-th
 
 Vedi `assets/brand-variables.css` per il blocco `:root[data-theme="light"]` completo, da replicare (con lo stesso criterio: solo variabili funzionali, mai le costanti di brand) in ogni CSS di pagina che duplica le proprie variabili.
 
+### Regola obbligatoria: mai colori letterali per testo/superfici
+
+Il tema chiaro si rompe quasi sempre non nel blocco `[data-theme="light"]` stesso, ma nel resto del file: se il CSS usa colori letterali pensati "a occhio" per lo sfondo scuro, quei valori restano fissi quando le variabili si invertono, causando testo bianco su pannello bianco o overlay chiari invisibili.
+
+**Vietato** in qualsiasi CSS di pagina (fuori dal blocco `:root`/`:root[data-theme="light"]`):
+- `color: white`, `color: #fff`/`#ffffff`, o `rgba(255, 255, 255, X)` per testo — usare sempre `var(--text)` o `var(--text-muted)` (l'opacità va simulata con una variabile muted dedicata, non con un `white` trasparente).
+- `background: rgba(255, 255, 255, X)` come "velo chiaro su sfondo scuro" per superfici/hover/bordi — usare `var(--surface)`, `var(--surface-hov)` o `var(--border)`, che nel file `dashboard-student.css` sono già definite per invertirsi correttamente (`rgba(255,255,255,.03)` in dark → `rgba(10,14,26,.03)` in light).
+- Colori esadecimali scuri fissi per superfici che dovrebbero seguire il tema (es. `background: #1a1830` per un pannello/dropdown) — vanno legati a `var(--panel)` o a una nuova variabile funzionale, non lasciati fissi.
+
+Fanno eccezione solo gli elementi che devono restare scuri/chiari a prescindere dal tema per motivi di contrasto fisso (es. testo scuro su bottone verde smeraldo, che usa `var(--midnight-blue)` — quello è corretto perché è una costante di brand, non un colore "a occhio").
+
+**Checklist prima di considerare completo un lavoro sul tema chiaro:**
+1. `grep -n "white\|rgba(255, *255, *255" nomefile.css` sul file toccato: ogni risultato fuori dal blocco `:root` va giustificato o sostituito con una variabile.
+2. Attivare `data-theme="light"` (via `theme.js`/devtools) e controllare a occhio ogni sezione della pagina, non solo quella modificata — un colore letterale in una sezione lontana da quella toccata è la causa più comune di regressioni.
+
 ## Pattern UI
 
 ### Pulsanti

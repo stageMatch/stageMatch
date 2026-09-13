@@ -13,6 +13,7 @@
 
     --page-bg: var(--midnight-blue);
     --page-text: var(--white-modern);
+    --page-text-muted: rgba(255, 255, 255, 0.7);
     --overlay-1: rgba(10, 14, 26, 0.95);
     --overlay-2: rgba(10, 14, 26, 0.8);
 }
@@ -20,6 +21,7 @@
 :root[data-theme="light"] {
     --page-bg: #F7F9FC;
     --page-text: var(--midnight-blue);
+    --page-text-muted: rgba(10, 14, 26, 0.65);
     --overlay-1: rgba(247, 249, 252, 0.9);
     --overlay-2: rgba(247, 249, 252, 0.75);
 }
@@ -79,7 +81,7 @@ body {
 
 .hero-sub {
     font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--page-text-muted);
     max-width: 500px;
     margin-bottom: 2.5rem;
 }

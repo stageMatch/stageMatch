@@ -28,6 +28,12 @@ Refer to `references/design-system.md` for code snippets for:
 - Cards and Containers
 - Form Inputs
 
+### 3. Adding or Fixing Light Theme Support
+When a page needs `data-theme="light"` support, or when the light theme looks broken (invisible text, washed-out surfaces, sections that stay dark):
+1. Check/add the `:root[data-theme="light"]` variable block (see "Tema chiaro" in `references/design-system.md`).
+2. Grep the whole page CSS for literal `white`/`#fff`/`rgba(255,255,255,*)` used for text or surfaces — these are the near-universal cause of light-theme breakage, not the variable block itself. Replace them with `var(--text)`, `var(--text-muted)`, `var(--surface)`, `var(--surface-hov)`, or `var(--border)`.
+3. Toggle `data-theme="light"` and visually check the **entire page**, not just the section you touched — literal colors elsewhere in the file are what cause regressions.
+
 ## Reference Files
 - [design-system.md](references/design-system.md): The source of truth for colors and UI patterns.
 

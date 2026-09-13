@@ -19,6 +19,9 @@
     --text-muted: #7B74A0;
     --border: rgba(46, 204, 113, 0.15);
     --border-glow: rgba(46, 204, 113, 0.3);
+    /* Testo sempre chiaro per componenti a sfondo scuro fisso (es. i toast),
+       che non seguono il tema — non ridefinire in [data-theme="light"]. */
+    --text-on-dark: #E8E6F4;
 
     --radius-lg: 12px;
     --radius-md: 8px;
@@ -247,7 +250,7 @@ body {
 .toast-message {
     flex: 1;
     font-size: 0.9rem;
-    color: var(--text);
+    color: var(--text-on-dark);
     line-height: 1.4;
 }
 
@@ -268,7 +271,7 @@ body {
 
 .toast-close:hover {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--text);
+    color: var(--text-on-dark);
 }
 
 .toast-close svg {
@@ -292,7 +295,7 @@ body {
 
 footer {
     padding: 60px 5%;
-    background: rgba(10, 14, 26, 0.5);
+    background: var(--panel);
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;

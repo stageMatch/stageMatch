@@ -19,6 +19,8 @@
     --c-muted: #7B74A0;
     --c-border: rgba(46, 204, 113, 0.1);
     --c-border-glow: rgba(46, 204, 113, 0.2);
+    --c-nav-bg: rgba(10, 14, 26, 0.8);
+    --c-nav-bg-scrolled: rgba(10, 14, 26, 0.95);
 
     --radius-lg: 12px;
     --radius-md: 8px;
@@ -32,6 +34,8 @@
     --c-muted: #5B6478;
     --c-border: rgba(10, 14, 26, 0.1);
     --c-border-glow: rgba(46, 204, 113, 0.25);
+    --c-nav-bg: rgba(247, 249, 252, 0.8);
+    --c-nav-bg-scrolled: rgba(247, 249, 252, 0.95);
 }
 
 html {
@@ -68,7 +72,7 @@ nav {
     justify-content: space-between;
     padding: 0 5%;
     height: 70px;
-    background: rgba(10, 14, 26, 0.8);
+    background: var(--c-nav-bg);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--c-border);
     transition: var(--transition);
@@ -76,7 +80,7 @@ nav {
 
 nav.scrolled {
     height: 60px;
-    background: rgba(10, 14, 26, 0.95);
+    background: var(--c-nav-bg-scrolled);
     border-bottom: 1px solid var(--c-border-glow);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -366,7 +370,7 @@ section {
 
 footer {
     padding: 60px 5%;
-    background: rgba(10, 14, 26, 0.5);
+    background: var(--c-surface);
     border-top: 1px solid var(--c-border);
     display: flex;
     justify-content: space-between;
