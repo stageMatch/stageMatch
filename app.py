@@ -379,10 +379,9 @@ def dashboardCompany():
 @au.session_middleware.loginRequired(role="user")
 def map():
     preferences = database_helper.getUserPreferences(session["user"]["googleId"])
-    color_mode = (preferences.color_mode if preferences else None) or "dark"
     lingua = (preferences.lingua if preferences else None) or "it"
 
-    return render_template("/html/map-view.html", color_mode=color_mode, lingua=lingua)
+    return render_template("/html/map-view.html", lingua=lingua)
 
 @app.route("/api/users/profile")
 @au.session_middleware.loginRequired(role="user")

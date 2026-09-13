@@ -11,17 +11,11 @@
     --text-muted: #5f6368;
     --border-color: #e8eaed;
     --shadow: rgba(10, 14, 26, 0.1);
+    --input-bg: #ffffff;
+    --panel-bg-glass: rgba(255, 255, 255, 0.95);
 
     --radius-lg: 16px;
     --radius-md: 12px;
-}
-
-:root[data-theme="dark"] {
-    --bg-map: var(--midnight-blue);
-    --panel-bg: var(--midnight-blue-light);
-    --text-primary: #E8E6F4;
-    --text-muted: #7B74A0;
-    --border-color: rgba(46, 204, 113, 0.15);
 }
 
 * {
@@ -251,7 +245,7 @@ body {
     border-radius: 12px;
     font-size: 15px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: #fff;
+    background: var(--input-bg);
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -264,7 +258,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--accent);
-    background: white;
+    background: var(--input-bg);
     box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.1);
     transform: translateY(-1px);
 }
@@ -300,7 +294,7 @@ body {
     top: calc(100% + 6px);
     left: 0;
     width: 100%;
-    background-color: white;
+    background-color: var(--panel-bg);
     border: 2px solid var(--border-color);
     border-radius: 12px;
     max-height: 280px;
@@ -405,7 +399,7 @@ body {
 }
 
 .transport-modes .mode {
-    background: white;
+    background: var(--input-bg);
     border: 2px solid var(--border-color);
     border-radius: 16px;
     padding: 16px 12px;
@@ -527,7 +521,7 @@ body {
 
 .panel-content::-webkit-scrollbar-track,
 .suggestions-dropdown::-webkit-scrollbar-track {
-    background: #f1f3f4;
+    background: var(--bg-map);
     border-radius: 10px;
 }
 
@@ -535,7 +529,7 @@ body {
 .suggestions-dropdown::-webkit-scrollbar-thumb {
     background: var(--accent);
     border-radius: 10px;
-    border: 2px solid #f1f3f4;
+    border: 2px solid var(--bg-map);
 }
 
 .panel-content::-webkit-scrollbar-thumb:hover,
@@ -545,7 +539,7 @@ body {
 
 @supports (backdrop-filter: blur(10px)) {
     .control-panel {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--panel-bg-glass);
         backdrop-filter: blur(10px);
     }
 }
