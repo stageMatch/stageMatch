@@ -270,8 +270,12 @@ function renderCompanyDetailsModal(company) {
           <div class="company-modal-section-title">Descrizione</div>
           <div class="co-desc">${escapeHtml(company.description)}</div>
         </div>
-        <div class="company-modal-panel">
-          <div class="company-modal-section-title">Perché questo match</div>
+        <div class="company-modal-panel has-tip">
+          <div class="company-modal-section-title">
+            Perché questo match
+            <button class="info-tip-btn" type="button" aria-label="Come viene generato il motivo del match" aria-describedby="matchReasonTip" aria-expanded="false">?</button>
+            <div class="info-tip" id="matchReasonTip" role="tooltip">Il motivo del match può essere generato da un'intelligenza artificiale, che analizza in modo anonimo competenze, soft skill, lingue, esperienze e distanza. Se l'AI non è disponibile, viene mostrato il punteggio calcolato automaticamente.</div>
+          </div>
           ${explanationBlock}
         </div>
         <div class="company-modal-panel">
@@ -1414,6 +1418,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document
         .getElementById("companyDetailsContent")
         .addEventListener("click", async (e) => {
+            const tipButton = e.target.closest(".info-tip-btn");
+            e.currentTarget.querySelectorAll(".info-tip-btn").forEach((btn) => {
+                const open = btn === tipButton && !btn.closest(".has-tip").classList.contains("tip-open");
+                btn.closest(".has-tip").classList.toggle("tip-open", open);
+                btn.setAttribute("aria-expanded", String(open));
+            });
+            if (tipButton) return;
+
             const mapButton = e.target.closest('[data-action="go-to-company-map"]');
             if (mapButton) {
                 goToMap(mapButton.dataset.companyId);
