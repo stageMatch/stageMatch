@@ -29,6 +29,8 @@ TRANSPORT_MODE_ICONS = {
     "cycling-regular": "i-bike"
 }
 
+VALID_TRANSPORT_MODES = tuple(TRANSPORT_MODE_LABELS)
+
 app = Flask(
     __name__,
     static_folder="./resources",
@@ -301,6 +303,7 @@ def dashboardStudent():
     preferences = user_data.get("preferences") or {}
     color_mode = preferences.get("color_mode") or "dark"
     lingua = preferences.get("lingua") or "it"
+    default_transport_mode = preferences.get("default_transport_mode") or "driving-car"
 
     notifications = database_helper.getUserNotifications(user["googleId"])
     notifications_data = [
@@ -326,7 +329,8 @@ def dashboardStudent():
         stats=stats,
         app_version=APP_VERSION,
         color_mode=color_mode,
-        lingua=lingua
+        lingua=lingua,
+        default_transport_mode=default_transport_mode
     )
 
 @app.route("/logged/dashboard/company")
@@ -380,8 +384,13 @@ def dashboardCompany():
 def map():
     preferences = database_helper.getUserPreferences(session["user"]["googleId"])
     lingua = (preferences.lingua if preferences else None) or "it"
+    default_transport_mode = (preferences.default_transport_mode if preferences else None) or "driving-car"
 
-    return render_template("/html/map-view.html", lingua=lingua)
+    return render_template(
+        "/html/map-view.html",
+        lingua=lingua,
+        default_transport_mode=default_transport_mode
+    )
 
 @app.route("/api/users/profile")
 @au.session_middleware.loginRequired(role="user")
@@ -434,6 +443,7 @@ def savePreferences():
 
     color_mode = data.get("color_mode")
     lingua = data.get("lingua")
+    default_transport_mode = data.get("default_transport_mode")
 
     if color_mode is not None and color_mode not in ("dark", "light"):
         return jsonify({"error": "color_mode non valido"}), 400
@@ -441,10 +451,14 @@ def savePreferences():
     if lingua is not None and lingua not in ("it", "en"):
         return jsonify({"error": "lingua non valida"}), 400
 
+    if default_transport_mode is not None and default_transport_mode not in VALID_TRANSPORT_MODES:
+        return jsonify({"error": "mezzo non valido"}), 400
+
     preferences = database_helper.updateUserPreferences(
         session["user"]["googleId"],
         color_mode=color_mode,
-        lingua=lingua
+        lingua=lingua,
+        default_transport_mode=default_transport_mode
     )
 
     if preferences is None:
@@ -452,7 +466,8 @@ def savePreferences():
 
     return jsonify({
         "color_mode": preferences.color_mode,
-        "lingua": preferences.lingua
+        "lingua": preferences.lingua,
+        "default_transport_mode": preferences.default_transport_mode
     }), 200
 
 @app.route("/api/companies/preferences/save", methods=["POST"])

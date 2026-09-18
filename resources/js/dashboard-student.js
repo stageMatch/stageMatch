@@ -458,7 +458,7 @@ function goToMap(companyId) {
         startaddress: "Bergamo, BG",
         endaddress: c.address,
         endname: c.name,
-        routemode: "driving-car",
+        routemode: window.DEFAULT_TRANSPORT_MODE || "driving-car",
     });
     window.location.href = `/logged/map?${params.toString()}`;
 }
@@ -1060,7 +1060,7 @@ function updateProfiloUI(apiResult) {
 
 let impostazioniData = {
     tema: "dark",
-    mezzoDefault: "driving-car",
+    mezzoDefault: window.DEFAULT_TRANSPORT_MODE || "driving-car",
     lingua: "it",
 };
 
@@ -1086,6 +1086,11 @@ function saveImpostazioni(e) {
 
     if (e && e.target && e.target.id === "lingua") {
         salvaPreferenzeRemote({ lingua: impostazioniData.lingua });
+    }
+
+    if (e && e.target && e.target.id === "mezzoDefault") {
+        window.DEFAULT_TRANSPORT_MODE = impostazioniData.mezzoDefault;
+        salvaPreferenzeRemote({ default_transport_mode: impostazioniData.mezzoDefault });
     }
 }
 

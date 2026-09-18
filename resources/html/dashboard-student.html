@@ -355,12 +355,12 @@
                             </div>
                         </div>
                         <div class="transport-pills">
-                            <div class="t-pill active" data-mode="driving-car"><span class="icon"><svg><use href="#i-car"></use></svg></span>Auto</div>
-                            <div class="t-pill" data-mode="foot-walking"><span class="icon"><svg><use href="#i-walk"></use></svg></span>A piedi</div>
-                            <div class="t-pill" data-mode="cycling-regular"><span class="icon"><svg><use href="#i-bike"></use></svg></span>Bicicletta</div>
+                            <div class="t-pill{{ ' active' if default_transport_mode == 'driving-car' }}" data-mode="driving-car"><span class="icon"><svg><use href="#i-car"></use></svg></span>Auto</div>
+                            <div class="t-pill{{ ' active' if default_transport_mode == 'foot-walking' }}" data-mode="foot-walking"><span class="icon"><svg><use href="#i-walk"></use></svg></span>A piedi</div>
+                            <div class="t-pill{{ ' active' if default_transport_mode == 'cycling-regular' }}" data-mode="cycling-regular"><span class="icon"><svg><use href="#i-bike"></use></svg></span>Bicicletta</div>
                         </div>
                         <div style="margin-top:16px">
-                            <a href="{{ url_for('map') }}?routemode=driving-car" id="heroGoToMapBtn" class="btn-primary" style="width:100%;justify-content:center;">
+                            <a href="{{ url_for('map') }}?routemode={{ default_transport_mode }}" id="heroGoToMapBtn" class="btn-primary" style="width:100%;justify-content:center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                     fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
                                     stroke-linejoin="round">
@@ -612,9 +612,9 @@
                                 <div class="imp-row-sub">Usato come default nel calcolo percorsi</div>
                             </div>
                             <select class="imp-select" id="mezzoDefault">
-                                <option value="driving-car" selected>Auto</option>
-                                <option value="foot-walking">A piedi</option>
-                                <option value="cycling-regular">Bicicletta</option>
+                                <option value="driving-car"{{ ' selected' if default_transport_mode == 'driving-car' }}>Auto</option>
+                                <option value="foot-walking"{{ ' selected' if default_transport_mode == 'foot-walking' }}>A piedi</option>
+                                <option value="cycling-regular"{{ ' selected' if default_transport_mode == 'cycling-regular' }}>Bicicletta</option>
                             </select>
                         </div>
 
@@ -795,6 +795,7 @@
         </div>
     </div>
 
+    <script>window.DEFAULT_TRANSPORT_MODE = {{ default_transport_mode | tojson }};</script>
     <script id="notifications-data" type="application/json">{{ notifications | tojson }}</script>
     <script src="{{ url_for('static', filename='js/dashboard-student.js') }}"></script>
 </body>

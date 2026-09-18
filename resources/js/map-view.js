@@ -317,7 +317,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
     const start = urlParams.get('startaddress');
     const end = urlParams.get('endaddress');
-    const routeMode = urlParams.get('routemode');
+    const validModes = Array.from(transportButtons).map(btn => btn.dataset.mode);
+    const requestedMode = urlParams.get('routemode');
+    // Mezzo esplicito nell'URL > mezzo predefinito dalle impostazioni > nessuno
+    const routeMode = validModes.includes(requestedMode)
+        ? requestedMode
+        : (validModes.includes(window.DEFAULT_TRANSPORT_MODE) ? window.DEFAULT_TRANSPORT_MODE : null);
 
     if (start && end && routeMode) {
         input_address_start.value = start;

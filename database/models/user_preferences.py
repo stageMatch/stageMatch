@@ -8,5 +8,6 @@ class UserPreferences(Base):
     user_id = Column(String, ForeignKey('users.googleId'), primary_key=True, nullable=False)
     color_mode = Column(String, default='dark')
     lingua = Column(String, default='it')
+    default_transport_mode = Column(String, default='driving-car')
 
     user = relationship('User', back_populates='preferences', uselist=False)

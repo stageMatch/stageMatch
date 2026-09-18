@@ -33,7 +33,7 @@ SYSTEM_PROMPT = (
     "senza riferimenti concreti ai dati ricevuti: due spiegazioni per annunci diversi non "
     "devono mai poter essere scambiate tra loro.\n\n"
     "Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza altro testo, in questa forma:\n"
-    '{"score": <numero 0-100>, "explanation": "<spiegazione breve e specifica in italiano, massimo due frasi>"}'
+    '{"score": <numero 0-100>, "explanation": "<spiegazione breve e specifica in italiano>"}'
 )
 
 def _isEnabled() -> bool:

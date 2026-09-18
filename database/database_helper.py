@@ -262,7 +262,7 @@ def getUserPreferences(user_id: str):
 
         return user.preferences
 
-def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = None):
+def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = None, default_transport_mode: str = None):
     with Session() as session:
         user = session.query(User).filter_by(googleId=user_id).first()
 
@@ -272,13 +272,16 @@ def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = No
         if user.preferences is None:
             user.preferences = UserPreferences(
                 color_mode=color_mode or "dark",
-                lingua=lingua or "it"
+                lingua=lingua or "it",
+                default_transport_mode=default_transport_mode or "driving-car"
             )
         else:
             if color_mode is not None:
                 user.preferences.color_mode = color_mode
             if lingua is not None:
                 user.preferences.lingua = lingua
+            if default_transport_mode is not None:
+                user.preferences.default_transport_mode = default_transport_mode
 
         session.commit()
 
