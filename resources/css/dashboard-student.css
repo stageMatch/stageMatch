@@ -419,7 +419,6 @@ body {
     display: flex;
     flex-direction: column;
     background: var(--panel);
-    border: 1px solid rgba(46, 204, 113, 0.18);
     border-radius: var(--radius-lg, 16px);
     box-shadow: 0 24px 60px rgba(0, 0, 0, .7), 0 0 0 1px rgba(0, 0, 0, .35);
     overflow: hidden;
