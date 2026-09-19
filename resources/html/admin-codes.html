@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StageMatch - Codici di accesso aziende</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/brand-variables.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-codes.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+    <main class="admin-page">
+        <header class="admin-header">
+            <p class="eyebrow">StageMatch · Amministrazione</p>
+            <h1>Codici di accesso aziende</h1>
+            <p class="admin-lead">
+                Genera un codice monouso e invialo all'azienda: lo inserirà in fase di registrazione.
+                Dopo l'uso il codice non è più valido.
+            </p>
+        </header>
+
+        <section class="admin-panel" aria-labelledby="newCodeTitle">
+            <h2 id="newCodeTitle">Nuovo codice</h2>
+            <button class="btn-primary" type="button" id="generateBtn">Genera codice</button>
+
+            <div class="new-code" id="newCode" hidden>
+                <code id="newCodeValue"></code>
+                <button class="btn-secondary" type="button" id="copyBtn">Copia</button>
+            </div>
+            <p class="admin-status" id="status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="admin-panel" aria-labelledby="listTitle">
+            <h2 id="listTitle">Codici generati</h2>
+            <div class="table-wrap">
+                <table class="codes-table">
+                    <thead>
+                        <tr><th scope="col">Codice</th><th scope="col">Creato il</th><th scope="col">Stato</th></tr>
+                    </thead>
+                    <tbody id="codesBody"></tbody>
+                </table>
+            </div>
+            <p class="admin-empty" id="emptyMsg" hidden>Nessun codice generato.</p>
+        </section>
+
+        <footer class="admin-footer">
+            <a href="{{ url_for('mainPage') }}">Torna alla home</a>
+            <span>v{{ app_version }}</span>
+        </footer>
+    </main>
+    <script src="{{ url_for('static', filename='js/admin-codes.js') }}"></script>
+</body>
+</html>

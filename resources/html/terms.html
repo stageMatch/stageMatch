@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StageMatch - Termini e condizioni</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/privacy.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
+</head>
+<body>
+    <main class="privacy-page">
+        <section class="privacy-header">
+            <p class="eyebrow">StageMatch</p>
+            <h1>Termini e condizioni</h1>
+        </section>
+
+        <section>
+            <h2>Il servizio</h2>
+            <p>
+                StageMatch mette in contatto studenti e aziende per opportunità di stage. Il servizio
+                propone abbinamenti calcolati in automatico sulla base di competenze, soft skill e distanza:
+                sono suggerimenti e non costituiscono una garanzia di selezione o di assunzione.
+            </p>
+        </section>
+
+        <section>
+            <h2>Account</h2>
+            <p>
+                L'accesso avviene con un account Google. Le aziende si registrano con un codice di accesso
+                monouso fornito dalla scuola. Sei responsabile della correttezza dei dati che inserisci e
+                dell'uso del tuo account; non condividere il codice di accesso con soggetti non autorizzati.
+            </p>
+        </section>
+
+        <section>
+            <h2>Contenuti degli annunci e dei profili</h2>
+            <p>
+                Le aziende pubblicano solo annunci di stage reali e non discriminatori. Gli studenti
+                inseriscono informazioni veritiere sul proprio profilo. Contenuti falsi, offensivi o non
+                pertinenti possono essere rimossi e l'account sospeso.
+            </p>
+        </section>
+
+        <section>
+            <h2>Uso corretto</h2>
+            <p>
+                È vietato tentare di accedere ad account altrui, sovraccaricare il servizio o usarlo per
+                finalità diverse dalla ricerca e dall'offerta di stage.
+            </p>
+        </section>
+
+        <section>
+            <h2>Chiusura dell'account</h2>
+            <p>
+                Puoi eliminare il tuo account e i dati collegati in ogni momento da Impostazioni (studenti)
+                o dal Profilo (aziende); puoi anche scaricare una copia dei tuoi dati. Dei trattamenti di dati
+                personali si occupa l'<a href="{{ url_for('privacy') }}">informativa privacy</a>.
+            </p>
+        </section>
+
+        {% if support_email %}
+        <section>
+            <h2>Contatti</h2>
+            <p>Per domande sul servizio scrivi a <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>

@@ -8,11 +8,11 @@ class JobOffer(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    company_id = Column(String, ForeignKey("companies.googleId"), nullable=False)
+    company_id = Column(String, ForeignKey("companies.googleId"), nullable=False, index=True)
 
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    attivo = Column(Boolean, nullable=False, default=True)
+    attivo = Column(Boolean, nullable=False, default=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(
         DateTime,

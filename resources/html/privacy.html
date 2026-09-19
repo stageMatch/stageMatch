@@ -38,9 +38,32 @@
         <section>
             <h2>Conservazione e accesso</h2>
             <p>
-                I dati sono conservati per il tempo necessario alla gestione del percorso su StageMatch
-                e sono accessibili solo ai soggetti autorizzati per le finalita indicate. Non sono usati
-                per finalita di marketing.
+                I dati sono conservati per il tempo necessario alla gestione del percorso su StageMatch,
+                fino a quando non elimini il tuo account. Sono accessibili solo ai soggetti autorizzati per
+                le finalita indicate. Non sono usati per finalita di marketing.
+            </p>
+            <p>
+                Le aziende vedono, per gli studenti che si candidano, nome, cognome, email, classe e il
+                messaggio di candidatura.
+            </p>
+        </section>
+
+        <section>
+            <h2>Servizi di terze parti</h2>
+            <p>Per funzionare, StageMatch condivide alcuni dati con questi servizi esterni:</p>
+            <ul>
+                <li><strong>Google</strong>: accesso con account Google (email, nome, foto) e caricamento dei caratteri grafici.</li>
+                <li><strong>Nominatim, Photon (Komoot) e OpenRouteService</strong>: gli indirizzi di residenza e delle aziende vengono inviati per ricerca indirizzi e calcolo del tragitto.</li>
+                <li><strong>Anthropic o DeepSeek</strong> (se attivo): per rifinire il punteggio di compatibilita vengono inviati competenze, soft skill, lingue, esperienze e distanza in forma anonima, senza nome, email, indirizzo o altri dati identificativi. Evita di inserire dati personali nei testi liberi delle esperienze.</li>
+                <li><strong>GitHub</strong>: elenco dei comuni italiani usato nei moduli di registrazione.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Trattamento automatizzato</h2>
+            <p>
+                I punteggi di compatibilita sono calcolati in automatico e servono solo a ordinare i
+                suggerimenti: nessuna decisione su di te e presa esclusivamente in modo automatizzato.
             </p>
         </section>
 
@@ -48,8 +71,13 @@
             <h2>Diritti</h2>
             <p>
                 Puoi chiedere accesso, rettifica, cancellazione, limitazione, opposizione o portabilita
-                dei dati secondo il GDPR. Per esercitare i diritti o chiedere chiarimenti, contatta il
-                referente privacy indicato dalla scuola o dal gestore di StageMatch.
+                dei dati secondo il GDPR. In autonomia puoi <strong>scaricare i tuoi dati</strong> in formato
+                JSON ed <strong>eliminare il tuo account</strong> da Impostazioni (studenti) o dal Profilo
+                (aziende).
+            </p>
+            <p>
+                Per esercitare gli altri diritti o chiedere chiarimenti, contatta il referente privacy
+                indicato dalla scuola o dal gestore di StageMatch{% if support_email %}: <a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}.
             </p>
         </section>
     </main>

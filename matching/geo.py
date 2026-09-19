@@ -22,6 +22,25 @@ def flattenAddress(raw_address: str | None) -> str | None:
 
     return ", ".join(parts) if parts else None
 
+def parseRouteSummary(route_data: dict) -> tuple[float | None, float | None]:
+    """Estrae (distance_km, duration_min) dalla risposta GeoJSON di OpenRouteService."""
+    try:
+        summary = route_data["features"][0]["properties"]["summary"]
+    except (KeyError, IndexError, TypeError):
+        return None, None
+
+    try:
+        distance_km = summary["distance"] / 1000
+    except (KeyError, TypeError):
+        distance_km = None
+
+    try:
+        duration_min = summary["duration"] / 60
+    except (KeyError, TypeError):
+        duration_min = None
+
+    return distance_km, duration_min
+
 def getOrComputeDistance(user_id: str, student_address: str | None, job_offer_address: str | None,
                           mode: str = DEFAULT_MODE) -> tuple[float | None, float | None]:
     """Ritorna (distance_km, duration_min), usando la cache UserRoute se disponibile
@@ -51,9 +70,10 @@ def getOrComputeDistance(user_id: str, student_address: str | None, job_offer_ad
             logger.warning(f"[matching.geo] geo-proxy error for {start} -> {end}: {data['error']}")
             return None, None
 
-        summary = data["features"][0]["properties"]["summary"]
-        distance_km = summary["distance"] / 1000
-        duration_min = summary["duration"] / 60
+        distance_km, duration_min = parseRouteSummary(data)
+
+        if distance_km is None or duration_min is None:
+            raise ValueError("risposta senza summary")
     except Exception as e:
         logger.warning(f"[matching.geo] failed to resolve distance {start} -> {end}: {e}")
         return None, None

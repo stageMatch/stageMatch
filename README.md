@@ -11,13 +11,14 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 ## Funzionalità principali
 
 - **Profili studente**: dati anagrafici, competenze tecniche (skill) e trasversali (soft skill), lingue parlate (con livello CEFR ed eventuale certificazione), esperienze/progetti pregressi, preferenze e cronologia degli indirizzi/percorsi cercati.
-- **Profili azienda**: registrazione tramite Google OAuth, pubblicazione delle informazioni utili all'abbinamento con gli studenti e gestione dei propri annunci di stage.
+- **Profili azienda**: registrazione tramite Google OAuth e **codice di accesso monouso**, pubblicazione delle informazioni utili all'abbinamento con gli studenti e gestione dei propri annunci di stage.
+- **Codici di accesso aziende**: un amministratore (email in `ADMIN_EMAILS`) genera da `/admin/codes` un codice monouso salvato nel database e lo invia all'azienda; il codice viene controllato in registrazione e consumato al completamento.
 - **Annunci e candidature**: le aziende pubblicano annunci con requisiti di skill (con livello minimo) e soft skill; gli studenti consultano gli annunci attivi e si candidano, le aziende gestiscono lo stato delle candidature ricevute (inviata/vista/accettata/rifiutata).
-- **Motore di matching**: per ogni coppia studente/annuncio viene calcolato un punteggio deterministico (skill, soft skill e distanza/tempo di percorrenza casa-azienda, quest'ultima riusando la cache `UserRoute` e il geo-proxy), poi opzionalmente rifinito da un modello AI (Anthropic o DeepSeek, a seconda di `MATCH_AI_PROVIDER`) su un payload anonimizzato che include anche lingue ed esperienze come contesto aggiuntivo. Il calcolo gira in background tramite una coda in-memory a thread singolo (`matching/worker.py`), così da non bloccare le richieste HTTP; se l'AI è disabilitata, priva di API key o la chiamata fallisce, si usa sempre il punteggio deterministico come fallback.
-- **Notifiche**: notifiche in-app per studenti e aziende (es. aggiornamenti di stato su candidature/annunci), con stato letto/non letto.
+- **Motore di matching**: per ogni coppia studente/annuncio viene calcolato un punteggio deterministico (skill, soft skill e distanza/tempo di percorrenza casa-azienda, quest'ultima riusando la cache `UserRoute` e il geo-proxy), poi opzionalmente rifinito da un modello AI (Anthropic o DeepSeek, a seconda di `MATCH_AI_PROVIDER`) su un payload anonimizzato che include anche lingue ed esperienze come contesto aggiuntivo. Il calcolo gira in background tramite una coda in-memory a thread singolo (`matching/worker.py`, con accorpamento dei job duplicati), così da non bloccare le richieste HTTP; all'avvio vengono ricalcolati i match mancanti. Il punteggio AI può scostarsi al massimo di 15 punti da quello deterministico. Se l'AI è disabilitata, priva di API key o la chiamata fallisce, si usa sempre il punteggio deterministico come fallback.
+- **Notifiche**: notifiche in-app per studenti e aziende (nuove candidature, candidature accettate/rifiutate, nuovi annunci molto compatibili), con stato letto/non letto.
 - **Autenticazione**: login di studenti e aziende tramite Google OAuth, gestito interamente dall'applicazione.
 - **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
-- **Gestione privacy**: tracciamento del consenso privacy per utente, con versionamento della policy (`PRIVACY_POLICY_VERSION`).
+- **Gestione privacy**: consenso privacy tracciato per studenti e aziende con storico per versione (`PRIVACY_POLICY_VERSION`); pagine `/privacy` e `/terms`; ogni utente può **scaricare i propri dati in JSON** ed **eliminare l'account** (con tutti i dati collegati) da Impostazioni (studenti) o dal Profilo (aziende).
 - **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database. Ogni utente può inoltre consultare le proprie sessioni attive e terminarle da Impostazioni.
 - **Tema chiaro/scuro**: preferenza persistita per utente (`UserPreferences.color_mode`) e per azienda (`Company.color_mode`), applicata a tutte le pagine tramite `resources/js/theme.js`. Sulle pagine pubbliche (es. la landing) il tema è scelto liberamente e salvato solo in `localStorage`, con fallback alla preferenza di sistema (`prefers-color-scheme`) se non è mai stato impostato nulla; se l'utente è loggato, al primo caricamento successivo di una pagina con sessione attiva viene confrontato con il valore nel database e, in caso di discrepanza, il database viene aggiornato. Il tema scelto prima della registrazione viene salvato come preferenza iniziale al completamento dell'iscrizione. La preferenza di lingua è persistita allo stesso modo per gli studenti, ma al momento non traduce ancora l'interfaccia (nessun sistema i18n implementato).
 
@@ -25,7 +26,7 @@ L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchem
 
 | Ambito | Tecnologie |
 | --- | --- |
-| Backend | Python, Flask, Flask-CORS |
+| Backend | Python, Flask, Gunicorn |
 | Autenticazione | Authlib (Google OAuth) |
 | Database | SQLAlchemy su SQLite |
 | Frontend | HTML/CSS/JS "vanilla" con template Jinja, senza framework né bundler; una coppia HTML/CSS/JS per ciascuna pagina in `resources/html` |
@@ -47,6 +48,7 @@ L'applicazione è composta da due processi Flask indipendenti che comunicano tra
 stageMatch/
 ├── app.py                        # App principale Flask (porta 5000)
 ├── server.py                     # Geo-proxy Flask (porta 5001)
+├── validation.py                 # Validazione/normalizzazione dell'input JSON delle route
 ├── auth/                         # Autenticazione: Google OAuth, sessioni, rate limiter
 │   ├── auth.py
 │   ├── rate_limiter.py
@@ -61,6 +63,7 @@ stageMatch/
 │       ├── application.py
 │       ├── base.py
 │       ├── company.py
+│       ├── company_access_code.py
 │       ├── experience.py
 │       ├── job_offer.py
 │       ├── job_offer_skill.py
@@ -83,6 +86,7 @@ stageMatch/
 │   └── worker.py                 # Coda in-memory a thread singolo per l'esecuzione in background
 ├── resources/                     # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
 │   ├── html/                      # Una pagina per file
+│   │   ├── admin-codes.html
 │   │   ├── complete-login.html
 │   │   ├── dashboard-student.html
 │   │   ├── home-company.html
@@ -91,8 +95,11 @@ stageMatch/
 │   │   ├── login-student.html
 │   │   ├── login.html
 │   │   ├── map-view.html
-│   │   └── privacy.html
-│   ├── css/                       # Stili, incluse le variabili del design system
+│   │   ├── privacy.html
+│   │   └── terms.html
+│   ├── css/                       # Stili; brand-variables.css contiene le variabili del design system
+│   │   ├── admin-codes.css
+│   │   ├── brand-variables.css
 │   │   ├── complete-login.css
 │   │   ├── dashboard-student.css
 │   │   ├── home-company.css
@@ -102,7 +109,9 @@ stageMatch/
 │   │   ├── login.css
 │   │   ├── map-view.css
 │   │   └── privacy.css
-│   ├── js/                        # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js)
+│   ├── js/                        # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js e account-data.js)
+│   │   ├── account-data.js
+│   │   ├── admin-codes.js
 │   │   ├── complete-login.js
 │   │   ├── dashboard-student.js
 │   │   ├── home-company.js
@@ -131,6 +140,8 @@ stageMatch/
 ├── .editorconfig
 ├── .env.example                   # Variabili d'ambiente di esempio (copiare in .env)
 ├── .gitattributes
+├── .github/
+│   └── workflows/ci.yml           # CI: ruff + pytest
 ├── .gitignore
 ├── AGENTS.md -> CLAUDE.md         # Symlink, stesse istruzioni di CLAUDE.md per altri agenti AI
 ├── ARCHITECTURE.md                # Diagramma del flusso richieste/dati
@@ -142,12 +153,13 @@ stageMatch/
 ├── README.md
 ├── docker-compose.yml             # Orchestrazione dei due servizi (web + api)
 ├── jsconfig.json
-└── requirements.txt
+├── requirements.txt
+├── requirements-dev.txt           # Dipendenze di sviluppo (pytest, ruff)
+├── ruff.toml
+└── tests/                         # Test pytest (scorer, AI refiner, worker, database, API)
 ```
 
-> Nota: `scripts/` (migrazioni one-off dello schema DB) può esistere in locale ma è ignorato tramite `.gitignore` e quindi non versionato: non compare nell'albero sopra.
-
-`resources/js/theme.js` è l'unica eccezione alla convenzione "un JS per pagina": è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato). Su una pagina con sessione utente/azienda attiva legge la preferenza da un meta tag server-side (`<meta name="app-theme" data-role="user|company">`) e, se diverge dal valore in `localStorage`, sincronizza quest'ultimo verso il database tramite `/api/users/preferences/save` o `/api/companies/preferences/save`; sulle pagine pubbliche usa solo `localStorage`, con fallback a `prefers-color-scheme`.
+`resources/js/theme.js` (insieme a `account-data.js`, condiviso dalle due dashboard per l'eliminazione dell'account) è un'eccezione alla convenzione "un JS per pagina": `theme.js` è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato). Su una pagina con sessione utente/azienda attiva legge la preferenza da un meta tag server-side (`<meta name="app-theme" data-role="user|company">`) e, se diverge dal valore in `localStorage`, sincronizza quest'ultimo verso il database tramite `/api/users/preferences/save` o `/api/companies/preferences/save`; sulle pagine pubbliche usa solo `localStorage`, con fallback a `prefers-color-scheme`.
 
 Per il diagramma completo del flusso richieste/dati, consulta [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -162,11 +174,34 @@ python app.py       # app principale — porta 5000
 python server.py    # geo-proxy — porta 5001
 ```
 
+`SERVER_SECRET_KEY` è obbligatoria: senza, l'app si rifiuta di partire.
+
+Lo schema del database viene creato all'avvio (`create_all`), ma le tabelle già esistenti non vengono modificate: dopo un aggiornamento che cambia lo schema, in sviluppo elimina il file SQLite e lascia che venga ricreato.
+
 In alternativa, con Docker Compose (avvia entrambi i servizi collegati tra loro):
 
 ```bash
 docker compose up --build
 ```
+
+In Docker l'app gira con **Gunicorn** (un solo worker con più thread: la coda di matching è in memoria, quindi un solo processo applicativo), `DEBUG` è forzato a `False` e il database SQLite vive nel volume `db_data`. Il servizio `api` (geo-proxy) riceve solo `ORS_API_KEY` e `NOMINATIM_USER_AGENT`, non le altre credenziali. Entrambi i servizi hanno un healthcheck.
+
+### Registrazione delle aziende e codici di accesso
+
+1. Imposta `ADMIN_EMAILS` con le email Google degli amministratori.
+2. Accedi con uno di quegli account e apri `/admin/codes`: genera un codice monouso e copialo.
+3. Invia il codice all'azienda, che lo inserisce nel form di registrazione. Un codice usato o inesistente viene rifiutato.
+
+### Test e controlli
+
+```bash
+pip install -r requirements-dev.txt
+
+python -m pytest    # test automatici
+ruff check .        # lint (errori reali, non stile)
+```
+
+La stessa coppia di comandi gira in CI (`.github/workflows/ci.yml`).
 
 Il login (sia studenti che aziende) richiede credenziali Google OAuth valide (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) configurate su Google Cloud Console anche in locale.
 
@@ -181,17 +216,22 @@ Le principali variabili sono documentate in `.env.example`:
 | `SERVER_SECRET_KEY` | Segreto Flask per la firma dei cookie di sessione. |
 | `MAX_SESSIONS_PER_USER` / `MAX_SESSIONS_GLOBAL` | Limiti del rate limiter sulle sessioni simultanee. |
 | `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
-| `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite. |
+| `ADMIN_EMAILS` | Email Google (separate da virgola) degli amministratori che accedono a `/admin/codes`. |
+| `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite (default `database.db`). |
+| `PRIVACY_POLICY_VERSION` | Versione dell'informativa privacy registrata con il consenso (default `1.0`). |
 | `APP_VERSION` | Versione applicativa mostrata in Impostazioni > Informazioni (default `1.0.0`). |
+| `DEBUG` | `True` solo in sviluppo: abilita il debugger di Werkzeug e disattiva il flag `Secure` dei cookie (default `False`). |
+| `LOG_LEVEL` / `SQL_ECHO` | Livello di log (default `INFO`) e log delle query SQL, che contengono dati personali (default `False`). |
+| `MATCH_NOTIFY_MIN_SCORE` | Punteggio minimo per notificare allo studente un nuovo match (default `70`). |
+| `SUPPORT_EMAIL` | Email di supporto mostrata in Impostazioni, informativa e termini (opzionale: se vuota il contatto non compare). |
+| `NOMINATIM_USER_AGENT` | User-Agent inviato a Nominatim/Photon: le policy OSM richiedono un contatto reale. |
 | `ANTHROPIC_MATCHING_ENABLED` | Abilita/disabilita la rifinitura AI del punteggio di matching (default `True`); se disabilitata, priva di API key o in errore, si usa sempre il punteggio deterministico. |
 | `MATCH_AI_PROVIDER` | Provider usato per la rifinitura AI: `anthropic` (default) oppure `deepseek` (endpoint compatibile con la Messages API di Anthropic). |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Credenziali e modello Anthropic usati quando `MATCH_AI_PROVIDER=anthropic`. |
 | `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` | Credenziali e modello DeepSeek usati quando `MATCH_AI_PROVIDER=deepseek`. |
-| `PORT` | Porta di ascolto di `app.py` (default `5000`). Presente in `.env.example`. |
-| `PORT_API` | Porta di ascolto di `server.py` (default `5001`). Non è in `.env.example`: va impostata nell'ambiente (lo fa già `docker-compose.yml`) se si vuole un valore diverso dal default. |
-| `HOST` | Host di bind per `app.py` e `server.py` (default `127.0.0.1`). Non è in `.env.example`. |
-
-> Nel repository non sono presenti al momento suite di test, linter o build step configurati.
+| `PORT` / `PORT_API` | Porte di ascolto di `app.py` (default `5000`) e `server.py` (default `5001`) quando avviati con `python`. In Docker la porta host di `web` è `PORT`. |
+| `HOST` | Host di bind per `python app.py` / `python server.py` (default `127.0.0.1`). |
+| `API_URL` | URL del geo-proxy usato da `app.py` e dal matching (default `http://127.0.0.1:5001`; in Compose `http://api:5001`). |
 
 ## Contribuire
 

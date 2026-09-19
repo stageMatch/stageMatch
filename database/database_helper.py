@@ -1,6 +1,9 @@
+import os
+import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, selectinload
 from sqlalchemy.inspection import inspect
 from .models.base import Base
@@ -20,6 +23,7 @@ from .models.job_offer_skill import JobOfferSkill
 from .models.job_offer_soft_skill import JobOfferSoftSkill
 from .models.application import Application
 from .models.match import Match
+from .models.company_access_code import CompanyAccessCode
 
 # global
 Session = None
@@ -28,11 +32,32 @@ Session = None
 # convenzione di `indirizzo`, vedi app.py e CLAUDE.md).
 LABEL_DELIMITER = " ££ "
 
+# Campi di UserPreferences modificabili dal client (whitelist).
+PREFERENCE_FIELDS = ("color_mode", "lingua", "default_transport_mode")
+
+# Numero massimo di percorsi conservati per utente.
+MAX_USER_ROUTES = 25
+
 def initDB(connstr: str):
     """Initialize the database engine and session."""
     global Session
 
-    engine = create_engine(f"sqlite:///{connstr}", echo=True)
+    # Le query SQL (con dati personali) si loggano solo su richiesta esplicita.
+    echo = os.getenv("SQL_ECHO", "False").lower() == "true"
+    engine = create_engine(
+        f"sqlite:///{connstr}",
+        echo=echo,
+        connect_args={"timeout": 15}
+    )
+
+    @event.listens_for(engine, "connect")
+    def _setSqlitePragmas(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=15000")
+        cursor.close()
+
     Session = sessionmaker(bind=engine)
 
     Base.metadata.create_all(engine)
@@ -82,11 +107,67 @@ def getCompanyByGoogleId(google_id: str):
             .first()
         )
 
-def addCompany(company_data: dict):
+def addCompany(company_data: dict, access_code: str | None = None, privacy_version: str | None = None):
+    """Crea l'azienda. Se `access_code` è dato, lo consuma nella stessa
+    transazione: se il codice non è valido o è già stato usato non si crea nulla
+    e viene sollevato `InvalidAccessCodeError`. Se `privacy_version` è dato,
+    registra il consenso a quella versione dell'informativa."""
     with Session() as session:
+        if access_code is not None:
+            consumed = (
+                session.query(CompanyAccessCode)
+                .filter(
+                    CompanyAccessCode.code == access_code,
+                    CompanyAccessCode.used_at.is_(None)
+                )
+                .update({
+                    CompanyAccessCode.used_at: datetime.now(timezone.utc),
+                    CompanyAccessCode.used_by_company_id: None
+                })
+            )
+
+            if not consumed:
+                raise InvalidAccessCodeError("Codice di accesso non valido o già utilizzato")
+
         company = Company(**company_data)
         session.add(company)
+        session.flush()
+
+        if privacy_version:
+            session.add(PrivacyConsent(company_id=company.googleId, privacy_version=privacy_version))
+
+        if access_code is not None:
+            session.query(CompanyAccessCode).filter_by(code=access_code).update({
+                CompanyAccessCode.used_by_company_id: company.googleId
+            })
+
         session.commit()
+
+def isAccessCodeAvailable(code: str) -> bool:
+    """True se il codice esiste e non è ancora stato utilizzato (non lo consuma)."""
+    with Session() as session:
+        return (
+            session.query(CompanyAccessCode)
+            .filter(CompanyAccessCode.code == code, CompanyAccessCode.used_at.is_(None))
+            .first()
+        ) is not None
+
+def createAccessCode(created_by: str) -> str:
+    """Genera e salva un nuovo codice di accesso monouso per le aziende."""
+    with Session() as session:
+        code = secrets.token_urlsafe(9)
+        session.add(CompanyAccessCode(code=code, created_by=created_by))
+        session.commit()
+
+        return code
+
+def listAccessCodes():
+    with Session() as session:
+        return (
+            session.query(CompanyAccessCode)
+            .order_by(CompanyAccessCode.created_at.desc())
+            .all()
+        )
 
 def updateCompany(company_data: dict):
     with Session() as session:
@@ -103,19 +184,6 @@ def updateCompany(company_data: dict):
         session.refresh(company)
 
         return company
-
-def getUserColumn(user_id: str, column: str):
-    """Return a single column value of a user by id."""
-    with Session() as session:
-        user = session.query(User).filter_by(googleId=user_id).first()
-
-        if not user:
-            return None
-
-        if not hasattr(user, column):
-            raise ValueError(f"Column '{column}' does not exist in User model")
-
-        return getattr(user, column)
 
 def addUser(user_data: dict, privacy_consent: dict | None = None, color_mode: str = "light"):
     with Session() as session:
@@ -174,9 +242,9 @@ def updateUser(user_data: dict):
         # Preferences
         pref_data = user_data.get("preferences")
         if pref_data:
-            for key, value in pref_data.items():
-                if hasattr(user.preferences, key):
-                    setattr(user.preferences, key, value)
+            for key in PREFERENCE_FIELDS:
+                if key in pref_data:
+                    setattr(user.preferences, key, pref_data[key])
 
         # Skills
         skills = user_data.get("skills")
@@ -287,6 +355,14 @@ def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = No
 
         return user.preferences
 
+def _naiveUtc(value: datetime) -> datetime:
+    """SQLite restituisce datetime naive, mentre i valori appena scritti sono aware:
+    li riporta tutti a UTC naive per poterli confrontare."""
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+    return value
+
 def addUserRoute(user_id: str, route_data: dict):
     with Session() as session:
         user = session.query(User).filter_by(googleId=user_id).first()
@@ -321,13 +397,34 @@ def addUserRoute(user_id: str, route_data: dict):
                 duration_min=duration_min
             )
             user.routes.append(route)
+            session.flush()
 
-        if len(user.routes) > 25:
-            user.routes = user.routes[:25]
+        # Si eliminano i percorsi meno recenti; quello appena scritto ha
+        # sempre l'`updated_at` più alto e non viene mai scartato.
+        if len(user.routes) > MAX_USER_ROUTES:
+            by_recency = sorted(user.routes, key=lambda r: _naiveUtc(r.updated_at), reverse=True)
+
+            for old_route in by_recency[MAX_USER_ROUTES:]:
+                user.routes.remove(old_route)
 
         session.commit()
 
         return route
+
+def getMatchedPairs():
+    """Coppie (user_id, job_offer_id) che hanno già un match."""
+    with Session() as session:
+        return {(row[0], row[1]) for row in session.query(Match.user_id, Match.job_offer_id).all()}
+
+def deleteMatchesForJobOffer(job_offer_id: int):
+    with Session() as session:
+        session.query(Match).filter_by(job_offer_id=job_offer_id).delete()
+        session.commit()
+
+def deleteMatchesForStudent(user_id: str):
+    with Session() as session:
+        session.query(Match).filter_by(user_id=user_id).delete()
+        session.commit()
 
 def getStudentIdsWithAddress():
     """Studenti con un indirizzo compilato, candidati al calcolo del matching."""
@@ -352,6 +449,185 @@ def getUserRouteByAddresses(user_id: str, start_address: str, end_address: str, 
             )
             .first()
         )
+
+def deleteUser(user_id: str) -> bool:
+    """Elimina l'account studente con tutti i dati collegati (cascade ORM) e le sue sessioni."""
+    with Session() as session:
+        user = session.get(User, user_id)
+
+        if not user:
+            return False
+
+        email = user.email
+        session.delete(user)
+        session.commit()
+
+    if email:
+        removeAllActiveSessionsForEmail(email)
+
+    return True
+
+def deleteCompany(company_id: str) -> bool:
+    """Elimina l'azienda con annunci, candidature e match collegati (cascade ORM) e le sue sessioni."""
+    with Session() as session:
+        company = session.get(Company, company_id)
+
+        if not company:
+            return False
+
+        email = company.email
+        session.delete(company)
+        session.commit()
+
+    if email:
+        removeAllActiveSessionsForEmail(email)
+
+    return True
+
+def _isoOrNone(value):
+    return value.isoformat() if value else None
+
+def exportUserData(user_id: str) -> dict | None:
+    """Tutti i dati personali dello studente, in un dict serializzabile in JSON (portabilità GDPR)."""
+    user = getUserById(user_id)
+
+    if not user:
+        return None
+
+    with Session() as session:
+        consents = session.query(PrivacyConsent).filter_by(user_id=user_id).all()
+        applications = (
+            session.query(Application, JobOffer.title)
+            .join(JobOffer, Application.job_offer_id == JobOffer.id)
+            .filter(Application.user_id == user_id)
+            .all()
+        )
+        matches = (
+            session.query(Match, JobOffer.title)
+            .join(JobOffer, Match.job_offer_id == JobOffer.id)
+            .filter(Match.user_id == user_id)
+            .all()
+        )
+        consent_rows = [
+            {"privacy_version": c.privacy_version, "accepted_at": _isoOrNone(c.accepted_at)}
+            for c in consents
+        ]
+        application_rows = [
+            {
+                "job_offer_title": title, "status": a.status, "message": a.message,
+                "created_at": _isoOrNone(a.created_at)
+            }
+            for a, title in applications
+        ]
+        match_rows = [
+            {
+                "job_offer_title": title, "deterministic_score": m.deterministic_score,
+                "ai_score": m.ai_score, "final_score": m.final_score, "explanation": m.explanation,
+                "computed_at": _isoOrNone(m.computed_at)
+            }
+            for m, title in matches
+        ]
+
+    return {
+        "profile": {
+            "googleId": user.googleId, "name": user.name, "surname": user.surname, "email": user.email,
+            "data_nascita": _isoOrNone(user.data_nascita), "sesso": user.sesso,
+            "comune_nascita": user.comune_nascita, "codice_fiscale": user.codice_fiscale,
+            "telefono": user.telefono, "indirizzo_studio": user.indirizzo_studio, "classe": user.classe,
+            "istituto": user.istituto, "indirizzo": user.indirizzo
+        },
+        "preferences": {
+            "color_mode": user.preferences.color_mode, "lingua": user.preferences.lingua,
+            "default_transport_mode": user.preferences.default_transport_mode
+        } if user.preferences else None,
+        "skills": [{"name": s.name, "livello": s.livello} for s in user.skills],
+        "soft_skills": [{"label": s.label} for s in user.soft_skills],
+        "languages": [
+            {"name": l.name, "level": l.level, "certification": l.certification} for l in user.languages
+        ],
+        "experiences": [
+            {"title": e.title, "description": e.description, "link": e.link, "labels": e.labels}
+            for e in user.experiences
+        ],
+        "routes": [
+            {
+                "start_address": r.start_address, "end_address": r.end_address, "mode": r.mode,
+                "distance_km": r.distance_km, "duration_min": r.duration_min
+            }
+            for r in user.routes
+        ],
+        "notifications": [
+            {"title": n.title, "message": n.message, "is_read": n.is_read, "created_at": _isoOrNone(n.created_at)}
+            for n in user.notifications
+        ],
+        "applications": application_rows,
+        "matches": match_rows,
+        "privacy_consents": consent_rows
+    }
+
+def exportCompanyData(company_id: str) -> dict | None:
+    """Tutti i dati dell'azienda (profilo, annunci, candidature ricevute, consensi)."""
+    with Session() as session:
+        company = (
+            session.query(Company)
+            .options(selectinload(Company.notifications), selectinload(Company.privacy_consents))
+            .filter_by(googleId=company_id)
+            .first()
+        )
+
+        if not company:
+            return None
+
+        offers = (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills),
+                selectinload(JobOffer.applications)
+            )
+            .filter_by(company_id=company_id)
+            .all()
+        )
+
+        return {
+            "profile": {
+                "googleId": company.googleId, "name": company.name, "email": company.email,
+                "address": company.address, "settore": company.settore, "descrizione": company.descrizione,
+                "sito_web": company.sito_web, "telefono": company.telefono
+            },
+            "job_offers": [
+                {
+                    "title": o.title, "description": o.description, "attivo": o.attivo,
+                    "created_at": _isoOrNone(o.created_at),
+                    "required_skills": [{"name": s.name, "livello_min": s.livello_min} for s in o.required_skills],
+                    "required_soft_skills": [{"label": s.label} for s in o.required_soft_skills],
+                    "applications_count": len(o.applications)
+                }
+                for o in offers
+            ],
+            "notifications": [
+                {"title": n.title, "message": n.message, "is_read": n.is_read, "created_at": _isoOrNone(n.created_at)}
+                for n in company.notifications
+            ],
+            "privacy_consents": [
+                {"privacy_version": c.privacy_version, "accepted_at": _isoOrNone(c.accepted_at)}
+                for c in company.privacy_consents
+            ]
+        }
+
+def getUserRouteCache(user_id: str, mode: str) -> dict:
+    """Percorsi già calcolati dell'utente per un mezzo: {(partenza, arrivo): (km, minuti)}."""
+    with Session() as session:
+        rows = (
+            session.query(
+                UserRoute.start_address, UserRoute.end_address,
+                UserRoute.distance_km, UserRoute.duration_min
+            )
+            .filter_by(user_id=user_id, mode=mode)
+            .all()
+        )
+
+        return {(r[0], r[1]): (r[2], r[3]) for r in rows}
 
 def getRouteStats(routes: list):
     """Aggrega la lista di percorsi (dict, es. user_data["routes"]) in statistiche
@@ -702,28 +978,40 @@ def getStudentMatchingProfile(user_id: str):
 
 def upsertMatch(user_id: str, job_offer_id: int, deterministic_score: float,
                  ai_score: float | None, final_score: float,
-                 explanation: str | None, ai_status: str):
+                 explanation: str | None, ai_status: str) -> tuple[int, bool]:
+    """Crea o aggiorna il match. Ritorna (id, created)."""
     with Session() as session:
-        match = (
-            session.query(Match)
-            .filter_by(user_id=user_id, job_offer_id=job_offer_id)
-            .first()
-        )
+        for attempt in range(2):
+            match = (
+                session.query(Match)
+                .filter_by(user_id=user_id, job_offer_id=job_offer_id)
+                .first()
+            )
+            created = match is None
 
-        if not match:
-            match = Match(user_id=user_id, job_offer_id=job_offer_id)
-            session.add(match)
+            if created:
+                match = Match(user_id=user_id, job_offer_id=job_offer_id)
+                session.add(match)
 
-        match.deterministic_score = deterministic_score
-        match.ai_score = ai_score
-        match.final_score = final_score
-        match.explanation = explanation
-        match.ai_status = ai_status
-        match.computed_at = datetime.now(timezone.utc)
+            match.deterministic_score = deterministic_score
+            match.ai_score = ai_score
+            match.final_score = final_score
+            match.explanation = explanation
+            match.ai_status = ai_status
+            match.computed_at = datetime.now(timezone.utc)
 
-        session.commit()
+            try:
+                session.commit()
+            except IntegrityError:
+                # Insert concorrente della stessa coppia: si riprova come update.
+                session.rollback()
 
-        return match.id
+                if attempt == 1:
+                    raise
+
+                continue
+
+            return match.id, created
 
 def getMatchesForStudent(user_id: str):
     with Session() as session:
@@ -827,9 +1115,12 @@ def modelToDict(obj, include_relationships=True):
     for column in mapper.mapper.column_attrs:
         result[column.key] = getattr(obj, column.key)
 
-    # Relationships
+    # Relationships (quelle non caricate — oggetto ormai staccato dalla sessione — si saltano)
     if include_relationships:
         for rel in mapper.mapper.relationships:
+            if rel.key in mapper.unloaded:
+                continue
+
             value = getattr(obj, rel.key)
 
             if value is None:
@@ -843,6 +1134,11 @@ def modelToDict(obj, include_relationships=True):
 
 class UserAlreadyExistsError(Exception):
     """Raised when trying to add a user that already exists."""
+
+    pass
+
+class InvalidAccessCodeError(Exception):
+    """Raised when a company access code is unknown or already used."""
 
     pass
 

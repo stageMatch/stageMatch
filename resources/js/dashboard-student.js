@@ -1,8 +1,9 @@
 let userRoutes = [];
 let currentCompanies = [];
 
+// L'id dell'icona può derivare da dati utente (es. soft skill): solo caratteri sicuri.
 const svgIcon = (id, extraClass = "icon") =>
-    `<span class="${extraClass}"><svg><use href="#${id}"></use></svg></span>`;
+    `<span class="${extraClass}"><svg><use href="#${String(id).replace(/[^\w-]/g, "")}"></use></svg></span>`;
 
 const modeLabel = {
     "driving-car": "Auto",
@@ -175,7 +176,7 @@ function renderCompanyCards() {
         card.innerHTML = `
           <div class="co-top">
             <div class="co-row1">
-              <div class="co-logo">${c.initials}</div>
+              <div class="co-logo">${escapeHtml(c.initials)}</div>
               <div class="co-info">
                 <div class="co-name">${escapeHtml(c.name)}</div>
                 <div class="co-sector">${escapeHtml(c.sector)}</div>
@@ -252,7 +253,7 @@ function renderCompanyDetailsModal(company) {
 
     content.innerHTML = `
       <div class="company-modal-hero">
-        <div class="company-modal-logo">${company.initials}</div>
+        <div class="company-modal-logo">${escapeHtml(company.initials)}</div>
         <div class="company-modal-head">
           <div class="company-modal-name">${escapeHtml(company.name)}</div>
           <div class="company-modal-sector">${escapeHtml(company.sector)} · ${escapeHtml(company.companySector)}</div>
@@ -288,8 +289,8 @@ function renderCompanyDetailsModal(company) {
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Contatti</div>
           <div class="co-contacts">
-            ${company.contacts.email ? `<div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${company.contacts.email}">${escapeHtml(company.contacts.email)}</a></div>` : ""}
-            ${company.contacts.web ? `<div class="co-contact-row">${svgIcon("i-link")}<a href="https://${company.contacts.web}" target="_blank" rel="noopener noreferrer">${escapeHtml(company.contacts.web)}</a></div>` : ""}
+            ${company.contacts.email ? `<div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${encodeURI(company.contacts.email)}">${escapeHtml(company.contacts.email)}</a></div>` : ""}
+            ${company.contacts.web ? renderWebContact(company.contacts.web) : ""}
             ${company.contacts.phone ? `<div class="co-contact-row">${svgIcon("i-phone")}<span>${escapeHtml(company.contacts.phone)}</span></div>` : ""}
           </div>
         </div>
@@ -542,6 +543,18 @@ function sanitizeUrl(url) {
     if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return "";
 
     return `https://${value}`;
+}
+
+// Sito dell'azienda: link solo se è un URL http(s) valido, altrimenti testo semplice.
+function renderWebContact(web) {
+    const safeUrl = sanitizeUrl(web);
+    const label = escapeHtml(web);
+
+    if (!safeUrl) {
+        return `<div class="co-contact-row">${svgIcon("i-link")}<span>${label}</span></div>`;
+    }
+
+    return `<div class="co-contact-row">${svgIcon("i-link")}<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
 }
 
 function escapeHtml(value) {
@@ -1316,6 +1329,15 @@ function closeNotifPanel() {
     btn.setAttribute("aria-expanded", "false");
 }
 
+// Saluto in base all'ora locale.
+function updateGreeting() {
+    const word = document.getElementById("greetingWord");
+    if (!word) return;
+
+    const hour = new Date().getHours();
+    word.textContent = hour < 6 ? "Buonanotte" : hour < 13 ? "Buongiorno" : hour < 18 ? "Buon pomeriggio" : "Buonasera";
+}
+
 function openLogoutModal() {
     document.getElementById("logoutOverlay").classList.add("active");
     document.getElementById("logoutCancel").focus();
@@ -1690,6 +1712,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document
         .getElementById("btnTerminaSessioni")
         .addEventListener("click", terminaAltreSessioni);
+
+    updateGreeting();
+
+    document
+        .querySelector('[data-action="openTerms"]')
+        .addEventListener("click", () => {
+            window.open("/terms", "_blank", "noopener");
+        });
 
     document
         .querySelector('[data-action="openPrivacy"]')

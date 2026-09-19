@@ -81,6 +81,12 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    privacy_consents = relationship(
+        "PrivacyConsent",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     @validates("codice_fiscale")
     def validateCodiceFiscale(self, key, value):
         if not value:

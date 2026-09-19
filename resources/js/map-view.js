@@ -56,7 +56,14 @@ const div_suggestion_end = document.getElementById("suggestions_end");
 const initial_coordinates = [45.695, 9.67];
 
 const map = L.map("map").setView([initial_coordinates[0], initial_coordinates[1]], 13);
-// const intre = L.marker([45.592, 9.301]).addTo(map);
+
+// Gli indirizzi possono arrivare dall'URL o da dati OSM: mai come HTML nei popup.
+function textPopup(text) {
+    const popup = document.createElement("div");
+    popup.textContent = String(text ?? "");
+
+    return popup;
+}
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributori',
@@ -124,9 +131,9 @@ async function calcolaPercorso() {
     panel.classList.remove("open");
     prev_layer = L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(map);
     prev_marker_start = L.marker([f_c[1], f_c[0]], { icon: startIcon }).addTo(map);
-    prev_marker_start.bindPopup(`${address_start}`);
+    prev_marker_start.bindPopup(textPopup(address_start));
     prev_marker_end = L.marker([l_c[1], l_c[0]], { icon: endIcon }).addTo(map);
-    prev_marker_end.bindPopup(`${address_end}`);
+    prev_marker_end.bindPopup(textPopup(address_end));
 
     if (prev_layer.getBounds) map.fitBounds(prev_layer.getBounds());
 }
@@ -218,26 +225,27 @@ async function suggestion() {
             }
         ));
 
-        const data_address_html = data_address.map(data => {
-            return `
-            <a href="#" data-index="${data.id}">${data.indirizzo_via} ${data.indirizzo_civico} ${data.indirizzo_cap} ${data.indirizzo_city}</a>
-            `
-        });
-
-        div_suggestion.innerHTML = data_address_html.join('');
+        div_suggestion.replaceChildren();
 
         const input_spinner = input_wrapper.querySelector(".input-spinner");
 
         if (input_spinner) input_spinner.remove();
 
-        for (let i = 0; i < data_address_html.length; ++i) {
-            const dah = div_suggestion.querySelector(`[data-index="${i}"]`);
-            dah.addEventListener("click", () => {
+        data_address.forEach((data) => {
+            const dah = document.createElement("a");
+            dah.href = "#";
+            dah.dataset.index = data.id;
+            dah.textContent = [data.indirizzo_via, data.indirizzo_civico, data.indirizzo_cap, data.indirizzo_city]
+                .filter(Boolean)
+                .join(" ");
+            dah.addEventListener("click", (e) => {
+                e.preventDefault();
                 this.value = dah.textContent;
                 div_suggestion.classList.add("not-visible");
-                div_suggestion.innerHTML = "";
+                div_suggestion.replaceChildren();
             });
-        }
+            div_suggestion.appendChild(dah);
+        });
     } catch (error) {
         throw new Error(error);
     } finally {
@@ -295,7 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && panel.classList.contains("open")) {
             panel.classList.remove("open");
-            console.log("Pannello chiuso con ESC");
         }
     });
 
@@ -310,7 +317,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             btn.classList.add("active");
             mode = btn.dataset.mode;
-            console.log("Mezzo selezionato:", mode);
         });
     });
 

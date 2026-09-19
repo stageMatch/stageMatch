@@ -53,7 +53,8 @@ function showNotification(message, type = "info", duration = 5000) {
 const NOTICE_MESSAGES = {
     login_required: { message: "Devi accedere per continuare.", type: "warning" },
     session_expired: { message: "La tua sessione è scaduta. Accedi di nuovo.", type: "warning" },
-    logged_out: { message: "Logout effettuato con successo.", type: "success" }
+    logged_out: { message: "Logout effettuato con successo.", type: "success" },
+    account_deleted: { message: "Il tuo account e i tuoi dati sono stati eliminati.", type: "success" }
 };
 
 const notice = new URLSearchParams(window.location.search).get("notice");

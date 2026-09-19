@@ -7,7 +7,7 @@ import secrets
 import logging
 from datetime import datetime, timezone
 from functools import wraps
-from flask import request, redirect, session, url_for, render_template_string
+from flask import abort, redirect, session, url_for, render_template_string
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,16 @@ class SessionMiddleware:
     def createSession(self, user_data: dict, flask_session, session_id: str = None):
         """Crea una sessione server-side per l'utente."""
         sid = session_id or secrets.token_hex(32)
+
+        # Si riparte da una sessione pulita, conservando solo i dati di
+        # onboarding impostati prima del giro su Google.
+        preserved = {
+            key: flask_session[key]
+            for key in ("auth_type", "pending_company_data")
+            if key in flask_session
+        }
+        flask_session.clear()
+        flask_session.update(preserved)
 
         flask_session.permanent = True
         flask_session['user'] = {
@@ -75,16 +85,20 @@ class SessionMiddleware:
 
                     return redirect(self._loginUrlForRole(target_role, "login_required"))
 
+                if role and session.get("auth_type", "user") != role:
+                    logger.warning(f"Ruolo non autorizzato per la route (richiesto: {role})")
+
+                    abort(403)
+
                 if self.rateLimiter:
                     sid = session.get('session_id')
 
-                    if sid:
-                        if not self.rateLimiter.isSessionValid(sid):
-                            session.clear()
+                    if not sid or not self.rateLimiter.isSessionValid(sid):
+                        session.clear()
 
-                            return redirect(self._loginUrlForRole(target_role, "session_expired"))
+                        return redirect(self._loginUrlForRole(target_role, "session_expired"))
 
-                        self.rateLimiter.touchSession(sid)
+                    self.rateLimiter.touchSession(sid)
 
                 return f(*args, **kwargs)
             

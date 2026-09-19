@@ -9,7 +9,7 @@ class Match(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     user_id = Column(String, ForeignKey("users.googleId"), nullable=False)
-    job_offer_id = Column(Integer, ForeignKey("job_offers.id"), nullable=False)
+    job_offer_id = Column(Integer, ForeignKey("job_offers.id"), nullable=False, index=True)
 
     deterministic_score = Column(Float, nullable=False)
     ai_score = Column(Float, nullable=True)

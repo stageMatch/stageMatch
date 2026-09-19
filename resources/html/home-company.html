@@ -36,6 +36,12 @@
             <path d="M9 21v-4h6v4" />
             <path d="M8 10h.01M12 10h.01M16 10h.01M8 13h.01M12 13h.01M16 13h.01" />
         </symbol>
+        <symbol id="i-brain" viewBox="0 0 24 24">
+            <path d="M9 4a3 3 0 0 0-3 3v1a2.5 2.5 0 0 0-1 4V13a3 3 0 0 0 3 3h1" />
+            <path d="M15 4a3 3 0 0 1 3 3v1a2.5 2.5 0 0 1 1 4V13a3 3 0 0 1-3 3h-1" />
+            <path d="M12 4v16" />
+            <path d="M9 10h3M12 14h3" />
+        </symbol>
         <symbol id="i-logout" viewBox="0 0 24 24">
             <path d="M10 17 15 12 10 7" />
             <path d="M15 12H4" />
@@ -273,7 +279,7 @@
                     <div class="profilo-avatar">{{ company.name[:2]|upper }}</div>
                     <div class="profilo-hero-info">
                         <div class="profilo-hero-name">{{ company.name }}</div>
-                        <div class="profilo-hero-sub">{{ company.address }}</div>
+                        <div class="profilo-hero-sub">{{ company.address_parts | select | join(", ") }}</div>
                     </div>
                 </div>
 
@@ -283,12 +289,29 @@
                         <div class="pro-rows" id="proAziendaDati">
                             <div class="pro-row"><span class="pro-lbl">Ragione Sociale</span><span class="pro-val">{{ company.name }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Email</span><span class="pro-val">{{ company.email }}</span></div>
-                            <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">{{ company.address }}</span></div>
-                            <div class="pro-row"><span class="pro-lbl">Codice di Accesso</span><span class="pro-val pro-mono">{{ company.access_code }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">{{ company.address_parts | select | join(", ") }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Settore</span><span class="pro-val" id="proValSettore">{{ company.settore or "--" }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Telefono</span><span class="pro-val" id="proValTelefono">{{ company.telefono or "--" }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Sito web</span><span class="pro-val" id="proValSito">{{ company.sito_web or "--" }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Descrizione</span><span class="pro-val" id="proValDescrizione">{{ company.descrizione or "--" }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="pro-card pro-card-wide">
+                        <div class="pro-card-head"><span class="icon"><svg><use href="#i-info"></use></svg></span>I tuoi dati</div>
+                        <div class="pro-rows">
+                            <div class="pro-row">
+                                <span class="pro-lbl">Scarica i tuoi dati (JSON)</span>
+                                <a class="btn-ghost" href="/api/company/export" download>Scarica</a>
+                            </div>
+                            <div class="pro-row">
+                                <span class="pro-lbl">Elimina account e annunci</span>
+                                <button class="btn-ghost" type="button" data-account-delete data-delete-url="/api/company/delete">Elimina account</button>
+                            </div>
+                            <div class="pro-row">
+                                <span class="pro-lbl">Documenti</span>
+                                <span class="pro-val"><a href="{{ url_for('terms') }}" target="_blank" rel="noopener">Termini</a> · <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">Privacy</a></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -424,6 +447,7 @@
     <div class="imp-toast" id="impToast"></div>
 
     <script id="notifications-data" type="application/json">{{ notifications | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/account-data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/home-company.js') }}"></script>
 </body>
 </html>

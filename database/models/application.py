@@ -9,7 +9,7 @@ class Application(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     job_offer_id = Column(Integer, ForeignKey("job_offers.id"), nullable=False)
-    user_id = Column(String, ForeignKey("users.googleId"), nullable=False)
+    user_id = Column(String, ForeignKey("users.googleId"), nullable=False, index=True)
 
     status = Column(String, nullable=False, default="inviata")  # inviata | vista | accettata | rifiutata
     message = Column(Text, nullable=True)

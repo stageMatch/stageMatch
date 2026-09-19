@@ -8,25 +8,37 @@ services:
     env_file:
       - .env
     environment:
-      - HOST=0.0.0.0
       - API_URL=http://api:5001
       - DB_CONNECTION_STRING=/app/database_files/users.db
+      - DEBUG=False
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     volumes:
       - db_data:/app/database_files
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/login', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
+  # Geo-proxy interno: non riceve le credenziali Google né le chiavi AI, solo quella di routing.
   api:
     image: stagematch:latest
     restart: unless-stopped
-    command: python server.py
-    env_file:
-      - .env
+    command: ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "--timeout", "60", "server:app"]
     environment:
-      - HOST=0.0.0.0
-      - PORT_API=5001
+      - ORS_API_KEY=${ORS_API_KEY:-}
+      - NOMINATIM_USER_AGENT=${NOMINATIM_USER_AGENT:-stageMatch/1.0 (geo-proxy interno)}
     expose:
       - "5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 5001), 3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   db_data:

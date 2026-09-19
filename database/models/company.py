@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text
+from sqlalchemy import Column, String, Text
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -28,4 +28,10 @@ class Company(Base):
         back_populates="company",
         cascade="all, delete-orphan",
         order_by="desc(Notification.id)"
+    )
+
+    privacy_consents = relationship(
+        "PrivacyConsent",
+        back_populates="company",
+        cascade="all, delete-orphan"
     )

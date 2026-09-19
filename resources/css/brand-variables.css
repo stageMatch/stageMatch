@@ -1,0 +1,36 @@
+:root {
+    /* Brand Colors */
+    --midnight-blue: #0A0E1A;
+    --midnight-blue-light: #111625;
+    --emerald-green: #2ECC71;
+    --emerald-green-dark: #27AE60;
+    
+    /* Functional Colors */
+    --bg: var(--midnight-blue);
+    --panel: var(--midnight-blue-light);
+    --accent: var(--emerald-green);
+    --text: #E8E6F4;
+    --text-muted: #7B74A0;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-glow: rgba(46, 204, 113, 0.3);
+    --green-text: var(--emerald-green);
+
+    /* Layout */
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tema chiaro: inverte sfondo/testo, mantiene --emerald-green invariato come accento.
+   Non ridefinire mai --midnight-blue/--emerald-green qui: sono costanti di brand
+   riusate anche per usi che devono restare fissi in entrambi i temi (es. testo
+   scuro su bottone verde). Il tema ridefinisce solo le variabili funzionali. */
+:root[data-theme="light"] {
+    --bg: #F7F9FC;
+    --panel: #FFFFFF;
+    --text: var(--midnight-blue);
+    --text-muted: #5B6478;
+    --border: rgba(15, 23, 42, 0.13);
+    --border-glow: rgba(46, 204, 113, 0.25);
+    --green-text: #1B8A4C;
+}

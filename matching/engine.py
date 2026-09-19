@@ -4,11 +4,15 @@ Le due funzioni pubbliche sono pensate per essere eseguite in background
 (vedi matching/worker.py), non nel thread della richiesta HTTP.
 """
 
+import os
 import logging
 from database import database_helper
 from matching import scorer, geo, ai_refiner
 
 logger = logging.getLogger(__name__)
+
+# Sopra questo punteggio, un match nuovo genera una notifica allo studente.
+NOTIFY_MIN_SCORE = float(os.getenv("MATCH_NOTIFY_MIN_SCORE", 70))
 
 def _requiredSkillsFor(job_offer) -> list[dict]:
     return [{"name": s.name, "livello_min": s.livello_min} for s in job_offer.required_skills]
@@ -53,10 +57,13 @@ def _buildDeterministicExplanation(deterministic: dict) -> str:
     distance_km = deterministic["distance_km"]
     duration_min = deterministic["duration_min"]
 
-    frase = (
-        f"Le tue competenze tecniche {_skillFitPhrase(skill_score)} ({skill_score:.0f}%), "
-        f"mentre le tue soft skill {_softSkillFitPhrase(soft_score)} ({soft_score:.0f}%)."
-    )
+    if deterministic.get("has_skill_requirements", True) or deterministic.get("has_soft_requirements", True):
+        frase = (
+            f"Le tue competenze tecniche {_skillFitPhrase(skill_score)} ({skill_score:.0f}%), "
+            f"mentre le tue soft skill {_softSkillFitPhrase(soft_score)} ({soft_score:.0f}%)."
+        )
+    else:
+        frase = "L'annuncio non indica requisiti specifici, quindi il punteggio dipende soprattutto dalla distanza."
 
     if distance_km is not None and duration_min is not None:
         frase += (
@@ -105,7 +112,7 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
     refined = ai_refiner.refineScore(deterministic, anonymized_payload)
     explanation = refined["explanation"] or _buildDeterministicExplanation(deterministic)
 
-    database_helper.upsertMatch(
+    _, created = database_helper.upsertMatch(
         user_id,
         job_offer.id,
         deterministic["score"],
@@ -115,12 +122,26 @@ def _computeAndStoreMatch(user_id: str, student_profile: dict, job_offer):
         refined["ai_status"]
     )
 
+    if created and refined["final_score"] >= NOTIFY_MIN_SCORE:
+        database_helper.addNotification(
+            user_id,
+            "Nuovo annuncio compatibile",
+            f"L'annuncio \"{job_offer.title}\" di {job_offer.company.name} è compatibile "
+            f"al {refined['final_score']:.0f}% con il tuo profilo.",
+            sender="stageMatch"
+        )
+
 def recomputeMatchesForStudent(user_id: str):
     """Ricalcola il match dello studente con tutti gli annunci attivi.
     Chiamata quando lo studente aggiorna skill/soft skill/indirizzo."""
     student_profile = database_helper.getStudentMatchingProfile(user_id)
 
-    if not student_profile or not student_profile.get("indirizzo"):
+    if not student_profile:
+        return
+
+    if not student_profile.get("indirizzo"):
+        # Senza indirizzo non si può calcolare la distanza: i match vecchi non sono più affidabili.
+        database_helper.deleteMatchesForStudent(user_id)
         return
 
     for job_offer in database_helper.getActiveJobOffers():
@@ -134,7 +155,11 @@ def recomputeMatchesForJobOffer(job_offer_id: int):
     singolo annuncio. Chiamata quando l'azienda crea/modifica un annuncio."""
     job_offer = database_helper.getJobOfferById(job_offer_id)
 
-    if not job_offer or not job_offer.attivo:
+    if not job_offer:
+        return
+
+    if not job_offer.attivo:
+        database_helper.deleteMatchesForJobOffer(job_offer_id)
         return
 
     for user_id in database_helper.getStudentIdsWithAddress():
@@ -147,3 +172,31 @@ def recomputeMatchesForJobOffer(job_offer_id: int):
             _computeAndStoreMatch(user_id, student_profile, job_offer)
         except Exception as e:
             logger.exception(f"[matching.engine] match {user_id} <-> offer {job_offer_id} failed: {e}")
+
+def recomputeMissingMatches():
+    """Accoda/calcola i match mancanti tra studenti (con indirizzo) e annunci attivi.
+
+    La coda del worker è solo in memoria: chiamata all'avvio recupera i job
+    persi con un riavvio o un crash."""
+    existing_pairs = database_helper.getMatchedPairs()
+    job_offers = database_helper.getActiveJobOffers()
+    student_ids = database_helper.getStudentIdsWithAddress()
+
+    for user_id in student_ids:
+        missing_offers = [o for o in job_offers if (user_id, o.id) not in existing_pairs]
+
+        if not missing_offers:
+            continue
+
+        student_profile = database_helper.getStudentMatchingProfile(user_id)
+
+        if not student_profile:
+            continue
+
+        for job_offer in missing_offers:
+            try:
+                _computeAndStoreMatch(user_id, student_profile, job_offer)
+            except Exception:
+                logger.exception(f"[matching.engine] match {user_id} <-> offer {job_offer.id} failed")
+
+    logger.info("[matching.engine] ricalcolo dei match mancanti completato")

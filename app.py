@@ -1,22 +1,51 @@
 import os
 import secrets
+import logging
 import requests
-from flask import Flask, render_template, redirect, request, session, url_for, jsonify
+from functools import wraps
+from flask import Flask, render_template, redirect, request, session, url_for, jsonify, abort
 from dotenv import load_dotenv
+from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import timedelta
+from urllib.parse import urlparse
 import auth.auth as au
 from auth.auth_google.auth import initGoogleAuth, getGoogleUserInfo
 from database import database_helper
-from database.database_helper import ApplicationAlreadyExistsError
+from database.database_helper import ApplicationAlreadyExistsError, InvalidAccessCodeError, UserAlreadyExistsError
 from matching import worker as matching_worker
 from matching import engine as matching_engine
 from matching import geo as matching_geo
+import validation
 
 load_dotenv()
 
-PRIVACY_POLICY_VERSION = os.getenv("PRIVACY_POLICY_VERSION")
-APP_VERSION = os.getenv("APP_VERSION")
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+PRIVACY_POLICY_VERSION = os.getenv("PRIVACY_POLICY_VERSION", "1.0")
+APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("ADMIN_EMAILS", "").split(",")
+    if email.strip()
+}
+
+CONTENT_SECURITY_POLICY = "; ".join([
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://raw.githubusercontent.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+])
 
 TRANSPORT_MODE_LABELS = {
     "driving-car": "Auto",
@@ -40,13 +69,16 @@ google = initGoogleAuth(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.getenv("SERVER_SECRET_KEY")
 app.permanent_session_lifetime = timedelta(hours=8)
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
-if os.getenv("DEBUG", "False").lower() != "true":
-    app.config.update(
-        SESSION_COOKIE_SECURE=True,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE="Lax"
-    )
+if not app.secret_key:
+    raise RuntimeError("SERVER_SECRET_KEY non impostata: copia .env.example in .env e valorizzala")
+
+app.config.update(
+    SESSION_COOKIE_SECURE=not DEBUG,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 try:
     db_conn = os.getenv("DB_CONNECTION_STRING", "database.db")
@@ -61,6 +93,64 @@ except Exception as e:
     raise e
 
 matching_worker.startWorker()
+matching_worker.enqueue(matching_engine.recomputeMissingMatches, name="recompute-missing-matches")
+
+@app.before_request
+def rejectCrossSiteWrites():
+    """Difesa CSRF: le richieste che modificano dati devono partire dallo stesso sito."""
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return None
+
+    origin = request.headers.get("Origin")
+
+    if origin:
+        if urlparse(origin).netloc != request.host:
+            abort(403)
+    elif request.headers.get("Sec-Fetch-Site") == "cross-site":
+        abort(403)
+
+@app.after_request
+def addSecurityHeaders(response):
+    response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+
+    return response
+
+def _jsonError(message: str, status: int):
+    return jsonify({"error": message}), status
+
+def _parseId(value) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+def _notificationToDict(notification) -> dict:
+    return {
+        "id": notification.id,
+        "title": notification.title,
+        "message": notification.message,
+        "sender": notification.sender,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at.isoformat()
+    }
+
+def _splitAddress(raw_address: str | None) -> list[str]:
+    return [part.strip() for part in (raw_address or "").split("££")]
+
+def adminRequired(f):
+    """Limita la route agli account Google elencati in ADMIN_EMAILS."""
+    @wraps(f)
+    @au.session_middleware.loginRequired()
+    def decorated(*args, **kwargs):
+        if session["user"]["email"].lower() not in ADMIN_EMAILS:
+            abort(403)
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 def _completeLogin(user_data: dict):
     email = user_data.get("email", "")
@@ -69,7 +159,7 @@ def _completeLogin(user_data: dict):
     allowed, reason = au.rate_limiter.registerSession(session_id, email)
 
     if not allowed:
-        app.logger.warning(f"[WARNING] rate limit reached for {email}")
+        app.logger.warning(f"rate limit reached (googleId={user_data.get('googleId')})")
 
         auth_type = session.get("auth_type", "user")
 
@@ -82,7 +172,7 @@ def _completeLogin(user_data: dict):
             "Vai al login"
         )
 
-    app.logger.info(f"[INFO] User {email} logged in with session ID: {session_id}")
+    app.logger.info(f"login riuscito (googleId={user_data.get('googleId')})")
 
     au.session_middleware.createSession(user_data, session, session_id)
 
@@ -122,7 +212,15 @@ def loginCompany():
 
 @app.route("/privacy")
 def privacy():
-    return render_template("/html/privacy.html", privacy_version=PRIVACY_POLICY_VERSION)
+    return render_template(
+        "/html/privacy.html",
+        privacy_version=PRIVACY_POLICY_VERSION,
+        support_email=SUPPORT_EMAIL
+    )
+
+@app.route("/terms")
+def terms():
+    return render_template("/html/terms.html", support_email=SUPPORT_EMAIL)
 
 @app.route("/auth/login")
 def authLogin():
@@ -139,7 +237,7 @@ def googleLogin():
 def googleCallback():
     try:
         user_data = getGoogleUserInfo()
-        print(user_data)
+
         if not user_data:
             auth_type = session.get("auth_type", "user")
 
@@ -153,8 +251,8 @@ def googleCallback():
             )
 
         return _completeLogin(user_data)
-    except Exception as e:
-        app.logger.error(f"[ERROR] Google callback failed: {e}")
+    except Exception:
+        app.logger.exception("Google callback failed")
         auth_type = session.get("auth_type", "user")
 
         return au.renderAuthError(
@@ -184,11 +282,34 @@ def authLogout():
 @app.route("/auth/company/login", methods=["GET", "POST"])
 def authCompanyLogin():
     if request.method == "POST":
-        data = request.get_json()
-        if not data:
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
             return jsonify({"error": "Dati invalidi"}), 400
 
-        session["pending_company_data"] = data
+        if data.get("terms_ack") is not True:
+            return jsonify({"error": "Devi accettare i Termini e Condizioni e l'informativa privacy"}), 400
+
+        try:
+            pending = {
+                "name": validation.cleanText(data.get("name"), "nome azienda", required=True),
+                "access_code": validation.cleanText(data.get("access_code"), "codice di accesso", 100, required=True),
+                "via": validation.cleanText(data.get("via"), "via", required=True),
+                "civico": validation.cleanText(data.get("civico"), "civico", 20, required=True),
+                "cap": validation.cleanText(data.get("cap"), "CAP", 10, required=True),
+                "citta": validation.cleanText(data.get("citta"), "città", required=True),
+                "color_mode": data.get("color_mode") if data.get("color_mode") in validation.COLOR_MODES else "dark"
+            }
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        for field in ("via", "civico", "cap", "citta"):
+            pending[field] = pending[field].replace("££", " ")
+
+        if not database_helper.isAccessCodeAvailable(pending["access_code"]):
+            return jsonify({"error": "Codice di accesso non valido o già utilizzato"}), 403
+
+        session["pending_company_data"] = pending
         session["auth_type"] = "company"
         return jsonify({"message": "Dati ricevuti, procedi con l'autenticazione"}), 200
 
@@ -208,16 +329,54 @@ def completeLogin():
 
         pending_data = session.get("pending_company_data")
         if pending_data:
-            company_data = {
-                "googleId": user["googleId"],
-                "name": pending_data["name"],
-                "email": user["email"],
-                "access_code": pending_data["access_code"],
-                "address": f"{pending_data['via']} ££ {pending_data['civico']} ££ {pending_data['cap']} ££ {pending_data['citta']}",
-                "picture": user["picture"],
-                "color_mode": pending_data.get("color_mode", "dark")
-            }
-            database_helper.addCompany(company_data)
+            try:
+                company_data = {
+                    "googleId": user["googleId"],
+                    "name": pending_data["name"],
+                    "email": user["email"],
+                    "address": f"{pending_data['via']} ££ {pending_data['civico']} ££ {pending_data['cap']} ££ {pending_data['citta']}",
+                    "picture": user["picture"],
+                    "color_mode": pending_data.get("color_mode", "dark")
+                }
+                database_helper.addCompany(
+                    company_data,
+                    access_code=pending_data["access_code"],
+                    privacy_version=PRIVACY_POLICY_VERSION
+                )
+            except KeyError:
+                session.pop("pending_company_data", None)
+
+                return au.renderAuthError(
+                    "Dati di registrazione incompleti. Ripeti la registrazione.",
+                    url_for("loginCompany"),
+                    400,
+                    "Registrazione non valida",
+                    "⚠️",
+                    "Vai alla registrazione"
+                )
+            except InvalidAccessCodeError:
+                session.pop("pending_company_data", None)
+
+                return au.renderAuthError(
+                    "Il codice di accesso non è valido o è già stato utilizzato. Richiedine uno nuovo alla scuola.",
+                    url_for("loginCompany"),
+                    403,
+                    "Codice non valido",
+                    "🔑",
+                    "Vai alla registrazione"
+                )
+            except IntegrityError:
+                session.pop("pending_company_data", None)
+
+                return au.renderAuthError(
+                    "Esiste già un'azienda registrata con questo account.",
+                    url_for("loginCompany"),
+                    409,
+                    "Registrazione non valida",
+                    "⚠️",
+                    "Vai al login"
+                )
+
             session.pop("pending_company_data", None)
             return redirect(url_for("dashboardCompany"))
         else:
@@ -246,30 +405,61 @@ def completeLogin():
                 "error": "Informativa privacy non aggiornata. Ricarica la pagina e riprova."
             }), 400
 
+        try:
+            fields = {
+                key: validation.cleanText(data.get(key), label, max_length, required=True)
+                for key, label, max_length in (
+                    ("data_nascita", "data di nascita", 10),
+                    ("sesso", "sesso", 20),
+                    ("comune_nascita", "comune di nascita", 100),
+                    ("codice_fiscale", "codice fiscale", 16),
+                    ("telefono", "telefono", 30),
+                    ("indirizzo_studio", "indirizzo di studio", 100),
+                    ("classe", "classe", 20),
+                    ("istituto", "istituto", 100),
+                    ("via", "via", 100),
+                    ("civico", "civico", 20),
+                    ("cap", "CAP", 10),
+                    ("citta_residenza", "città di residenza", 100)
+                )
+            }
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        address_parts = [fields[key].replace("££", " ") for key in ("via", "civico", "cap", "citta_residenza")]
+
         user_data = {
             "googleId": user["googleId"],
-            "name": au.getName(user["email"]),
-            "surname": au.getSurname(user["email"]),
+            "name": au.getName(user["email"], user.get("name", "")),
+            "surname": au.getSurname(user["email"], user.get("name", "")),
             "email": user["email"],
-            "data_nascita": data["data_nascita"],
-            "sesso": data["sesso"],
-            "comune_nascita": data["comune_nascita"],
-            "codice_fiscale": data["codice_fiscale"],
-            "telefono": data["telefono"],
-            "indirizzo_studio": data["indirizzo_studio"],
-            "classe": data["classe"],
-            "istituto": data["istituto"],
-            "indirizzo": f"{data['via']} ££ {data['civico']} ££ {data['cap']} ££ {data['citta_residenza']}",
+            "data_nascita": fields["data_nascita"],
+            "sesso": fields["sesso"],
+            "comune_nascita": fields["comune_nascita"],
+            "codice_fiscale": fields["codice_fiscale"],
+            "telefono": fields["telefono"],
+            "indirizzo_studio": fields["indirizzo_studio"],
+            "classe": fields["classe"],
+            "istituto": fields["istituto"],
+            "indirizzo": " ££ ".join(address_parts),
             "picture": user["picture"]
         }
+        color_mode = data.get("color_mode") if data.get("color_mode") in validation.COLOR_MODES else "dark"
 
-        database_helper.addUser(
-            user_data,
-            privacy_consent={
-                "privacy_version": PRIVACY_POLICY_VERSION
-            },
-            color_mode=data.get("color_mode") or "dark"
-        )
+        try:
+            database_helper.addUser(
+                user_data,
+                privacy_consent={
+                    "privacy_version": PRIVACY_POLICY_VERSION
+                },
+                color_mode=color_mode
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except UserAlreadyExistsError:
+            return redirect(url_for("dashboardStudent"))
+        except IntegrityError:
+            return jsonify({"error": "Esiste già un account con questo codice fiscale o questa email."}), 409
 
         database_helper.addNotification(
             user["googleId"],
@@ -278,11 +468,16 @@ def completeLogin():
             sender="stageMatch"
         )
 
+        matching_worker.enqueue(
+            lambda: matching_engine.recomputeMatchesForStudent(user["googleId"]),
+            name=f"student:{user['googleId']}"
+        )
+
         return redirect(url_for("dashboardStudent"))
 
     user_data = {
-        "name": au.getName(user["email"]),
-        "surname": au.getSurname(user["email"]),
+        "name": au.getName(user["email"], user.get("name", "")),
+        "surname": au.getSurname(user["email"], user.get("name", "")),
         "email": user["email"]
     }
 
@@ -297,25 +492,21 @@ def completeLogin():
 def dashboardStudent():
     user = session["user"]
     data = database_helper.getUserById(user["googleId"])
+
+    if not data:
+        return redirect(url_for("completeLogin"))
+
     user_data = database_helper.modelToDict(data)
-    user_data["indirizzo"] = [dato.strip() for dato in user_data["indirizzo"].split("££")]
+    user_data["indirizzo"] = _splitAddress(user_data["indirizzo"])
 
     preferences = user_data.get("preferences") or {}
     color_mode = preferences.get("color_mode") or "dark"
     lingua = preferences.get("lingua") or "it"
     default_transport_mode = preferences.get("default_transport_mode") or "driving-car"
 
-    notifications = database_helper.getUserNotifications(user["googleId"])
     notifications_data = [
-        {
-            "id": notification.id,
-            "title": notification.title,
-            "message": notification.message,
-            "sender": notification.sender,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at.isoformat()
-        }
-        for notification in notifications
+        _notificationToDict(notification)
+        for notification in database_helper.getUserNotifications(user["googleId"])
     ]
 
     stats = database_helper.getRouteStats(user_data["routes"])
@@ -328,6 +519,7 @@ def dashboardStudent():
         notifications=notifications_data,
         stats=stats,
         app_version=APP_VERSION,
+        support_email=SUPPORT_EMAIL,
         color_mode=color_mode,
         lingua=lingua,
         default_transport_mode=default_transport_mode
@@ -350,6 +542,7 @@ def dashboardCompany():
         )
 
     company_data = database_helper.modelToDict(data)
+    company_data["address_parts"] = _splitAddress(company_data.get("address"))
     color_mode = company_data.get("color_mode") or "dark"
 
     offers = database_helper.getJobOffersByCompany(user["googleId"])
@@ -358,17 +551,9 @@ def dashboardCompany():
         "totalApplications": sum(len(o.applications) for o in offers)
     }
 
-    notifications = database_helper.getCompanyNotifications(user["googleId"])
     notifications_data = [
-        {
-            "id": notification.id,
-            "title": notification.title,
-            "message": notification.message,
-            "sender": notification.sender,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at.isoformat()
-        }
-        for notification in notifications
+        _notificationToDict(notification)
+        for notification in database_helper.getCompanyNotifications(user["googleId"])
     ]
 
     return render_template(
@@ -376,6 +561,7 @@ def dashboardCompany():
         company=company_data,
         stats=stats,
         notifications=notifications_data,
+        support_email=SUPPORT_EMAIL,
         color_mode=color_mode
     )
 
@@ -398,19 +584,25 @@ def getUserProfile():
     id = session["user"]["googleId"]
     data = database_helper.getUserById(id)
 
+    if not data:
+        return _jsonError("User not found", 404)
+
     return database_helper.modelToDict(data)
 
 @app.route("/api/users/profile/save", methods=["POST"])
 @au.session_middleware.loginRequired(role="user")
 def saveProfile():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
-        if not data:
+        if not data or not isinstance(data, dict):
             return jsonify({"error": "Invalid JSON"}), 400
 
         session_user = session["user"]
+        data = validation.normalizeProfile(data)
         data["googleId"] = session_user["googleId"]
+        # L'email è l'identità Google: non modificabile dal profilo.
+        data.pop("email", None)
 
         database_helper.updateUser(data)
         updated_user = database_helper.getUserById(session_user["googleId"])
@@ -418,7 +610,10 @@ def saveProfile():
         if not updated_user:
             return jsonify({"error": "User not found"}), 404
 
-        matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForStudent(session_user["googleId"]))
+        matching_worker.enqueue(
+            lambda: matching_engine.recomputeMatchesForStudent(session_user["googleId"]),
+            name=f"student:{session_user['googleId']}"
+        )
 
         return jsonify({
             "message": "Profile updated",
@@ -428,8 +623,11 @@ def saveProfile():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    except Exception as e:
-        app.logger.exception("[ERROR] profile save endpoint failed")
+    except IntegrityError:
+        return jsonify({"error": "Alcuni dati sono già in uso da un altro account"}), 409
+
+    except Exception:
+        app.logger.exception("profile save endpoint failed")
 
         return jsonify({"error": "Internal server error"}), 500
 
@@ -520,25 +718,92 @@ def terminateOtherSessions():
     return jsonify({"message": "Sessioni terminate"}), 200
 
 @app.route("/api/users/routes")
+@au.session_middleware.loginRequired(role="user")
 def getUserRoutes():
     user = session["user"]
     data = database_helper.getUserById(user["googleId"])
-    user_data = database_helper.modelToDict(data)
-    routes = user_data["routes"]
-    print(routes)
 
-    return jsonify(routes)
+    if not data:
+        return jsonify([])
+
+    return jsonify(database_helper.modelToDict(data)["routes"])
+
+def _downloadJson(data: dict, filename: str):
+    response = jsonify(data)
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return response
+
+def _endSession():
+    session_id = session.get("session_id")
+
+    if session_id:
+        au.rate_limiter.removeSession(session_id)
+
+    session.clear()
+
+@app.route("/api/users/export")
+@au.session_middleware.loginRequired(role="user")
+def exportUserData():
+    data = database_helper.exportUserData(session["user"]["googleId"])
+
+    if data is None:
+        return _jsonError("User not found", 404)
+
+    return _downloadJson(data, "stagematch-i-miei-dati.json")
+
+@app.route("/api/users/delete", methods=["POST"])
+@au.session_middleware.loginRequired(role="user")
+def deleteUserAccount():
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict) or payload.get("confirm") is not True:
+        return _jsonError("Conferma richiesta", 400)
+
+    if not database_helper.deleteUser(session["user"]["googleId"]):
+        return _jsonError("User not found", 404)
+
+    _endSession()
+
+    return jsonify({"redirect": url_for("loginStudent", notice="account_deleted")}), 200
+
+@app.route("/api/company/export")
+@au.session_middleware.loginRequired(role="company")
+def exportCompanyData():
+    data = database_helper.exportCompanyData(session["user"]["googleId"])
+
+    if data is None:
+        return _jsonError("Company not found", 404)
+
+    return _downloadJson(data, "stagematch-dati-azienda.json")
+
+@app.route("/api/company/delete", methods=["POST"])
+@au.session_middleware.loginRequired(role="company")
+def deleteCompanyAccount():
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict) or payload.get("confirm") is not True:
+        return _jsonError("Conferma richiesta", 400)
+
+    if not database_helper.deleteCompany(session["user"]["googleId"]):
+        return _jsonError("Company not found", 404)
+
+    _endSession()
+
+    return jsonify({"redirect": url_for("loginCompany", notice="account_deleted")}), 200
 
 @app.route("/api/users/notifications/read", methods=["POST"])
 @au.session_middleware.loginRequired(role="user")
 def markNotificationRead():
     data = request.get_json()
 
-    if not data or "notification_id" not in data:
+    notification_id = _parseId(data.get("notification_id")) if isinstance(data, dict) else None
+
+    if notification_id is None:
         return jsonify({"error": "Invalid JSON"}), 400
 
     user = session["user"]
-    success = database_helper.markNotificationRead(user["googleId"], data["notification_id"])
+    success = database_helper.markNotificationRead(user["googleId"], notification_id)
 
     if not success:
         return jsonify({"error": "Notification not found"}), 404
@@ -549,22 +814,35 @@ def markNotificationRead():
 @au.session_middleware.loginRequired(role="company")
 def saveCompanyProfile():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
-        if not data:
+        if not data or not isinstance(data, dict):
             return jsonify({"error": "Invalid JSON"}), 400
 
         company_user = session["user"]
+        data = validation.normalizeCompanyProfile(data)
         data["googleId"] = company_user["googleId"]
 
+        previous = database_helper.getCompanyByGoogleId(company_user["googleId"])
         company = database_helper.updateCompany(data)
 
         if not company:
             return jsonify({"error": "Company not found"}), 404
 
+        # Se cambia la sede, distanze e punteggi degli annunci attivi sono da rifare.
+        if previous and "address" in data and data["address"] != previous.address:
+            for offer in database_helper.getJobOffersByCompany(company_user["googleId"]):
+                if offer.attivo:
+                    matching_worker.enqueue(
+                        lambda offer_id=offer.id: matching_engine.recomputeMatchesForJobOffer(offer_id),
+                        name=f"job-offer:{offer.id}"
+                    )
+
         return jsonify({"message": "Profile updated"}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception:
-        app.logger.exception("[ERROR] company profile save endpoint failed")
+        app.logger.exception("company profile save endpoint failed")
 
         return jsonify({"error": "Internal server error"}), 500
 
@@ -594,17 +872,25 @@ def getCompanyOffers():
 @au.session_middleware.loginRequired(role="company")
 def createCompanyOffer():
     company = session["user"]
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
-    if not data or not str(data.get("title", "")).strip():
+    if not isinstance(data, dict) or not str(data.get("title", "")).strip():
         return jsonify({"error": "Titolo obbligatorio"}), 400
+
+    try:
+        data = validation.normalizeJobOffer(data, require_title=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     offer_id = database_helper.addJobOffer(company["googleId"], data)
 
     if offer_id is None:
         return jsonify({"error": "Azienda non trovata"}), 404
 
-    matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForJobOffer(offer_id))
+    matching_worker.enqueue(
+        lambda: matching_engine.recomputeMatchesForJobOffer(offer_id),
+        name=f"job-offer:{offer_id}"
+    )
 
     return jsonify({"message": "Annuncio creato", "id": offer_id}), 201
 
@@ -612,17 +898,25 @@ def createCompanyOffer():
 @au.session_middleware.loginRequired(role="company")
 def updateCompanyOffer(offer_id):
     company = session["user"]
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
-    if not data:
+    if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid JSON"}), 400
+
+    try:
+        data = validation.normalizeJobOffer(data, require_title=False)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     updated = database_helper.updateJobOffer(offer_id, company["googleId"], data)
 
     if not updated:
         return jsonify({"error": "Annuncio non trovato"}), 404
 
-    matching_worker.enqueue(lambda: matching_engine.recomputeMatchesForJobOffer(offer_id))
+    matching_worker.enqueue(
+        lambda: matching_engine.recomputeMatchesForJobOffer(offer_id),
+        name=f"job-offer:{offer_id}"
+    )
 
     return jsonify({"message": "Annuncio aggiornato"}), 200
 
@@ -634,6 +928,8 @@ def closeCompanyOffer(offer_id):
 
     if not success:
         return jsonify({"error": "Annuncio non trovato"}), 404
+
+    database_helper.deleteMatchesForJobOffer(offer_id)
 
     return jsonify({"message": "Annuncio chiuso"}), 200
 
@@ -676,6 +972,18 @@ def updateCompanyApplicationStatus(application_id):
     if not application:
         return jsonify({"error": "Candidatura non trovata"}), 404
 
+    if status in ("accettata", "rifiutata"):
+        job_offer = database_helper.getJobOfferById(application.job_offer_id)
+        title = job_offer.title if job_offer else "l'annuncio"
+        outcome = "accettata" if status == "accettata" else "rifiutata"
+
+        database_helper.addNotification(
+            application.user_id,
+            f"Candidatura {outcome}",
+            f"La tua candidatura per \"{title}\" è stata {outcome}.",
+            sender=job_offer.company.name if job_offer and job_offer.company else "stageMatch"
+        )
+
     return jsonify({"message": "Stato aggiornato"}), 200
 
 @app.route("/api/company/notifications")
@@ -684,28 +992,20 @@ def getCompanyNotificationsRoute():
     company = session["user"]
     notifications = database_helper.getCompanyNotifications(company["googleId"])
 
-    return jsonify([
-        {
-            "id": n.id,
-            "title": n.title,
-            "message": n.message,
-            "sender": n.sender,
-            "is_read": n.is_read,
-            "created_at": n.created_at.isoformat()
-        }
-        for n in notifications
-    ])
+    return jsonify([_notificationToDict(n) for n in notifications])
 
 @app.route("/api/company/notifications/read", methods=["POST"])
 @au.session_middleware.loginRequired(role="company")
 def markCompanyNotificationReadRoute():
     data = request.get_json()
 
-    if not data or "notification_id" not in data:
+    notification_id = _parseId(data.get("notification_id")) if isinstance(data, dict) else None
+
+    if notification_id is None:
         return jsonify({"error": "Invalid JSON"}), 400
 
     company = session["user"]
-    success = database_helper.markCompanyNotificationRead(company["googleId"], data["notification_id"])
+    success = database_helper.markCompanyNotificationRead(company["googleId"], notification_id)
 
     if not success:
         return jsonify({"error": "Notification not found"}), 404
@@ -722,6 +1022,7 @@ def getStudentOffers():
         return jsonify([])
 
     flat_student_address = matching_geo.flattenAddress(student.indirizzo)
+    route_cache = database_helper.getUserRouteCache(user["googleId"], matching_geo.DEFAULT_MODE)
     matches = database_helper.getMatchesForStudent(user["googleId"])
     applications = database_helper.getApplicationsByStudent(user["googleId"])
     application_status_by_offer = {a.job_offer_id: a.status for a in applications}
@@ -730,12 +1031,9 @@ def getStudentOffers():
     def offerCardData(offer, final_score, ai_status, explanation):
         company = offer.company
         flat_company_address = matching_geo.flattenAddress(company.address)
-        cached_route = None
-
-        if flat_student_address and flat_company_address:
-            cached_route = database_helper.getUserRouteByAddresses(
-                user["googleId"], flat_student_address, flat_company_address, "driving-car"
-            )
+        distance_km, duration_min = route_cache.get(
+            (flat_student_address, flat_company_address), (None, None)
+        )
 
         return {
             "id": offer.id,
@@ -753,8 +1051,8 @@ def getStudentOffers():
             "final_score": final_score,
             "ai_status": ai_status,
             "explanation": explanation,
-            "distance_km": cached_route.distance_km if cached_route else None,
-            "duration_min": cached_route.duration_min if cached_route else None,
+            "distance_km": distance_km,
+            "duration_min": duration_min,
             "application_status": application_status_by_offer.get(offer.id)
         }
 
@@ -779,66 +1077,135 @@ def applyToOffer(job_offer_id):
     message = data.get("message")
 
     try:
-        database_helper.addApplication(user["googleId"], job_offer_id, message)
-    except ApplicationAlreadyExistsError:
-        return jsonify({"error": "Ti sei già candidato a questo annuncio"}), 409
+        message = validation.cleanText(message, "messaggio", validation.MAX_LONG_TEXT)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     job_offer = database_helper.getJobOfferById(job_offer_id)
 
-    if job_offer:
-        student = database_helper.getUserById(user["googleId"])
-        database_helper.addCompanyNotification(
-            job_offer.company_id,
-            "Nuova candidatura ricevuta",
-            f"{student.name} {student.surname} si è candidato/a per l'annuncio \"{job_offer.title}\".",
-            sender="stageMatch"
-        )
+    if not job_offer or not job_offer.attivo:
+        return jsonify({"error": "Annuncio non disponibile"}), 404
+
+    student = database_helper.getUserById(user["googleId"])
+
+    if not student:
+        return jsonify({"error": "Completa la registrazione prima di candidarti"}), 403
+
+    try:
+        database_helper.addApplication(user["googleId"], job_offer_id, message)
+    except (ApplicationAlreadyExistsError, IntegrityError):
+        return jsonify({"error": "Ti sei già candidato a questo annuncio"}), 409
+
+    database_helper.addCompanyNotification(
+        job_offer.company_id,
+        "Nuova candidatura ricevuta",
+        f"{student.name} {student.surname} si è candidato/a per l'annuncio \"{job_offer.title}\".",
+        sender="stageMatch"
+    )
 
     return jsonify({"message": "Candidatura inviata"}), 201
 
-@app.route("/api/data", methods=["GET", "POST"])
-def getAndSendData():
-    pass
+PHOTON_PARAMS = ("q", "lat", "lon", "limit", "lang")
+
+def _geoProxyGet(path: str, params: dict):
+    """Chiama il geo-proxy (server.py). Ritorna (json, status) oppure (None, None) se non raggiungibile."""
+    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
+
+    try:
+        response = requests.get(f"{api_url}{path}", params=params, timeout=15)
+
+        return response.json(), response.status_code
+    except (requests.RequestException, ValueError):
+        app.logger.warning(f"geo-proxy non raggiungibile o risposta non valida ({path})")
+
+        return None, None
 
 @app.route("/photon", methods=["POST"])
 @au.session_middleware.loginRequired(role="user")
 def photon():
-    params = request.get_json()
-    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
-    response = requests.get(f"{api_url}/photon", params=params, timeout=5)
+    payload = request.get_json(silent=True)
 
-    return response.json(), response.status_code
+    if not isinstance(payload, dict):
+        return _jsonError("Parametri non validi", 400)
+
+    params = {key: payload[key] for key in PHOTON_PARAMS if isinstance(payload.get(key), (str, int, float))}
+
+    data, status = _geoProxyGet("/photon", params)
+
+    if data is None:
+        return _jsonError("Servizio di ricerca indirizzi non disponibile", 502)
+
+    return data, status
 
 @app.route("/routejson", methods=["POST"])
 @au.session_middleware.loginRequired(role="user")
 def routejson():
     user = session["user"]
-    params = request.get_json()
-    data = dict(params)
+    payload = request.get_json(silent=True)
 
-    api_url = os.getenv("API_URL", "http://127.0.0.1:5001")
-    response = requests.get(f"{api_url}/routejson", params=params, timeout=5)
-    response_data = response.json()
+    if not isinstance(payload, dict):
+        return _jsonError("Parametri non validi", 400)
 
-    if response.ok and "error" not in response_data:
-        try:
-            summary = response_data["features"][0]["properties"]["summary"]
-            data["distance_km"] = summary["distance"] / 1000
-        except (KeyError, IndexError, TypeError):
-            data["distance_km"] = None
+    start_address = payload.get("startaddress")
+    end_address = payload.get("endaddress")
+    route_mode = payload.get("routemode") or "driving-car"
 
-        try:
-            summary = response_data["features"][0]["properties"]["summary"]
-            data["duration_min"] = summary["duration"] / 60
-        except (KeyError, IndexError, TypeError):
-            data["duration_min"] = None
+    if not all(isinstance(value, str) and value.strip() for value in (start_address, end_address)):
+        return _jsonError("Indirizzi di partenza e arrivo obbligatori", 400)
 
-        database_helper.addUserRoute(user["googleId"], data)
+    if route_mode not in VALID_TRANSPORT_MODES:
+        return _jsonError("Mezzo di trasporto non valido", 400)
 
-    return response_data, response.status_code
+    params = {"startaddress": start_address, "endaddress": end_address, "routemode": route_mode}
+    response_data, status = _geoProxyGet("/routejson", params)
+
+    if response_data is None:
+        return _jsonError("Servizio di calcolo percorsi non disponibile", 502)
+
+    if 200 <= status < 300 and "error" not in response_data:
+        distance_km, duration_min = matching_geo.parseRouteSummary(response_data)
+
+        database_helper.addUserRoute(user["googleId"], {
+            **params,
+            "distance_km": distance_km,
+            "duration_min": duration_min
+        })
+
+    return response_data, status
+
+@app.route("/admin/codes")
+@adminRequired
+def adminCodes():
+    return render_template("/html/admin-codes.html", app_version=APP_VERSION)
+
+@app.route("/api/admin/codes")
+@adminRequired
+def listAccessCodes():
+    return jsonify([
+        {
+            "code": c.code,
+            "created_at": c.created_at.isoformat(),
+            "used": c.used_at is not None,
+            "used_at": c.used_at.isoformat() if c.used_at else None
+        }
+        for c in database_helper.listAccessCodes()
+    ])
+
+@app.route("/api/admin/codes", methods=["POST"])
+@adminRequired
+def createAccessCode():
+    code = database_helper.createAccessCode(session["user"]["email"])
+
+    return jsonify({"code": code}), 201
+
+def _wantsJson() -> bool:
+    return request.path.startswith(("/api/", "/photon", "/routejson"))
 
 @app.errorhandler(404)
 def notFound(e):
+    if _wantsJson():
+        return _jsonError("Risorsa non trovata", 404)
+
     return au.renderAuthError(
         "Page not found",
         url_for("mainPage"),
@@ -850,12 +1217,37 @@ def notFound(e):
 
 @app.errorhandler(403)
 def forbidden(e):
+    if _wantsJson():
+        return _jsonError("Accesso non consentito", 403)
+
     return au.renderAuthError(
         "Forbidden access",
         url_for("mainPage"),
         403,
         "Forbidden access",
         "🚫",
+        "Torna alla Home"
+    )
+
+@app.errorhandler(405)
+def methodNotAllowed(e):
+    return _jsonError("Metodo non consentito", 405)
+
+@app.errorhandler(413)
+def payloadTooLarge(e):
+    return _jsonError("Richiesta troppo grande", 413)
+
+@app.errorhandler(500)
+def serverError(e):
+    if _wantsJson():
+        return _jsonError("Errore interno del server", 500)
+
+    return au.renderAuthError(
+        "Si è verificato un errore imprevisto.",
+        url_for("mainPage"),
+        500,
+        "Errore del server",
+        "⚠️",
         "Torna alla Home"
     )
 
@@ -866,5 +1258,5 @@ if __name__ == '__main__':
     app.run(
         os.getenv("HOST", "127.0.0.1"),
         int(os.getenv("PORT", 5000)),
-        debug=os.getenv("DEBUG", "False").lower() == "true"
+        debug=DEBUG
     )

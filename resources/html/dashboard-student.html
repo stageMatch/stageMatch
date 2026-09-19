@@ -190,7 +190,7 @@
                 <a href="#" class="nav-item" id="navPercorsi">
                     <span class="nav-icon"><span class="icon"><svg><use href="#i-route"></use></svg></span></span>
                     <span>I miei percorsi</span>
-                    <span class="nav-badge" id="badgePercorsi">3</span>
+                    <span class="nav-badge" id="badgePercorsi">0</span>
                 </a>
 
                 <a href="#" class="nav-item" id="navAziende">
@@ -235,7 +235,7 @@
                     <button class="hamburger">
                         <span></span><span></span><span></span>
                     </button>
-                    <div class="topbar-greeting">Buonasera, <span>{{ user.name }}</span></div>
+                    <div class="topbar-greeting"><span id="greetingWord">Buonasera</span>, <span>{{ user.name }}</span></div>
                 </div>
                 <div class="topbar-right">
                     <div class="notif-wrap" id="notifWrap">
@@ -640,6 +640,24 @@
                     </div>
 
                     <div class="imp-card">
+                        <div class="imp-card-head"><span class="icon"><svg><use href="#i-shield"></use></svg></span>I tuoi dati</div>
+                        <div class="imp-row-item">
+                            <div class="imp-row-info">
+                                <div class="imp-row-label">Scarica i tuoi dati</div>
+                                <div class="imp-row-sub">Copia di profilo, candidature e match in formato JSON</div>
+                            </div>
+                            <a class="imp-btn-link" href="/api/users/export" download>Scarica<span class="icon"><svg><use href="#i-chevron"></use></svg></span></a>
+                        </div>
+                        <div class="imp-row-item">
+                            <div class="imp-row-info">
+                                <div class="imp-row-label">Elimina account</div>
+                                <div class="imp-row-sub">Cancella definitivamente profilo e dati collegati</div>
+                            </div>
+                            <button class="imp-btn-link" type="button" data-account-delete data-delete-url="/api/users/delete">Elimina<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
+                        </div>
+                    </div>
+
+                    <div class="imp-card">
                         <div class="imp-card-head"><span class="icon"><svg><use href="#i-info"></use></svg></span>Informazioni</div>
                         <div class="imp-row-item">
                             <div class="imp-row-info">
@@ -651,7 +669,7 @@
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Termini di servizio</div>
                             </div>
-                            <button class="imp-btn-link">Leggi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
+                            <button class="imp-btn-link" type="button" data-action="openTerms">Leggi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
                         </div>
                         <div class="imp-row-item">
                             <div class="imp-row-info">
@@ -659,12 +677,14 @@
                             </div>
                             <button class="imp-btn-link" data-action="openPrivacy">Leggi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
                         </div>
+                        {% if support_email %}
                         <div class="imp-row-item">
                             <div class="imp-row-info">
                                 <div class="imp-row-label">Contatta il supporto</div>
                             </div>
-                            <button class="imp-btn-link">Scrivi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></button>
+                            <a class="imp-btn-link" href="mailto:{{ support_email }}">Scrivi<span class="icon"><svg><use href="#i-chevron"></use></svg></span></a>
                         </div>
+                        {% endif %}
                     </div>
 
                 </div>
@@ -797,6 +817,7 @@
 
     <script>window.DEFAULT_TRANSPORT_MODE = {{ default_transport_mode | tojson }};</script>
     <script id="notifications-data" type="application/json">{{ notifications | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/account-data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dashboard-student.js') }}"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Integer, Float, DateTime
+from sqlalchemy import Column, String, ForeignKey, Integer, Float, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .base import Base
 from datetime import datetime, timezone
@@ -8,7 +8,7 @@ class UserRoute(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    user_id = Column(String, ForeignKey("users.googleId"), nullable=False)
+    user_id = Column(String, ForeignKey("users.googleId"), nullable=False, index=True)
 
     start_address = Column(String, nullable=False)
     end_address = Column(String, nullable=False)
@@ -23,3 +23,7 @@ class UserRoute(Base):
     )
 
     user = relationship("User", back_populates="routes")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "start_address", "end_address", "mode", name="uq_route_user_start_end_mode"),
+    )

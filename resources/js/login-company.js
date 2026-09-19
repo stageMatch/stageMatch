@@ -85,6 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name, access_code, via, civico, cap, citta,
+                        terms_ack: acceptTerms,
                         color_mode: document.documentElement.getAttribute('data-theme') || 'dark'
                     }),
                 });
@@ -301,7 +302,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const NOTICE_MESSAGES = {
         login_required: { message: "Devi accedere per continuare.", type: "warning" },
         session_expired: { message: "La tua sessione è scaduta. Accedi di nuovo.", type: "warning" },
-        logged_out: { message: "Logout effettuato con successo.", type: "success" }
+        logged_out: { message: "Logout effettuato con successo.", type: "success" },
+        account_deleted: { message: "Il tuo account e i tuoi dati sono stati eliminati.", type: "success" }
     };
 
     const notice = new URLSearchParams(window.location.search).get("notice");

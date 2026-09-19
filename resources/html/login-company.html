@@ -122,7 +122,7 @@
                             <label class="checkbox-container">
                                 <input type="checkbox" id="accept-terms" required>
                                 <span class="checkmark"></span>
-                                Accetto i <a href="#" class="terms-link">Termini e Condizioni</a>
+                                Accetto i <a href="{{ url_for('terms') }}" class="terms-link" target="_blank" rel="noopener">Termini e Condizioni</a> e l'<a href="{{ url_for('privacy') }}" class="terms-link" target="_blank" rel="noopener">informativa privacy</a>
                             </label>
                         </div>
 

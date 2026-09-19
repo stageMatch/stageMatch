@@ -1,22 +1,23 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+RUN useradd --create-home --shell /bin/bash appuser \
+    && mkdir -p /app/database_files \
+    && chown appuser:appuser /app/database_files
 
-RUN mkdir -p /app/database_files \
-    && useradd --create-home --shell /bin/bash appuser \
-    && chown -R appuser:appuser /app
+COPY --chown=appuser:appuser . .
 USER appuser
 
 EXPOSE 5000
-EXPOSE 5001
 
-CMD ["python", "app.py"]
+# Un solo worker: la coda di matching (matching/worker.py) vive in memoria nel
+# processo, quindi più worker avrebbero code separate. La concorrenza si ottiene coi thread.
+# Il servizio `api` (geo-proxy) sovrascrive il comando in docker-compose.yml.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "8", "--timeout", "60", "app:app"]

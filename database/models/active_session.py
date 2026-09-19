@@ -7,4 +7,4 @@ class ActiveSession(Base):
     session_id = Column(String, primary_key=True)
     email = Column(String, nullable=False, index=True)
     created_at = Column(DateTime, nullable=False)
-    last_seen = Column(DateTime, nullable=False)
+    last_seen = Column(DateTime, nullable=False, index=True)

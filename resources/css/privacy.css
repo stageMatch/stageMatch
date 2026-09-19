@@ -80,3 +80,12 @@ p {
     color: var(--priv-body);
     line-height: 1.7;
 }
+
+.privacy-page ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.privacy-page li {
+    margin-bottom: 8px;
+}

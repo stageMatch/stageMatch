@@ -8,8 +8,8 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    user_id = Column(String, ForeignKey("users.googleId"), nullable=True)
-    company_id = Column(String, ForeignKey("companies.googleId"), nullable=True)
+    user_id = Column(String, ForeignKey("users.googleId"), nullable=True, index=True)
+    company_id = Column(String, ForeignKey("companies.googleId"), nullable=True, index=True)
 
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)

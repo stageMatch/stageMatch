@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from auth.middleware.session_middleware import SessionMiddleware, renderAuthError
+from auth.middleware.session_middleware import SessionMiddleware, renderAuthError  # noqa: F401 (riesportata: au.renderAuthError)
 from auth.rate_limiter import RateLimiter
 
 load_dotenv()
@@ -15,12 +15,31 @@ session_middleware = SessionMiddleware(
     rate_limiter=rate_limiter
 )
 
-def getName(email: str) -> str:
-    local_part = email.split("@")[0]
+def _splitEmailName(email: str) -> tuple[str, str] | None:
+    """Estrae (nome, cognome) da un'email nel formato `cognome.nome@dominio`."""
+    local_part = (email or "").split("@")[0]
+    parts = [part for part in local_part.split(".") if part]
 
-    return local_part.split(".")[1]
+    if len(parts) >= 2:
+        return parts[1], parts[0]
 
-def getSurname(email: str) -> str:
-    local_part = email.split("@")[0]
+    return None
 
-    return local_part.split(".")[0]
+def _splitFullName(full_name: str) -> tuple[str, str]:
+    """Fallback: divide il nome completo fornito da Google in (nome, cognome)."""
+    parts = (full_name or "").split()
+
+    if len(parts) >= 2:
+        return parts[0], " ".join(parts[1:])
+
+    return (parts[0] if parts else ""), ""
+
+def getName(email: str, full_name: str = "") -> str:
+    parsed = _splitEmailName(email)
+
+    return parsed[0] if parsed else _splitFullName(full_name)[0]
+
+def getSurname(email: str, full_name: str = "") -> str:
+    parsed = _splitEmailName(email)
+
+    return parsed[1] if parsed else _splitFullName(full_name)[1]

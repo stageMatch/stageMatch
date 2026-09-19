@@ -44,10 +44,11 @@ Evita messaggi generici come `update files` o `changes`.
 
 Quando il lavoro è pronto:
 
-1. Esegui `git push` sul tuo branch.
-2. Apri una Pull Request verso `main`.
-3. Descrivi chiaramente cosa hai modificato o aggiunto.
-4. Aggiungi i passaggi di verifica manuale, se rilevanti.
+1. Esegui `python -m pytest` e `ruff check .` (installa `requirements-dev.txt`): la CI li esegue su ogni Pull Request.
+2. Esegui `git push` sul tuo branch.
+3. Apri una Pull Request verso `main`.
+4. Descrivi chiaramente cosa hai modificato o aggiunto.
+5. Aggiungi i passaggi di verifica manuale, se rilevanti.
 
 Ogni Pull Request viene revisionata dal team prima del merge.
 

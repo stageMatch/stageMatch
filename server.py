@@ -1,6 +1,5 @@
 import os
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import requests
 import aiohttp
 import urllib.parse
@@ -10,10 +9,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ors_api_key = os.getenv("ORS_API_KEY")
+nominatim_user_agent = os.getenv("NOMINATIM_USER_AGENT", "stageMatch/1.0 (geo-proxy interno)")
+
+REQUEST_TIMEOUT_SECONDS = 15
+VALID_ROUTE_MODES = ("driving-car", "foot-walking", "cycling-regular")
 
 app = Flask(__name__)
-
-CORS(app, origins=["http://127.0.0.1:5000"])
 
 @app.route('/routejson')
 def routejson():
@@ -24,17 +25,22 @@ def routejson():
     if (start_address == None or end_address == None):
         return jsonify({
             "error": "Mancano gli indirizzi di partenza o di arrivo."
-        })
+        }), 400
 
-    if route_mode == None:
-        route_mode = "driving-car"
+    if route_mode not in VALID_ROUTE_MODES:
+        return jsonify({"error": "Mezzo di trasporto non valido."}), 400
+
+    if not ors_api_key:
+        return jsonify({"error": "ORS_API_KEY non configurata."}), 503
 
     try:
         coords = asyncio.run(getCoordinates(start_address, end_address))
-    except:
+    except Exception:
+        app.logger.warning("geocoding fallito", exc_info=True)
+
         return jsonify({
             "error": "Non è stato possibile ricavare le coordinate geografiche dagli indirizzi forniti"
-        })
+        }), 422
 
     openrouteservice_url = f"https://api.openrouteservice.org/v2/directions/{route_mode}/geojson"
 
@@ -51,36 +57,53 @@ def routejson():
     }
 
     try:
-        response = requests.post(openrouteservice_url, json=request_body, headers=headers)
+        response = requests.post(
+            openrouteservice_url, json=request_body, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS
+        )
         response.raise_for_status()
 
-        data = response.json()
-        return data
-    except requests.exceptions.RequestException as error:
+        return response.json()
+    except (requests.exceptions.RequestException, ValueError) as error:
+        app.logger.warning(f"richiesta a OpenRouteService fallita: {error}")
+
         return jsonify({
-            "error": f"Errore nella richiesta: {str(error)}",
-        })
+            "error": "Errore nella richiesta al servizio di routing",
+        }), 502
 
 @app.route("/photon")
 def photon():
     q = request.args.get("q", "")
-    lat = request.args.get("lat", "")
-    lon = request.args.get("lon", "")
-    limit = request.args.get("limit", "5")
-    lang = request.args.get("lang", "en")
 
-    header = {
-        "User-Agent": "stageMatch/1.0"
-    }
-    url = f"https://photon.komoot.io/api/?q={urllib.parse.quote(q)}&lat={lat}&lon={lon}&limit={limit}&lang={lang}"
+    if not q.strip():
+        return jsonify({"error": "Parametro q obbligatorio"}), 400
 
     try:
-        response = requests.get(url, headers=header)
+        params = {
+            "q": q,
+            "limit": max(1, min(int(request.args.get("limit", "5")), 10)),
+            "lang": request.args.get("lang", "en")[:5]
+        }
+
+        if request.args.get("lat") and request.args.get("lon"):
+            params["lat"] = float(request.args["lat"])
+            params["lon"] = float(request.args["lon"])
+    except ValueError:
+        return jsonify({"error": "Parametri non validi"}), 400
+
+    try:
+        response = requests.get(
+            "https://photon.komoot.io/api/",
+            params=params,
+            headers={"User-Agent": nominatim_user_agent},
+            timeout=REQUEST_TIMEOUT_SECONDS
+        )
         response.raise_for_status()
 
         return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 502
+    except (requests.exceptions.RequestException, ValueError) as e:
+        app.logger.warning(f"richiesta a Photon fallita: {e}")
+
+        return jsonify({"error": "Servizio di ricerca indirizzi non disponibile"}), 502
 
 async def getCoordinates(address_start, address_end):
     if not address_start or not address_end:
@@ -92,7 +115,10 @@ async def getCoordinates(address_start, address_end):
     coords_start = []
     coords_end = []
 
-    async with aiohttp.ClientSession(headers={"User-Agent": "dfsdfsdsf/1.0 (odfioifds.osdkdfp@gmail.com)"}) as session:
+    async with aiohttp.ClientSession(
+        headers={"User-Agent": nominatim_user_agent},
+        timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
+    ) as session:
         # --- Richiesta indirizzo di partenza ---
         try:
             async with session.get(url_start) as response:
