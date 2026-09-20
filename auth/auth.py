@@ -15,31 +15,34 @@ session_middleware = SessionMiddleware(
     rate_limiter=rate_limiter
 )
 
-def _splitEmailName(email: str) -> tuple[str, str] | None:
-    """Estrae (nome, cognome) da un'email nel formato `cognome.nome@dominio`."""
-    local_part = (email or "").split("@")[0]
-    parts = [part for part in local_part.split(".") if part]
+STUDENT_EMAIL_SUFFIX = "studente"
 
-    if len(parts) >= 2:
+def _splitEmailName(email: str) -> tuple[str, str] | None:
+    """Estrae (nome, cognome) da un'email studente `cognome.nome.studente@dominio`."""
+    local_part = (email or "").split("@")[0]
+    parts = local_part.split(".")
+
+    if len(parts) == 3 and all(parts) and parts[2].lower() == STUDENT_EMAIL_SUFFIX:
         return parts[1], parts[0]
 
     return None
 
-def _splitFullName(full_name: str) -> tuple[str, str]:
-    """Fallback: divide il nome completo fornito da Google in (nome, cognome)."""
-    parts = (full_name or "").split()
+def getNameSurname(user: dict) -> tuple[str, str]:
+    """
+    Restituisce (nome, cognome) suggeriti per uno studente.
 
-    if len(parts) >= 2:
-        return parts[0], " ".join(parts[1:])
+    Si usano prima `given_name`/`family_name` di Google (gestiscono nomi e
+    cognomi composti); il campo mancante viene ricavato dall'email
+    `cognome.nome.studente@dominio`.
+    """
+    name = (user.get("given_name") or "").strip()
+    surname = (user.get("family_name") or "").strip()
 
-    return (parts[0] if parts else ""), ""
+    if not (name and surname):
+        parsed = _splitEmailName(user.get("email"))
 
-def getName(email: str, full_name: str = "") -> str:
-    parsed = _splitEmailName(email)
+        if parsed:
+            name = name or parsed[0]
+            surname = surname or parsed[1]
 
-    return parsed[0] if parsed else _splitFullName(full_name)[0]
-
-def getSurname(email: str, full_name: str = "") -> str:
-    parsed = _splitEmailName(email)
-
-    return parsed[1] if parsed else _splitFullName(full_name)[1]
+    return name, surname

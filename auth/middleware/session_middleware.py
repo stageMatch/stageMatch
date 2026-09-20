@@ -46,6 +46,8 @@ class SessionMiddleware:
         flask_session['user'] = {
             'email': user_data.get('email'),
             'name': user_data.get('name', ''),
+            'given_name': user_data.get('given_name') or '',
+            'family_name': user_data.get('family_name') or '',
             'googleId': user_data.get('googleId', ''),
             'picture': user_data.get('picture', ''),
             'authenticated_at': datetime.now(timezone.utc).isoformat()

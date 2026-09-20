@@ -308,3 +308,36 @@ def test_pages_render(client, app_module, db):
 
     login(client, app_module, "admin", "admin@example.com", "user")
     assert client.get("/admin/codes").status_code == 200
+
+
+def _studentForm(app_module, **overrides):
+    form = {
+        "privacy_ack": "on", "privacy_version": app_module.PRIVACY_POLICY_VERSION,
+        "nome": "Maria Grazia", "cognome": "De Luca", "data_nascita": "2008-05-01", "sesso": "F",
+        "comune_nascita": "Bergamo", "codice_fiscale": "DLCMGR08E41A794X", "telefono": "3331234567",
+        "indirizzo_studio": "Informatica", "classe": "4A", "istituto": "ITIS",
+        "via": "Via A", "civico": "1", "cap": "24100", "citta_residenza": "Bergamo",
+    }
+    form.update(overrides)
+
+    return form
+
+
+def test_complete_student_uses_editable_name(client, app_module, monkeypatch, db):
+    monkeypatch.setattr(app_module.matching_worker, "enqueue", lambda fn, name=None: None)
+    login(client, app_module, "s1", "rossi.mario.studente@scuola.it", "user")
+
+    response = client.post("/logged/complete", data=_studentForm(app_module))
+
+    assert response.status_code == 302
+    user = db.getUserById("s1")
+    assert (user.name, user.surname) == ("Maria Grazia", "De Luca")
+
+
+def test_complete_student_requires_name(client, app_module, db):
+    login(client, app_module, "s1", "rossi.mario.studente@scuola.it", "user")
+
+    response = client.post("/logged/complete", data=_studentForm(app_module, nome=" "))
+
+    assert response.status_code == 400
+    assert not db.existUser("s1")

@@ -409,6 +409,8 @@ def completeLogin():
             fields = {
                 key: validation.cleanText(data.get(key), label, max_length, required=True)
                 for key, label, max_length in (
+                    ("nome", "nome", 100),
+                    ("cognome", "cognome", 100),
                     ("data_nascita", "data di nascita", 10),
                     ("sesso", "sesso", 20),
                     ("comune_nascita", "comune di nascita", 100),
@@ -430,8 +432,8 @@ def completeLogin():
 
         user_data = {
             "googleId": user["googleId"],
-            "name": au.getName(user["email"], user.get("name", "")),
-            "surname": au.getSurname(user["email"], user.get("name", "")),
+            "name": fields["nome"],
+            "surname": fields["cognome"],
             "email": user["email"],
             "data_nascita": fields["data_nascita"],
             "sesso": fields["sesso"],
@@ -475,9 +477,10 @@ def completeLogin():
 
         return redirect(url_for("dashboardStudent"))
 
+    name, surname = au.getNameSurname(user)
     user_data = {
-        "name": au.getName(user["email"], user.get("name", "")),
-        "surname": au.getSurname(user["email"], user.get("name", "")),
+        "name": name,
+        "surname": surname,
         "email": user["email"]
     }
 

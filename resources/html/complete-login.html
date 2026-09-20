@@ -57,7 +57,8 @@
                                 </svg>
                                 Nome
                             </label>
-                            <input type="text" id="nome" name="nome" value="{{ user.name }}" disabled autocomplete="given-name" />
+                            <input type="text" id="nome" name="nome" value="{{ user.name }}" maxlength="100" required autocomplete="given-name" />
+                            <span class="field-error" id="err-nome"></span>
                         </div>
 
                         <div class="field">
@@ -68,7 +69,8 @@
                                 </svg>
                                 Cognome
                             </label>
-                            <input type="text" id="cognome" name="cognome" value="{{ user.surname }}" disabled autocomplete="family-name" />
+                            <input type="text" id="cognome" name="cognome" value="{{ user.surname }}" maxlength="100" required autocomplete="family-name" />
+                            <span class="field-error" id="err-cognome"></span>
                         </div>
 
                         <div class="field col-full">

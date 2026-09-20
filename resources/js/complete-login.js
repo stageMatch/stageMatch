@@ -194,7 +194,7 @@ function validate() {
         if (msg) valid = false;
     };
 
-    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "istituto", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
+    ["nome", "cognome", "data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "istituto", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
         if (!fields[id].value.trim()) err(id, "Campo obbligatorio");
         else err(id, "");
     });
