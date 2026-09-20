@@ -104,7 +104,12 @@ def rejectCrossSiteWrites():
     origin = request.headers.get("Origin")
 
     if origin:
-        if urlparse(origin).netloc != request.host:
+        # ProxyFix sostituisce request.host con X-Forwarded-Host; dietro a un tunnel
+        # (es. port forwarding) il browser può però vedere l'host originale.
+        raw_host = request.environ.get("werkzeug.proxy_fix.orig", {}).get("HTTP_HOST")
+
+        if urlparse(origin).netloc not in (request.host, raw_host):
+            app.logger.warning(f"CSRF 403: origin={origin!r} host={request.host!r} raw_host={raw_host!r}")
             abort(403)
     elif request.headers.get("Sec-Fetch-Site") == "cross-site":
         abort(403)
