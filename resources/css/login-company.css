@@ -273,15 +273,16 @@ body {
 }
 
 .checkbox-container {
-    display: flex;
-    align-items: center;
+    display: block;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
+    line-height: 1.5;
     color: var(--text-muted);
     user-select: none;
     position: relative;
-    padding-left: 32px;
+    padding-left: 34px;
+    min-height: 22px;
 }
 
 .checkbox-container input {
@@ -293,8 +294,7 @@ body {
 .checkmark {
     position: absolute;
     left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
     height: 22px;
     width: 22px;
     background-color: #F1F3F4;
@@ -337,7 +337,6 @@ body {
 }
 
 .terms-link {
-    margin-left: 4px;
     text-decoration: underline;
 }
 

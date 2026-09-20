@@ -11,12 +11,39 @@
 </head>
 <body>
     <main class="privacy-page">
-        <section class="privacy-header">
+        <nav class="legal-nav" aria-label="Navigazione">
+            <a class="legal-back" href="{{ url_for('mainPage') }}">&larr; Torna alla home</a>
+            <div class="legal-switch">
+                <a href="{{ url_for('privacy') }}">Privacy</a>
+                <a href="{{ url_for('terms') }}" aria-current="page">Termini</a>
+            </div>
+        </nav>
+
+        <header class="privacy-header">
             <p class="eyebrow">StageMatch</p>
             <h1>Termini e condizioni</h1>
-        </section>
+            <p class="legal-meta">Regole di utilizzo del servizio per studenti e aziende</p>
+        </header>
 
-        <section>
+        <nav class="legal-toc" aria-labelledby="toc-title">
+            <h2 id="toc-title">Indice</h2>
+            <ol>
+                <li><a href="#servizio">Il servizio</a></li>
+                <li><a href="#ruolo">Ruolo di StageMatch</a></li>
+                <li><a href="#account">Account</a></li>
+                <li><a href="#contenuti">Contenuti di annunci e profili</a></li>
+                <li><a href="#uso">Uso corretto</a></li>
+                <li><a href="#sospensione">Sospensione e rimozione</a></li>
+                <li><a href="#responsabilita">Disponibilità e responsabilità</a></li>
+                <li><a href="#proprieta">Proprietà intellettuale</a></li>
+                <li><a href="#chiusura">Chiusura dell'account</a></li>
+                <li><a href="#modifiche">Modifiche ai termini</a></li>
+                <li><a href="#legge">Legge applicabile</a></li>
+                {% if support_email %}<li><a href="#contatti">Contatti</a></li>{% endif %}
+            </ol>
+        </nav>
+
+        <section id="servizio">
             <h2>Il servizio</h2>
             <p>
                 StageMatch mette in contatto studenti e aziende per opportunità di stage. Il servizio
@@ -25,33 +52,84 @@
             </p>
         </section>
 
-        <section>
+        <section id="ruolo">
+            <h2>Ruolo di StageMatch</h2>
+            <p>
+                StageMatch è uno strumento di incontro tra domanda e offerta di stage. Non è parte del rapporto
+                tra studente e azienda, non è un datore di lavoro e non seleziona i candidati al posto delle
+                aziende. Le condizioni concrete dello stage, comprese le convenzioni e i progetti formativi
+                richiesti dalla scuola, sono definite fuori dalla piattaforma tra scuola, studente e azienda.
+            </p>
+        </section>
+
+        <section id="account">
             <h2>Account</h2>
             <p>
                 L'accesso avviene con un account Google. Le aziende si registrano con un codice di accesso
                 monouso fornito dalla scuola. Sei responsabile della correttezza dei dati che inserisci e
                 dell'uso del tuo account; non condividere il codice di accesso con soggetti non autorizzati.
             </p>
+            <p>
+                Ogni account è personale: non cederlo né usarlo per conto di altri. Se sospetti un uso non
+                autorizzato del tuo account, metti in sicurezza il tuo account Google e avvisa il referente del
+                servizio.
+            </p>
         </section>
 
-        <section>
+        <section id="contenuti">
             <h2>Contenuti degli annunci e dei profili</h2>
             <p>
                 Le aziende pubblicano solo annunci di stage reali e non discriminatori. Gli studenti
                 inseriscono informazioni veritiere sul proprio profilo. Contenuti falsi, offensivi o non
                 pertinenti possono essere rimossi e l'account sospeso.
             </p>
-        </section>
-
-        <section>
-            <h2>Uso corretto</h2>
             <p>
-                È vietato tentare di accedere ad account altrui, sovraccaricare il servizio o usarlo per
-                finalità diverse dalla ricerca e dall'offerta di stage.
+                Non inserire dati personali di terzi nei testi liberi (ad esempio nelle esperienze o nelle
+                descrizioni degli annunci) senza averne titolo.
             </p>
         </section>
 
-        <section>
+        <section id="uso">
+            <h2>Uso corretto</h2>
+            <p>È vietato:</p>
+            <ul>
+                <li>tentare di accedere ad account altrui o ad aree del servizio non destinate a te;</li>
+                <li>sovraccaricare il servizio, ad esempio con richieste automatiche o ripetute;</li>
+                <li>usare i dati di studenti o aziende per scopi diversi dalla ricerca e dall'offerta di stage, in particolare per marketing o per condividerli con terzi.</li>
+            </ul>
+        </section>
+
+        <section id="sospensione">
+            <h2>Sospensione e rimozione</h2>
+            <p>
+                In caso di violazione di questi termini o di uso che metta a rischio la sicurezza del servizio o
+                di altri utenti, il gestore può rimuovere i contenuti, sospendere o chiudere l'account, anche
+                senza preavviso quando necessario.
+            </p>
+        </section>
+
+        <section id="responsabilita">
+            <h2>Disponibilità e responsabilità</h2>
+            <p>
+                Il servizio è fornito così com'è: non garantiamo che sia sempre disponibile e privo di errori,
+                né che le informazioni inserite da studenti e aziende, compresi i tempi di percorrenza e i
+                punteggi di compatibilità, siano complete o esatte. Nei limiti consentiti dalla legge, il
+                gestore non risponde di danni derivanti dall'uso del servizio, dai contenuti pubblicati dagli
+                utenti o dall'esito dei contatti tra studenti e aziende.
+            </p>
+        </section>
+
+        <section id="proprieta">
+            <h2>Proprietà intellettuale</h2>
+            <p>
+                Il software, la grafica e i marchi di StageMatch restano del rispettivo titolare. I contenuti che
+                inserisci restano tuoi: ci autorizzi a conservarli e a mostrarli agli altri utenti nei limiti
+                necessari al funzionamento del servizio, come descritto nell'
+                <a href="{{ url_for('privacy') }}">informativa privacy</a>.
+            </p>
+        </section>
+
+        <section id="chiusura">
             <h2>Chiusura dell'account</h2>
             <p>
                 Puoi eliminare il tuo account e i dati collegati in ogni momento da Impostazioni (studenti)
@@ -60,8 +138,26 @@
             </p>
         </section>
 
+        <section id="modifiche">
+            <h2>Modifiche ai termini</h2>
+            <p>
+                Possiamo aggiornare questi termini, ad esempio per nuove funzioni o per adeguamenti normativi.
+                La versione in vigore è sempre quella pubblicata in questa pagina; se le modifiche sono
+                rilevanti potremo avvisarti nel servizio. Continuando a usare StageMatch dopo l'aggiornamento
+                accetti la nuova versione.
+            </p>
+        </section>
+
+        <section id="legge">
+            <h2>Legge applicabile</h2>
+            <p>
+                Questi termini sono regolati dalla legge italiana. Per le controversie con consumatori restano
+                salvi i fori inderogabili previsti dalla legge.
+            </p>
+        </section>
+
         {% if support_email %}
-        <section>
+        <section id="contatti">
             <h2>Contatti</h2>
             <p>Per domande sul servizio scrivi a <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
         </section>

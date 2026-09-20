@@ -287,6 +287,17 @@ def test_company_registration_requires_terms_ack(client, db):
     assert client.post("/auth/company/login", json={**payload, "terms_ack": True}).status_code == 200
 
 
+def test_legal_pages_link_each_other_and_show_support_email(client, app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "SUPPORT_EMAIL", "aiuto@scuola.it")
+
+    privacy = client.get("/privacy").data
+    terms = client.get("/terms").data
+
+    assert b'href="/terms"' in privacy and b'href="/privacy"' in terms
+    assert b"mailto:aiuto@scuola.it" in privacy
+    assert b"mailto:aiuto@scuola.it" in terms
+
+
 def test_pages_render(client, app_module, db):
     db.addUser(makeUser(), privacy_consent={"privacy_version": "1.0"})
     db.addCompany(makeCompany(address="Via Milano ££ 2 ££ 24100 ££ Bergamo"))
