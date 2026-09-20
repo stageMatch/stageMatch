@@ -10,3 +10,11 @@ env/
 .git/
 .gitignore
 node_modules/
+.claude/
+.agents/
+.devcontainer/
+.github/
+tests/
+scripts/
+*.md
+.env.example

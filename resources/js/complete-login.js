@@ -11,6 +11,11 @@ const submitBtn = document.getElementById("submitBtn");
 const submitLabel = document.getElementById("submitLabel");
 const progressFill = document.getElementById("progressFill");
 
+const colorModeInput = document.getElementById("color_mode");
+if (colorModeInput) {
+    colorModeInput.value = document.documentElement.getAttribute("data-theme") || "dark";
+}
+
 const fields = {
     nome: document.getElementById("nome"),
     cognome: document.getElementById("cognome"),
@@ -21,6 +26,7 @@ const fields = {
     comune_nascita_code: document.getElementById("comune_nascita_code"),
     codice_fiscale: document.getElementById("codice_fiscale"),
     telefono: document.getElementById("telefono"),
+    istituto: document.getElementById("istituto"),
     indirizzo_studio: document.getElementById("indirizzo_studio"),
     classe: document.getElementById("classe"),
     classe_custom: document.getElementById("classe_custom"),
@@ -31,19 +37,24 @@ const fields = {
     privacy_ack: document.getElementById("privacy_ack"),
 };
 
-const STUDY_CLASS_CODES = {
-    "Informatica e Telecomunicazioni": "I",
-    "Meccanica, Meccatronica ed Energia": "M",
-    "Elettronica, Elettrotecnica ed Automazione": "E",
-    "Sistema Moda Tessile": "T",
+// Dati per istituto: per ora c'è solo ITIS Paleocapa hardcoded qui; in futuro
+// verranno caricati da un file JSON con tutti gli istituti supportati.
+const INSTITUTES_DATA = {
+    "ITIS Paleocapa": {
+        studyClassCodes: {
+            "Informatica e Telecomunicazioni": "I",
+            "Meccanica, Meccatronica ed Energia": "M",
+            "Elettronica, Elettrotecnica ed Automazione": "E",
+            "Sistema Moda Tessile": "T",
+        },
+        years: ["1", "2", "3", "4", "5"],
+        sections: ["A", "B", "C", "D", "E", "F", "G"],
+    },
 };
-const CLASS_YEARS = ["1", "2", "3", "4", "5"];
-const CLASS_SECTIONS = ["A", "B", "C", "D", "E", "F", "G"];
 const CUSTOM_CLASS_VALUE = "__custom__";
 
 let comuniDB = [];
 
-/** ─── Caricamento Comuni ─── */
 async function loadComuni() {
     try {
         const res = await fetch("https://raw.githubusercontent.com/axiostudio/comuni-italiani/refs/heads/main/data/import/json/gi_comuni.json");
@@ -75,15 +86,15 @@ function findComuneByName(name) {
     return comuniDB.find(c => normalize(c.nome) === q) || null;
 }
 
-/** ─── Gestione Classe ─── */
 function populateClassSelect(indirizzo) {
     const select = fields.classe;
-    const studyCode = STUDY_CLASS_CODES[indirizzo];
+    const institute = INSTITUTES_DATA[fields.istituto?.value];
+    const studyCode = institute?.studyClassCodes[indirizzo];
     if (!select || !studyCode) return;
 
     select.innerHTML = '<option value="" disabled selected>Seleziona classe...</option>';
-    CLASS_YEARS.forEach(y => {
-        CLASS_SECTIONS.forEach(s => {
+    institute.years.forEach(y => {
+        institute.sections.forEach(s => {
             const code = `${y}${studyCode}${s}`;
             const opt = document.createElement("option");
             opt.value = code;
@@ -102,13 +113,15 @@ function populateClassSelect(indirizzo) {
 }
 
 fields.indirizzo_studio?.addEventListener("change", e => populateClassSelect(e.target.value));
+fields.istituto?.addEventListener("change", () => {
+    if (fields.indirizzo_studio.value) populateClassSelect(fields.indirizzo_studio.value);
+});
 fields.classe?.addEventListener("change", e => {
     const isCustom = e.target.value === CUSTOM_CLASS_VALUE;
     fields.classe_custom.hidden = !isCustom;
     if (isCustom) fields.classe_custom.focus();
 });
 
-/** ─── Autocomplete ─── */
 function setupAutocomplete(inputId, listId, onSelect) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
@@ -138,8 +151,6 @@ function setupAutocomplete(inputId, listId, onSelect) {
     });
 }
 
-/** ─── Codice Fiscale ─── */
-// (Manteniamo la logica di calcolo esistente ma la rendiamo più compatta)
 const CF_ODD = { 0:1, 1:0, 2:5, 3:7, 4:9, 5:13, 6:15, 7:17, 8:19, 9:21, A:1, B:0, C:5, D:7, E:9, F:13, G:15, H:17, I:19, J:21, K:2, L:4, M:18, N:20, O:11, P:3, Q:6, R:8, S:12, T:14, U:16, V:10, W:22, X:25, Y:24, Z:23 };
 function cfPart(s, isName = false) {
     const chars = s.toUpperCase().replace(/[^A-Z]/g, "");
@@ -174,7 +185,6 @@ document.getElementById("cfCalcBtn")?.addEventListener("click", () => {
     fields.codice_fiscale.classList.remove("invalid");
 });
 
-/** ─── Validazione e Invio ─── */
 function validate() {
     let valid = true;
     const err = (id, msg) => {
@@ -184,7 +194,7 @@ function validate() {
         if (msg) valid = false;
     };
 
-    ["data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
+    ["nome", "cognome", "data_nascita", "sesso", "comune_nascita", "codice_fiscale", "telefono", "istituto", "indirizzo_studio", "classe", "via", "civico", "cap", "citta_residenza"].forEach(id => {
         if (!fields[id].value.trim()) err(id, "Campo obbligatorio");
         else err(id, "");
     });
@@ -224,7 +234,6 @@ form?.addEventListener("submit", async e => {
             successMsg.classList.add("visible");
             modalFooter.classList.add("hidden");
 
-            // Inizia il riempimento "organico" dopo che il messaggio è apparso
             setTimeout(() => {
                 progressFill.style.width = "100%";
             }, 600);
@@ -240,7 +249,6 @@ form?.addEventListener("submit", async e => {
     }
 });
 
-/** ─── Modal Control ─── */
 const toggleModal = (v) => {
     overlay.classList.toggle("visible", v);
     document.body.style.overflow = v ? "hidden" : "";

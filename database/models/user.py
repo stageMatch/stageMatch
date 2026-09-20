@@ -22,6 +22,7 @@ class User(Base):
     classe = Column(String)
     indirizzo = Column(String)
     picture = Column(String)
+    istituto = Column(String)
 
     preferences = relationship(
         "UserPreferences",
@@ -41,12 +42,51 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    languages = relationship(
+        "Language",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Language.name"
+    )
+
+    experiences = relationship(
+        "Experience",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Experience.id"
+    )
     routes = relationship(
         "UserRoute",
         back_populates="user",
         cascade="all, delete-orphan",
-        order_by="desc(UserRoute.id)"
+        order_by="desc(UserRoute.updated_at)"
 )
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Notification.id)"
+    )
+
+    applications = relationship(
+        "Application",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    matches = relationship(
+        "Match",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    privacy_consents = relationship(
+        "PrivacyConsent",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     @validates("codice_fiscale")
     def validateCodiceFiscale(self, key, value):
         if not value:

@@ -29,6 +29,8 @@ def getGoogleUserInfo():
         return {
             "email": user_info.get("email"),
             "name": user_info.get("name"),
+            "given_name": user_info.get("given_name"),
+            "family_name": user_info.get("family_name"),
             "googleId": user_info.get("sub"),
             "picture": user_info.get("picture")
         }

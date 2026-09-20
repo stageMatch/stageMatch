@@ -1,11 +1,8 @@
 :root {
-    /* Brand Colors */
     --midnight-blue: #0A0E1A;
     --midnight-blue-light: #111625;
     --emerald-green: #2ECC71;
     --emerald-green-dark: #27AE60;
-    
-    /* Functional Colors (Light Mode) */
     --bg-map: #f1f3f4;
     --panel-bg: #ffffff;
     --accent: var(--emerald-green);
@@ -14,7 +11,9 @@
     --text-muted: #5f6368;
     --border-color: #e8eaed;
     --shadow: rgba(10, 14, 26, 0.1);
-    
+    --input-bg: #ffffff;
+    --panel-bg-glass: rgba(255, 255, 255, 0.95);
+
     --radius-lg: 16px;
     --radius-md: 12px;
 }
@@ -29,6 +28,7 @@ body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-map);
 }
 
@@ -38,6 +38,7 @@ body {
     right: 0;
     width: 450px;
     height: 100vh;
+    height: 100dvh;
     background: var(--panel-bg);
     box-shadow: -10px 0 30px var(--shadow);
     z-index: 1000;
@@ -189,7 +190,6 @@ body {
     width: 100%;
 }
 
-/* Bottone di ricerca accanto all'input */
 .input-wrapper {
     display: flex;
     gap: 8px;
@@ -199,17 +199,15 @@ body {
 
 .input-wrapper .form-control {
     flex: 1;
-    min-width: 0; /* evita overflow su mobile */
+    min-width: 0;
 }
 
-/* Questo è il nuovo anchor per il dropdown */
 .input-field-wrapper {
     position: relative;
     flex: 1;
     min-width: 0;
 }
 
-/* L'input occupa tutto lo spazio del field-wrapper */
 .input-field-wrapper .form-control {
     width: 100%;
 }
@@ -247,7 +245,7 @@ body {
     border-radius: 12px;
     font-size: 15px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: #fff;
+    background: var(--input-bg);
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -260,7 +258,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--accent);
-    background: white;
+    background: var(--input-bg);
     box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.1);
     transform: translateY(-1px);
 }
@@ -296,7 +294,7 @@ body {
     top: calc(100% + 6px);
     left: 0;
     width: 100%;
-    background-color: white;
+    background-color: var(--panel-bg);
     border: 2px solid var(--border-color);
     border-radius: 12px;
     max-height: 280px;
@@ -393,7 +391,7 @@ body {
 
 .transport-modes {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 30px;
     padding: 0 30px;
@@ -401,7 +399,7 @@ body {
 }
 
 .transport-modes .mode {
-    background: white;
+    background: var(--input-bg);
     border: 2px solid var(--border-color);
     border-radius: 16px;
     padding: 16px 12px;
@@ -523,7 +521,7 @@ body {
 
 .panel-content::-webkit-scrollbar-track,
 .suggestions-dropdown::-webkit-scrollbar-track {
-    background: #f1f3f4;
+    background: var(--bg-map);
     border-radius: 10px;
 }
 
@@ -531,7 +529,7 @@ body {
 .suggestions-dropdown::-webkit-scrollbar-thumb {
     background: var(--accent);
     border-radius: 10px;
-    border: 2px solid #f1f3f4;
+    border: 2px solid var(--bg-map);
 }
 
 .panel-content::-webkit-scrollbar-thumb:hover,
@@ -541,7 +539,7 @@ body {
 
 @supports (backdrop-filter: blur(10px)) {
     .control-panel {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--panel-bg-glass);
         backdrop-filter: blur(10px);
     }
 }

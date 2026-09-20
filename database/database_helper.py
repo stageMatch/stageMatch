@@ -1,8 +1,9 @@
-from datetime import datetime
+import os
+import secrets
+from datetime import datetime, timedelta, timezone
 
-from tracemalloc import start
-
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, selectinload
 from sqlalchemy.inspection import inspect
 from .models.base import Base
@@ -11,17 +12,47 @@ from .models.company import Company
 from .models.user_preferences import UserPreferences
 from .models.skill import Skill
 from .models.soft_skill import SoftSkill
+from .models.language import Language
+from .models.experience import Experience
 from .models.route import UserRoute
+from .models.notification import Notification
 from .models.privacy_consent import PrivacyConsent
+from .models.active_session import ActiveSession
+from .models.job_offer import JobOffer
+from .models.job_offer_skill import JobOfferSkill
+from .models.job_offer_soft_skill import JobOfferSoftSkill
+from .models.application import Application
+from .models.match import Match
+from .models.company_access_code import CompanyAccessCode
 
 # global
 Session = None
+
+LABEL_DELIMITER = " ££ "
+
+PREFERENCE_FIELDS = ("color_mode", "lingua", "default_transport_mode")
+
+MAX_USER_ROUTES = 25
 
 def initDB(connstr: str):
     """Initialize the database engine and session."""
     global Session
 
-    engine = create_engine(f"sqlite:///{connstr}", echo=True)
+    echo = os.getenv("SQL_ECHO", "False").lower() == "true"
+    engine = create_engine(
+        f"sqlite:///{connstr}",
+        echo=echo,
+        connect_args={"timeout": 15}
+    )
+
+    @event.listens_for(engine, "connect")
+    def _setSqlitePragmas(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=15000")
+        cursor.close()
+
     Session = sessionmaker(bind=engine)
 
     Base.metadata.create_all(engine)
@@ -34,7 +65,12 @@ def getUserById(user_id: str):
                 selectinload(User.preferences),
                 selectinload(User.skills),
                 selectinload(User.soft_skills),
-                selectinload(User.routes)
+                selectinload(User.languages),
+                selectinload(User.experiences),
+                selectinload(User.routes),
+                selectinload(User.notifications),
+                selectinload(User.applications),
+                selectinload(User.matches)
             )
             .filter_by(googleId=user_id)
             .first()
@@ -56,28 +92,95 @@ def existCompany(google_id: str) -> bool:
 
 def getCompanyByGoogleId(google_id: str):
     with Session() as session:
-        return session.query(Company).filter_by(googleId=google_id).first()
+        return (
+            session.query(Company)
+            .options(
+                selectinload(Company.job_offers),
+                selectinload(Company.notifications)
+            )
+            .filter_by(googleId=google_id)
+            .first()
+        )
 
-def addCompany(company_data: dict):
+def addCompany(company_data: dict, access_code: str | None = None, privacy_version: str | None = None):
+    """Crea l'azienda. Se `access_code` è dato, lo consuma nella stessa
+    transazione: se il codice non è valido o è già stato usato non si crea nulla
+    e viene sollevato `InvalidAccessCodeError`. Se `privacy_version` è dato,
+    registra il consenso a quella versione dell'informativa."""
     with Session() as session:
+        if access_code is not None:
+            consumed = (
+                session.query(CompanyAccessCode)
+                .filter(
+                    CompanyAccessCode.code == access_code,
+                    CompanyAccessCode.used_at.is_(None)
+                )
+                .update({
+                    CompanyAccessCode.used_at: datetime.now(timezone.utc),
+                    CompanyAccessCode.used_by_company_id: None
+                })
+            )
+
+            if not consumed:
+                raise InvalidAccessCodeError("Codice di accesso non valido o già utilizzato")
+
         company = Company(**company_data)
         session.add(company)
+        session.flush()
+
+        if privacy_version:
+            session.add(PrivacyConsent(company_id=company.googleId, privacy_version=privacy_version))
+
+        if access_code is not None:
+            session.query(CompanyAccessCode).filter_by(code=access_code).update({
+                CompanyAccessCode.used_by_company_id: company.googleId
+            })
+
         session.commit()
 
-def getUserColumn(user_id: str, column: str):
-    """Return a single column value of a user by id."""
+def isAccessCodeAvailable(code: str) -> bool:
+    """True se il codice esiste e non è ancora stato utilizzato (non lo consuma)."""
     with Session() as session:
-        user = session.query(User).filter_by(googleId=user_id).first()
+        return (
+            session.query(CompanyAccessCode)
+            .filter(CompanyAccessCode.code == code, CompanyAccessCode.used_at.is_(None))
+            .first()
+        ) is not None
 
-        if not user:
+def createAccessCode(created_by: str) -> str:
+    """Genera e salva un nuovo codice di accesso monouso per le aziende."""
+    with Session() as session:
+        code = secrets.token_urlsafe(9)
+        session.add(CompanyAccessCode(code=code, created_by=created_by))
+        session.commit()
+
+        return code
+
+def listAccessCodes():
+    with Session() as session:
+        return (
+            session.query(CompanyAccessCode)
+            .order_by(CompanyAccessCode.created_at.desc())
+            .all()
+        )
+
+def updateCompany(company_data: dict):
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_data["googleId"]).first()
+
+        if not company:
             return None
 
-        if not hasattr(user, column):
-            raise ValueError(f"Column '{column}' does not exist in User model")
+        for field in ["name", "address", "picture", "settore", "descrizione", "sito_web", "telefono", "color_mode"]:
+            if field in company_data:
+                setattr(company, field, company_data[field])
 
-        return getattr(user, column)
+        session.commit()
+        session.refresh(company)
 
-def addUser(user_data: dict, privacy_consent: dict | None = None):
+        return company
+
+def addUser(user_data: dict, privacy_consent: dict | None = None, color_mode: str = "light"):
     with Session() as session:
         existing = session.query(User).filter_by(googleId=user_data["googleId"]).options(
             selectinload(User.preferences)
@@ -89,7 +192,7 @@ def addUser(user_data: dict, privacy_consent: dict | None = None):
             )
 
         user = User(**user_data)
-        user.preferences = UserPreferences(color_mode="light")
+        user.preferences = UserPreferences(color_mode=color_mode)
 
         session.add(user)
         session.flush()
@@ -107,7 +210,9 @@ def updateUser(user_data: dict):
         user = session.query(User).filter_by(googleId=user_data["googleId"]).options(
             selectinload(User.preferences),
             selectinload(User.skills),
-            selectinload(User.soft_skills)
+            selectinload(User.soft_skills),
+            selectinload(User.languages),
+            selectinload(User.experiences)
         ).first()
 
         if not user:
@@ -132,9 +237,9 @@ def updateUser(user_data: dict):
         # Preferences
         pref_data = user_data.get("preferences")
         if pref_data:
-            for key, value in pref_data.items():
-                if hasattr(user.preferences, key):
-                    setattr(user.preferences, key, value)
+            for key in PREFERENCE_FIELDS:
+                if key in pref_data:
+                    setattr(user.preferences, key, pref_data[key])
 
         # Skills
         skills = user_data.get("skills")
@@ -160,6 +265,48 @@ def updateUser(user_data: dict):
                 )
                 user.soft_skills.append(nuova_skill)
 
+        # Languages
+        languages = user_data.get("languages")
+        if languages is not None:
+            user.languages.clear()
+
+            for lang_item in languages:
+                name = str(lang_item.get("name", "")).strip()
+                if not name:
+                    continue
+
+                user.languages.append(Language(
+                    name=name,
+                    level=lang_item.get("level", "A1"),
+                    certification=(str(lang_item["certification"]).strip() or None)
+                        if lang_item.get("certification") else None
+                ))
+
+        # Experiences
+        experiences = user_data.get("experiences")
+        if experiences is not None:
+            user.experiences.clear()
+
+            for exp_item in experiences:
+                title = str(exp_item.get("title", "")).strip()
+                if not title:
+                    continue
+
+                labels = exp_item.get("labels") or []
+                sanitized_labels = [
+                    str(label).strip().replace(LABEL_DELIMITER.strip(), "")
+                    for label in labels if str(label).strip()
+                ]
+
+                user.experiences.append(Experience(
+                    title=title,
+                    description=(str(exp_item["description"]).strip() or None)
+                        if exp_item.get("description") else None,
+                    link=(str(exp_item["link"]).strip() or None)
+                        if exp_item.get("link") else None,
+                    labels=LABEL_DELIMITER.join(sanitized_labels)
+                ))
+
         # Commit changes
         session.add(user)
         session.commit()
@@ -178,7 +325,7 @@ def getUserPreferences(user_id: str):
 
         return user.preferences
 
-def updateUserPreferences(user_id: str, color_mode: str):
+def updateUserPreferences(user_id: str, color_mode: str = None, lingua: str = None, default_transport_mode: str = None):
     with Session() as session:
         user = session.query(User).filter_by(googleId=user_id).first()
 
@@ -186,13 +333,30 @@ def updateUserPreferences(user_id: str, color_mode: str):
             return None
 
         if user.preferences is None:
-            user.preferences = UserPreferences(color_mode=color_mode)
+            user.preferences = UserPreferences(
+                color_mode=color_mode or "dark",
+                lingua=lingua or "it",
+                default_transport_mode=default_transport_mode or "driving-car"
+            )
         else:
-            user.preferences.color_mode = color_mode
+            if color_mode is not None:
+                user.preferences.color_mode = color_mode
+            if lingua is not None:
+                user.preferences.lingua = lingua
+            if default_transport_mode is not None:
+                user.preferences.default_transport_mode = default_transport_mode
 
         session.commit()
 
         return user.preferences
+
+def _naiveUtc(value: datetime) -> datetime:
+    """SQLite restituisce datetime naive, mentre i valori appena scritti sono aware:
+    li riporta tutti a UTC naive per poterli confrontare."""
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+    return value
 
 def addUserRoute(user_id: str, route_data: dict):
     with Session() as session:
@@ -201,26 +365,741 @@ def addUserRoute(user_id: str, route_data: dict):
         if not user:
             return None
 
-        route = UserRoute(
-            start_address=route_data["startaddress"],
-            end_address=route_data["endaddress"],
-            mode=route_data["routemode"]
+        distance_km = route_data.get("distance_km")
+        duration_min = route_data.get("duration_min")
+
+        existing = next(
+            (
+                r for r in user.routes
+                if r.start_address == route_data["startaddress"] and
+                r.end_address == route_data["endaddress"] and
+                r.mode == route_data["routemode"]
+            ),
+            None
         )
 
-        if not any(
-            r.start_address == route.start_address and
-            r.end_address == route.end_address and
-            r.mode == route.mode
-            for r in user.routes
-        ):
+        if existing:
+            existing.distance_km = distance_km
+            existing.duration_min = duration_min
+            existing.updated_at = datetime.now(timezone.utc)
+            route = existing
+        else:
+            route = UserRoute(
+                start_address=route_data["startaddress"],
+                end_address=route_data["endaddress"],
+                mode=route_data["routemode"],
+                distance_km=distance_km,
+                duration_min=duration_min
+            )
             user.routes.append(route)
+            session.flush()
 
-        if len(user.routes) > 25:
-            user.routes = user.routes[:25]
+        # Si eliminano i percorsi meno recenti; quello appena scritto ha
+        # sempre l'`updated_at` più alto e non viene mai scartato.
+        if len(user.routes) > MAX_USER_ROUTES:
+            by_recency = sorted(user.routes, key=lambda r: _naiveUtc(r.updated_at), reverse=True)
+
+            for old_route in by_recency[MAX_USER_ROUTES:]:
+                user.routes.remove(old_route)
 
         session.commit()
 
         return route
+
+def getMatchedPairs():
+    """Coppie (user_id, job_offer_id) che hanno già un match."""
+    with Session() as session:
+        return {(row[0], row[1]) for row in session.query(Match.user_id, Match.job_offer_id).all()}
+
+def deleteMatchesForJobOffer(job_offer_id: int):
+    with Session() as session:
+        session.query(Match).filter_by(job_offer_id=job_offer_id).delete()
+        session.commit()
+
+def deleteMatchesForStudent(user_id: str):
+    with Session() as session:
+        session.query(Match).filter_by(user_id=user_id).delete()
+        session.commit()
+
+def getStudentIdsWithAddress():
+    """Studenti con un indirizzo compilato, candidati al calcolo del matching."""
+    with Session() as session:
+        rows = (
+            session.query(User.googleId)
+            .filter(User.indirizzo.isnot(None), User.indirizzo != "")
+            .all()
+        )
+
+        return [row[0] for row in rows]
+
+def getUserRouteByAddresses(user_id: str, start_address: str, end_address: str, mode: str):
+    with Session() as session:
+        return (
+            session.query(UserRoute)
+            .filter_by(
+                user_id=user_id,
+                start_address=start_address,
+                end_address=end_address,
+                mode=mode
+            )
+            .first()
+        )
+
+def deleteUser(user_id: str) -> bool:
+    """Elimina l'account studente con tutti i dati collegati (cascade ORM) e le sue sessioni."""
+    with Session() as session:
+        user = session.get(User, user_id)
+
+        if not user:
+            return False
+
+        email = user.email
+        session.delete(user)
+        session.commit()
+
+    if email:
+        removeAllActiveSessionsForEmail(email)
+
+    return True
+
+def deleteCompany(company_id: str) -> bool:
+    """Elimina l'azienda con annunci, candidature e match collegati (cascade ORM) e le sue sessioni."""
+    with Session() as session:
+        company = session.get(Company, company_id)
+
+        if not company:
+            return False
+
+        email = company.email
+        session.delete(company)
+        session.commit()
+
+    if email:
+        removeAllActiveSessionsForEmail(email)
+
+    return True
+
+def _isoOrNone(value):
+    return value.isoformat() if value else None
+
+def exportUserData(user_id: str) -> dict | None:
+    """Tutti i dati personali dello studente, in un dict serializzabile in JSON (portabilità GDPR)."""
+    user = getUserById(user_id)
+
+    if not user:
+        return None
+
+    with Session() as session:
+        consents = session.query(PrivacyConsent).filter_by(user_id=user_id).all()
+        applications = (
+            session.query(Application, JobOffer.title)
+            .join(JobOffer, Application.job_offer_id == JobOffer.id)
+            .filter(Application.user_id == user_id)
+            .all()
+        )
+        matches = (
+            session.query(Match, JobOffer.title)
+            .join(JobOffer, Match.job_offer_id == JobOffer.id)
+            .filter(Match.user_id == user_id)
+            .all()
+        )
+        consent_rows = [
+            {"privacy_version": c.privacy_version, "accepted_at": _isoOrNone(c.accepted_at)}
+            for c in consents
+        ]
+        application_rows = [
+            {
+                "job_offer_title": title, "status": a.status, "message": a.message,
+                "created_at": _isoOrNone(a.created_at)
+            }
+            for a, title in applications
+        ]
+        match_rows = [
+            {
+                "job_offer_title": title, "deterministic_score": m.deterministic_score,
+                "ai_score": m.ai_score, "final_score": m.final_score, "explanation": m.explanation,
+                "computed_at": _isoOrNone(m.computed_at)
+            }
+            for m, title in matches
+        ]
+
+    return {
+        "profile": {
+            "googleId": user.googleId, "name": user.name, "surname": user.surname, "email": user.email,
+            "data_nascita": _isoOrNone(user.data_nascita), "sesso": user.sesso,
+            "comune_nascita": user.comune_nascita, "codice_fiscale": user.codice_fiscale,
+            "telefono": user.telefono, "indirizzo_studio": user.indirizzo_studio, "classe": user.classe,
+            "istituto": user.istituto, "indirizzo": user.indirizzo
+        },
+        "preferences": {
+            "color_mode": user.preferences.color_mode, "lingua": user.preferences.lingua,
+            "default_transport_mode": user.preferences.default_transport_mode
+        } if user.preferences else None,
+        "skills": [{"name": s.name, "livello": s.livello} for s in user.skills],
+        "soft_skills": [{"label": s.label} for s in user.soft_skills],
+        "languages": [
+            {"name": l.name, "level": l.level, "certification": l.certification} for l in user.languages
+        ],
+        "experiences": [
+            {"title": e.title, "description": e.description, "link": e.link, "labels": e.labels}
+            for e in user.experiences
+        ],
+        "routes": [
+            {
+                "start_address": r.start_address, "end_address": r.end_address, "mode": r.mode,
+                "distance_km": r.distance_km, "duration_min": r.duration_min
+            }
+            for r in user.routes
+        ],
+        "notifications": [
+            {"title": n.title, "message": n.message, "is_read": n.is_read, "created_at": _isoOrNone(n.created_at)}
+            for n in user.notifications
+        ],
+        "applications": application_rows,
+        "matches": match_rows,
+        "privacy_consents": consent_rows
+    }
+
+def exportCompanyData(company_id: str) -> dict | None:
+    """Tutti i dati dell'azienda (profilo, annunci, candidature ricevute, consensi)."""
+    with Session() as session:
+        company = (
+            session.query(Company)
+            .options(selectinload(Company.notifications), selectinload(Company.privacy_consents))
+            .filter_by(googleId=company_id)
+            .first()
+        )
+
+        if not company:
+            return None
+
+        offers = (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills),
+                selectinload(JobOffer.applications)
+            )
+            .filter_by(company_id=company_id)
+            .all()
+        )
+
+        return {
+            "profile": {
+                "googleId": company.googleId, "name": company.name, "email": company.email,
+                "address": company.address, "settore": company.settore, "descrizione": company.descrizione,
+                "sito_web": company.sito_web, "telefono": company.telefono
+            },
+            "job_offers": [
+                {
+                    "title": o.title, "description": o.description, "attivo": o.attivo,
+                    "created_at": _isoOrNone(o.created_at),
+                    "required_skills": [{"name": s.name, "livello_min": s.livello_min} for s in o.required_skills],
+                    "required_soft_skills": [{"label": s.label} for s in o.required_soft_skills],
+                    "applications_count": len(o.applications)
+                }
+                for o in offers
+            ],
+            "notifications": [
+                {"title": n.title, "message": n.message, "is_read": n.is_read, "created_at": _isoOrNone(n.created_at)}
+                for n in company.notifications
+            ],
+            "privacy_consents": [
+                {"privacy_version": c.privacy_version, "accepted_at": _isoOrNone(c.accepted_at)}
+                for c in company.privacy_consents
+            ]
+        }
+
+def getUserRouteCache(user_id: str, mode: str) -> dict:
+    """Percorsi già calcolati dell'utente per un mezzo: {(partenza, arrivo): (km, minuti)}."""
+    with Session() as session:
+        rows = (
+            session.query(
+                UserRoute.start_address, UserRoute.end_address,
+                UserRoute.distance_km, UserRoute.duration_min
+            )
+            .filter_by(user_id=user_id, mode=mode)
+            .all()
+        )
+
+        return {(r[0], r[1]): (r[2], r[3]) for r in rows}
+
+def getRouteStats(routes: list):
+    """Aggrega la lista di percorsi (dict, es. user_data["routes"]) in statistiche
+    per la dashboard: km totali, numero percorsi, mezzo preferito e ultimo percorso."""
+    if not routes:
+        return {
+            "totalRoutes": 0,
+            "totalKm": 0.0,
+            "preferredMode": None,
+            "lastRoute": None
+        }
+
+    total_km = sum(r.get("distance_km") or 0 for r in routes)
+
+    occurrences = {}
+    km_by_mode = {}
+    for r in routes:
+        mode = r.get("mode")
+        occurrences[mode] = occurrences.get(mode, 0) + 1
+        km_by_mode[mode] = km_by_mode.get(mode, 0) + (r.get("distance_km") or 0)
+
+    max_occurrences = max(occurrences.values())
+    tied_modes = [mode for mode, count in occurrences.items() if count == max_occurrences]
+
+    if len(tied_modes) == 1:
+        preferred_mode = tied_modes[0]
+    else:
+        preferred_mode = max(tied_modes, key=lambda mode: km_by_mode[mode])
+
+    return {
+        "totalRoutes": len(routes),
+        "totalKm": total_km,
+        "preferredMode": preferred_mode,
+        "lastRoute": routes[0]
+    }
+
+def getUserNotifications(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Notification)
+            .filter_by(user_id=user_id)
+            .order_by(Notification.id.desc())
+            .all()
+        )
+
+def markNotificationRead(user_id: str, notification_id: int) -> bool:
+    with Session() as session:
+        notification = session.get(Notification, notification_id)
+
+        if not notification or notification.user_id != user_id:
+            return False
+
+        notification.is_read = True
+        session.commit()
+
+        return True
+
+def addNotification(user_id: str, title: str, message: str, sender: str | None = None):
+    """Create a notification for a user. Ready for future automatic/system or admin use."""
+    with Session() as session:
+        user = session.query(User).filter_by(googleId=user_id).first()
+
+        if not user:
+            return None
+
+        notification = Notification(title=title, message=message, sender=sender)
+        user.notifications.append(notification)
+
+        session.commit()
+
+        return {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
+
+def addCompanyNotification(company_id: str, title: str, message: str, sender: str | None = None):
+    """Create a notification for a company (e.g. a new application received)."""
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_id).first()
+
+        if not company:
+            return None
+
+        notification = Notification(title=title, message=message, sender=sender)
+        company.notifications.append(notification)
+
+        session.commit()
+
+        return {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "sender": notification.sender,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat()
+        }
+
+def getCompanyNotifications(company_id: str):
+    with Session() as session:
+        return (
+            session.query(Notification)
+            .filter_by(company_id=company_id)
+            .order_by(Notification.id.desc())
+            .all()
+        )
+
+def markCompanyNotificationRead(company_id: str, notification_id: int) -> bool:
+    with Session() as session:
+        notification = session.get(Notification, notification_id)
+
+        if not notification or notification.company_id != company_id:
+            return False
+
+        notification.is_read = True
+        session.commit()
+
+        return True
+
+# ============================================================
+# JOB OFFERS
+# ============================================================
+
+def _applyJobOfferSkills(job_offer: JobOffer, data: dict):
+    skills = data.get("required_skills")
+    if skills is not None:
+        job_offer.required_skills.clear()
+
+        for skill_item in skills:
+            job_offer.required_skills.append(JobOfferSkill(
+                name=skill_item["name"],
+                livello_min=skill_item["livello_min"]
+            ))
+
+    soft_skills = data.get("required_soft_skills")
+    if soft_skills is not None:
+        job_offer.required_soft_skills.clear()
+
+        for skill_item in soft_skills:
+            job_offer.required_soft_skills.append(JobOfferSoftSkill(
+                label=skill_item["label"],
+                icon=skill_item["icon"]
+            ))
+
+def addJobOffer(company_id: str, data: dict):
+    with Session() as session:
+        company = session.query(Company).filter_by(googleId=company_id).first()
+
+        if not company:
+            return None
+
+        job_offer = JobOffer(
+            title=data["title"],
+            description=data.get("description")
+        )
+        _applyJobOfferSkills(job_offer, data)
+
+        company.job_offers.append(job_offer)
+        session.commit()
+        session.refresh(job_offer)
+
+        return job_offer.id
+
+def getJobOfferById(job_offer_id: int):
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.company),
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills)
+            )
+            .filter_by(id=job_offer_id)
+            .first()
+        )
+
+def getJobOffersByCompany(company_id: str):
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills),
+                selectinload(JobOffer.applications)
+            )
+            .filter_by(company_id=company_id)
+            .order_by(JobOffer.created_at.desc())
+            .all()
+        )
+
+def getActiveJobOffers():
+    with Session() as session:
+        return (
+            session.query(JobOffer)
+            .options(
+                selectinload(JobOffer.company),
+                selectinload(JobOffer.required_skills),
+                selectinload(JobOffer.required_soft_skills)
+            )
+            .filter_by(attivo=True)
+            .all()
+        )
+
+def updateJobOffer(job_offer_id: int, company_id: str, data: dict):
+    with Session() as session:
+        job_offer = session.query(JobOffer).filter_by(id=job_offer_id).first()
+
+        if not job_offer or job_offer.company_id != company_id:
+            return None
+
+        for field in ["title", "description"]:
+            if field in data:
+                setattr(job_offer, field, data[field])
+
+        _applyJobOfferSkills(job_offer, data)
+
+        session.commit()
+        session.refresh(job_offer)
+
+        return job_offer
+
+def closeJobOffer(job_offer_id: int, company_id: str) -> bool:
+    with Session() as session:
+        job_offer = session.query(JobOffer).filter_by(id=job_offer_id).first()
+
+        if not job_offer or job_offer.company_id != company_id:
+            return False
+
+        job_offer.attivo = False
+        session.commit()
+
+        return True
+
+# ============================================================
+# APPLICATIONS (CANDIDATURE)
+# ============================================================
+
+def addApplication(user_id: str, job_offer_id: int, message: str | None = None):
+    with Session() as session:
+        existing = (
+            session.query(Application)
+            .filter_by(user_id=user_id, job_offer_id=job_offer_id)
+            .first()
+        )
+
+        if existing:
+            raise ApplicationAlreadyExistsError(
+                f"Application for job offer {job_offer_id} by user {user_id} already exists!"
+            )
+
+        application = Application(user_id=user_id, job_offer_id=job_offer_id, message=message)
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+
+        return application.id
+
+def getApplicationsByStudent(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Application)
+            .options(
+                selectinload(Application.job_offer).selectinload(JobOffer.company)
+            )
+            .filter_by(user_id=user_id)
+            .all()
+        )
+
+def getApplicationsForCompany(company_id: str):
+    with Session() as session:
+        return (
+            session.query(Application)
+            .join(JobOffer, Application.job_offer_id == JobOffer.id)
+            .options(
+                selectinload(Application.user),
+                selectinload(Application.job_offer)
+            )
+            .filter(JobOffer.company_id == company_id)
+            .order_by(Application.created_at.desc())
+            .all()
+        )
+
+def updateApplicationStatus(application_id: int, status: str, company_google_id: str):
+    with Session() as session:
+        application = (
+            session.query(Application)
+            .options(selectinload(Application.job_offer))
+            .filter_by(id=application_id)
+            .first()
+        )
+
+        if not application or application.job_offer.company_id != company_google_id:
+            return None
+
+        application.status = status
+        session.commit()
+        session.refresh(application)
+
+        return application
+
+# ============================================================
+# MATCHES
+# ============================================================
+
+def getStudentMatchingProfile(user_id: str):
+    """Solo i dati necessari al motore di matching (skill, soft skill, indirizzo)."""
+    with Session() as session:
+        user = (
+            session.query(User)
+            .options(
+                selectinload(User.skills),
+                selectinload(User.soft_skills),
+                selectinload(User.languages),
+                selectinload(User.experiences)
+            )
+            .filter_by(googleId=user_id)
+            .first()
+        )
+
+        if not user:
+            return None
+
+        return {
+            "googleId": user.googleId,
+            "indirizzo": user.indirizzo,
+            "skills": [{"name": s.name, "livello": s.livello} for s in user.skills],
+            "soft_skills": [{"label": s.label} for s in user.soft_skills],
+            # Dato oggettivo, utilizzabile come criterio di matching: niente certification.
+            "languages": [{"name": l.name, "level": l.level} for l in user.languages],
+            # Dato qualitativo: valutato dall'AI refiner, non dallo scoring deterministico.
+            # Il link non viene mai esposto al motore di matching.
+            "experiences": [
+                {
+                    "title": e.title,
+                    "description": e.description,
+                    "labels": [
+                        label.strip()
+                        for label in (e.labels or "").split(LABEL_DELIMITER.strip())
+                        if label.strip()
+                    ]
+                }
+                for e in user.experiences
+            ]
+        }
+
+def upsertMatch(user_id: str, job_offer_id: int, deterministic_score: float,
+                 ai_score: float | None, final_score: float,
+                 explanation: str | None, ai_status: str) -> tuple[int, bool]:
+    """Crea o aggiorna il match. Ritorna (id, created)."""
+    with Session() as session:
+        for attempt in range(2):
+            match = (
+                session.query(Match)
+                .filter_by(user_id=user_id, job_offer_id=job_offer_id)
+                .first()
+            )
+            created = match is None
+
+            if created:
+                match = Match(user_id=user_id, job_offer_id=job_offer_id)
+                session.add(match)
+
+            match.deterministic_score = deterministic_score
+            match.ai_score = ai_score
+            match.final_score = final_score
+            match.explanation = explanation
+            match.ai_status = ai_status
+            match.computed_at = datetime.now(timezone.utc)
+
+            try:
+                session.commit()
+            except IntegrityError:
+                # Insert concorrente della stessa coppia: si riprova come update.
+                session.rollback()
+
+                if attempt == 1:
+                    raise
+
+                continue
+
+            return match.id, created
+
+def getMatchesForStudent(user_id: str):
+    with Session() as session:
+        return (
+            session.query(Match)
+            .options(
+                selectinload(Match.job_offer).selectinload(JobOffer.company),
+                selectinload(Match.job_offer).selectinload(JobOffer.required_skills),
+                selectinload(Match.job_offer).selectinload(JobOffer.required_soft_skills)
+            )
+            .join(JobOffer, Match.job_offer_id == JobOffer.id)
+            .filter(Match.user_id == user_id, JobOffer.attivo.is_(True))
+            .order_by(Match.final_score.desc())
+            .all()
+        )
+
+def addActiveSession(session_id: str, email: str):
+    with Session() as session:
+        now = datetime.now(timezone.utc)
+        active_session = ActiveSession(
+            session_id=session_id,
+            email=email.lower(),
+            created_at=now,
+            last_seen=now
+        )
+        session.add(active_session)
+        session.commit()
+
+def touchActiveSession(session_id: str):
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if not active_session:
+            return
+
+        active_session.last_seen = datetime.now(timezone.utc)
+        session.commit()
+
+def removeActiveSession(session_id: str):
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if active_session:
+            session.delete(active_session)
+            session.commit()
+
+def isActiveSessionValid(session_id: str, ttl_seconds: int) -> bool:
+    with Session() as session:
+        active_session = session.get(ActiveSession, session_id)
+
+        if not active_session:
+            return False
+
+        last_seen = active_session.last_seen
+
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+        expires_at = last_seen + timedelta(seconds=ttl_seconds)
+
+        return datetime.now(timezone.utc) <= expires_at
+
+def getActiveSessionsByEmail(email: str):
+    with Session() as session:
+        return (
+            session.query(ActiveSession)
+            .filter_by(email=email.lower())
+            .order_by(ActiveSession.created_at.asc())
+            .all()
+        )
+
+def countActiveSessions() -> int:
+    with Session() as session:
+        return session.query(ActiveSession).count()
+
+def deleteExpiredActiveSessions(ttl_seconds: int):
+    with Session() as session:
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=ttl_seconds)
+
+        session.query(ActiveSession).filter(
+            ActiveSession.last_seen < cutoff
+        ).delete()
+        session.commit()
+
+def removeAllActiveSessionsForEmail(email: str, except_session_id: str = None):
+    with Session() as session:
+        query = session.query(ActiveSession).filter_by(email=email.lower())
+
+        if except_session_id:
+            query = query.filter(ActiveSession.session_id != except_session_id)
+
+        query.delete()
+        session.commit()
 
 def modelToDict(obj, include_relationships=True):
     result = {}
@@ -231,9 +1110,12 @@ def modelToDict(obj, include_relationships=True):
     for column in mapper.mapper.column_attrs:
         result[column.key] = getattr(obj, column.key)
 
-    # Relationships
+    # Relationships (quelle non caricate — oggetto ormai staccato dalla sessione — si saltano)
     if include_relationships:
         for rel in mapper.mapper.relationships:
+            if rel.key in mapper.unloaded:
+                continue
+
             value = getattr(obj, rel.key)
 
             if value is None:
@@ -247,5 +1129,15 @@ def modelToDict(obj, include_relationships=True):
 
 class UserAlreadyExistsError(Exception):
     """Raised when trying to add a user that already exists."""
+
+    pass
+
+class InvalidAccessCodeError(Exception):
+    """Raised when a company access code is unknown or already used."""
+
+    pass
+
+class ApplicationAlreadyExistsError(Exception):
+    """Raised when a student tries to apply twice to the same job offer."""
 
     pass

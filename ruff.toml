@@ -1,0 +1,7 @@
+# Solo errori reali (sintassi, import/variabili inutilizzati o non definiti):
+# lo stile del progetto (camelCase, righe lunghe) non viene contestato.
+target-version = "py312"
+extend-exclude = ["scripts"]
+
+[lint]
+select = ["E9", "F"]

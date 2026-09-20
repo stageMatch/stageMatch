@@ -1,222 +1,237 @@
 # stageMatch
 
-Applicazione Flask per gestire l'accesso degli utenti, raccogliere i dati di profilo e visualizzare percorsi su mappa tra due indirizzi.
+Un'applicazione web full-stack che abbina i profili degli studenti alle aziende per individuare le opportunità di stage più adatte.
 
 ## Descrizione
 
-**stageMatch** integra un front-end Flask con autenticazione SSO, completamento del primo accesso, informativa privacy, profilo utente e una mappa interattiva. La parte geografica usa OpenStreetMap, Photon/Nominatim per la ricerca degli indirizzi e OpenRouteService per il calcolo del percorso.
+stageMatch nasce per semplificare l'incontro tra studenti e aziende in cerca di tirocinanti: gli studenti costruiscono un profilo con competenze, preferenze e disponibilità, mentre le aziende pubblicano le proprie opportunità, e l'applicazione si occupa di individuare gli abbinamenti più rilevanti.
 
-Il progetto contiene due servizi Flask:
+L'autenticazione avviene tramite Google OAuth, i dati sono gestiti con SQLAlchemy su SQLite e le funzionalità di geocoding, autocompletamento indirizzi e calcolo dei percorsi sono delegate a un servizio proxy interno dedicato, così da valutare anche la vicinanza geografica tra studente e azienda nel processo di abbinamento.
 
-- `app.py`: applicazione principale, pagine HTML, autenticazione, profilo utente e proxy verso le API geografiche.
-- `server.py`: API locale di supporto per geocoding e routing, in ascolto su `127.0.0.1:5001`.
+## Funzionalità principali
 
-La directory `test_auth/` contiene un esempio separato di blueprint SSO riutilizzabile.
+- **Profili studente**: dati anagrafici, competenze tecniche (skill) e trasversali (soft skill), lingue parlate (con livello CEFR ed eventuale certificazione), esperienze/progetti pregressi, preferenze e cronologia degli indirizzi/percorsi cercati.
+- **Profili azienda**: registrazione tramite Google OAuth e **codice di accesso monouso**, pubblicazione delle informazioni utili all'abbinamento con gli studenti e gestione dei propri annunci di stage.
+- **Codici di accesso aziende**: un amministratore (email in `ADMIN_EMAILS`) genera da `/admin/codes` un codice monouso salvato nel database e lo invia all'azienda; il codice viene controllato in registrazione e consumato al completamento.
+- **Annunci e candidature**: le aziende pubblicano annunci con requisiti di skill (con livello minimo) e soft skill; gli studenti consultano gli annunci attivi e si candidano, le aziende gestiscono lo stato delle candidature ricevute (inviata/vista/accettata/rifiutata).
+- **Motore di matching**: per ogni coppia studente/annuncio viene calcolato un punteggio deterministico (skill, soft skill e distanza/tempo di percorrenza casa-azienda, quest'ultima riusando la cache `UserRoute` e il geo-proxy), poi opzionalmente rifinito da un modello AI (Anthropic o DeepSeek, a seconda di `MATCH_AI_PROVIDER`) su un payload anonimizzato che include anche lingue ed esperienze come contesto aggiuntivo. Il calcolo gira in background tramite una coda in-memory a thread singolo (`matching/worker.py`, con accorpamento dei job duplicati), così da non bloccare le richieste HTTP; all'avvio vengono ricalcolati i match mancanti. Il punteggio AI può scostarsi al massimo di 15 punti da quello deterministico. Se l'AI è disabilitata, priva di API key o la chiamata fallisce, si usa sempre il punteggio deterministico come fallback.
+- **Notifiche**: notifiche in-app per studenti e aziende (nuove candidature, candidature accettate/rifiutate, nuovi annunci molto compatibili), con stato letto/non letto.
+- **Autenticazione**: login di studenti e aziende tramite Google OAuth, gestito interamente dall'applicazione.
+- **Mappa e calcolo percorsi**: ricerca indirizzi con autocompletamento (Photon), geocoding (Nominatim) e calcolo del tragitto casa-azienda (OpenRouteService), il tutto mediato dal servizio geo-proxy interno.
+- **Gestione privacy**: consenso privacy tracciato per studenti e aziende con storico per versione (`PRIVACY_POLICY_VERSION`); pagine `/privacy` e `/terms`; ogni utente può **scaricare i propri dati in JSON** ed **eliminare l'account** (con tutti i dati collegati) da Impostazioni (studenti) o dal Profilo (aziende).
+- **Controlli di accesso**: rate limiting delle sessioni simultanee (per singolo utente e a livello globale), persistito su database. Ogni utente può inoltre consultare le proprie sessioni attive e terminarle da Impostazioni.
+- **Tema chiaro/scuro**: preferenza persistita per utente (`UserPreferences.color_mode`) e per azienda (`Company.color_mode`), applicata a tutte le pagine tramite `resources/js/theme.js`. Sulle pagine pubbliche (es. la landing) il tema è scelto liberamente e salvato solo in `localStorage`, con fallback alla preferenza di sistema (`prefers-color-scheme`) se non è mai stato impostato nulla; se l'utente è loggato, al primo caricamento successivo di una pagina con sessione attiva viene confrontato con il valore nel database e, in caso di discrepanza, il database viene aggiornato. Il tema scelto prima della registrazione viene salvato come preferenza iniziale al completamento dell'iscrizione. La preferenza di lingua è persistita allo stesso modo per gli studenti, ma al momento non traduce ancora l'interfaccia (nessun sistema i18n implementato).
 
-## Funzionalità
+## Stack tecnologico
 
-- Autenticazione SSO con modalità `production` e modalità `dev` per lo sviluppo locale.
-- Completamento del profilo al primo accesso con consenso privacy versionato.
-- Area utente autenticata con homepage, profilo e mappa.
-- Ricerca indirizzi con suggerimenti tramite Photon.
-- Calcolo percorsi tramite OpenRouteService, con supporto per auto, bici e tragitti a piedi.
-- Mappa interattiva basata su Leaflet e dati OpenStreetMap.
-- Database locale gestito con SQLAlchemy.
+| Ambito | Tecnologie |
+| --- | --- |
+| Backend | Python, Flask, Gunicorn |
+| Autenticazione | Authlib (Google OAuth) |
+| Database | SQLAlchemy su SQLite |
+| Frontend | HTML/CSS/JS "vanilla" con template Jinja, senza framework né bundler; una coppia HTML/CSS/JS per ciascuna pagina in `resources/html` |
+| Matching AI | SDK `anthropic`, verso Anthropic o, in alternativa, l'endpoint compatibile di DeepSeek |
+| Servizi geografici esterni | Nominatim (geocoding), Photon (autocompletamento indirizzi), OpenRouteService (routing) |
+| Containerizzazione | Docker e Docker Compose per l'avvio coordinato di app principale e geo-proxy |
 
-## Tecnologie
+## Architettura
 
-| Categoria | Tecnologie |
-|---|---|
-| Backend | Python, Flask, Flask-CORS, Werkzeug |
-| Autenticazione | PyJWT, middleware SSO in `auth/` |
-| Database | SQLAlchemy |
-| Frontend | HTML, CSS, JavaScript |
-| Mappe | Leaflet, OpenStreetMap |
-| API geografiche | OpenRouteService, Photon, Nominatim |
-| HTTP | requests, aiohttp |
+L'applicazione è composta da due processi Flask indipendenti che comunicano tra loro via HTTP:
 
-## Requisiti
+- **`app.py`** (porta 5000) — l'app principale: serve le pagine (template Jinja in `resources/html/`), gestisce l'autenticazione e le sessioni utente/azienda ed è l'unico servizio che accede al database. Inoltra le chiamate `/photon` e `/routejson` provenienti dal frontend al geo-proxy ed espone le API per annunci, candidature e notifiche.
+- **`server.py`** (porta 5001) — un proxy geografico interno, contattato solo da `app.py` (mai direttamente dal browser), che astrae le API esterne di Nominatim (geocoding), Photon (autocompletamento indirizzi) e OpenRouteService (routing).
+- **`matching/`** — motore di matching studente/annuncio, eseguito in background rispetto alla richiesta HTTP tramite una coda in-memory a thread singolo (`worker.py`): calcola un punteggio deterministico su skill/soft skill/distanza (`scorer.py`), risolve la distanza casa-azienda riusando il geo-proxy e la cache `UserRoute` (`geo.py`), quindi lo rifinisce opzionalmente con un modello AI su dati anonimizzati (`ai_refiner.py`, Anthropic o DeepSeek). `engine.py` orchestra i tre moduli e scrive il risultato nella tabella `matches` tramite `database_helper`.
 
-- Python 3.10+
-- Browser moderno
-- Connessione internet per mappe e servizi geografici
-- Chiave OpenRouteService (`ORS_API_KEY`) per il calcolo dei percorsi
+### Struttura del progetto
 
-## Installazione
-
-Clona il repository e prepara l'ambiente:
-
-```bash
-git clone https://github.com/ZhoupengWu/stageMatch.git
-cd stageMatch
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
-
-Su Windows l'attivazione dell'ambiente virtuale è:
-
-```bash
-.venv\Scripts\activate
-```
-
-## Configurazione
-
-Copia il template delle variabili d'ambiente:
-
-```bash
-cp .env.example .env
-```
-
-Imposta almeno questi valori per lo sviluppo locale:
-
-```env
-ORS_API_KEY=la-tua-chiave-openrouteservice
-SSO_MODE=dev
-DEV_USER_EMAIL=demo@example.com
-SERVER_SECRET_KEY=una-stringa-lunga-e-casuale
-PORTAL_URL=http://127.0.0.1:5000
-DB_CONNECTION_STRING=users.db
-PORT=5000
-DEBUG=True
-PRIVACY_POLICY_VERSION=2026-04-21
-```
-
-In produzione imposta anche:
-
-```env
-SSO_MODE=production
-JWT_SECRET=segreto-condiviso-con-il-portale-sso
-APP_AUDIENCE=identificativo-app
-DEBUG=False
-```
-
-Ottieni una chiave OpenRouteService da <https://openrouteservice.org/dev/#/signup>.
-
-## Avvio
-
-Avvia il backend geografico:
-
-```bash
-python server.py
-```
-
-Il servizio ascolta su `http://127.0.0.1:5001`.
-
-In un secondo terminale, con lo stesso virtualenv attivo, avvia l'app principale:
-
-```bash
-python app.py
-```
-
-L'app ascolta sulla porta configurata in `.env` con `PORT`. Con la configurazione consigliata è disponibile su `http://127.0.0.1:5000`.
-
-## Sviluppo con SSO simulato
-
-Con `SSO_MODE=dev` non serve un portale SSO reale. Puoi avviare una sessione visitando:
-
-```text
-http://127.0.0.1:5000/dev/login
-```
-
-Oppure puoi simulare un utente specifico:
-
-```text
-http://127.0.0.1:5000/auth/login?email=utente@example.com
-```
-
-Al primo accesso l'app reindirizza al completamento del profilo. Dopo il salvataggio del profilo, l'utente accede alla homepage e alla mappa.
-
-## Utilizzo
-
-1. Avvia `server.py` e `app.py`.
-2. Esegui il login in modalità dev o tramite portale SSO in produzione.
-3. Completa il profilo se è il primo accesso.
-4. Apri la mappa dall'area autenticata.
-5. Inserisci indirizzo di partenza e destinazione.
-6. Scegli il mezzo di trasporto e calcola il percorso.
-
-## Endpoint principali
-
-### Applicazione (`app.py`)
-
-| Metodo | Endpoint | Accesso | Descrizione |
-|---|---|---|---|
-| `GET` | `/` | Pubblico | Landing page |
-| `GET` | `/login` | Pubblico | Pagina di login |
-| `GET` | `/privacy` | Pubblico | Informativa privacy |
-| `GET` | `/auth/login` | Pubblico | Callback SSO o login simulato in dev |
-| `GET` | `/auth/logout` | Autenticato | Logout |
-| `GET`, `POST` | `/logged/complete` | Autenticato | Completamento profilo |
-| `GET` | `/logged/homepage` | Autenticato | Homepage utente |
-| `GET` | `/logged/map` | Autenticato | Mappa |
-| `GET` | `/dev/login` | Solo dev | Shortcut per login simulato |
-| `GET` | `/api/users/profile` | Autenticato | Profilo utente in JSON |
-| `POST` | `/api/users/profile/save` | Autenticato | Salvataggio profilo |
-| `POST` | `/photon` | Autenticato | Proxy verso il backend Photon |
-| `POST` | `/routejson` | Autenticato | Proxy verso il backend routing |
-
-### Backend geografico (`server.py`)
-
-| Metodo | Endpoint | Descrizione |
-|---|---|---|
-| `GET` | `/photon` | Suggerimenti indirizzi da Photon |
-| `GET` | `/routejson` | Percorso GeoJSON da OpenRouteService |
-
-Esempio:
-
-```text
-GET http://127.0.0.1:5001/routejson?startaddress=Milano&endaddress=Roma&routemode=driving-car
-```
-
-Parametri di `/routejson`:
-
-- `startaddress`: indirizzo di partenza.
-- `endaddress`: indirizzo di arrivo.
-- `routemode`: modalità OpenRouteService, per esempio `driving-car`, `foot-walking` o `cycling-regular`.
-
-## Struttura del progetto
-
-```text
 stageMatch/
-├── app.py                       # Applicazione Flask principale
-├── server.py                    # Backend API per geocoding e routing
-├── requirements.txt             # Dipendenze Python
-├── .env.example                 # Template configurazione locale
-├── auth/                        # Autenticazione e middleware SSO
-├── database/                    # Helper database e modelli SQLAlchemy
-├── resources/
-│   ├── html/                    # Template HTML
-│   ├── css/                     # Stili
-│   ├── js/                      # Script frontend
-│   └── img/                     # Immagini
-├── test_auth/                   # Esempio separato di blueprint SSO
-├── snapshots/                   # Documenti PDF del progetto
-├── CONTRIBUTING.md              # Linee guida per contribuire
-├── LICENSE                      # Licenza Apache 2.0
-└── NOTICE                       # Riconoscimenti e attribuzioni
+├── app.py                        # App principale Flask (porta 5000)
+├── server.py                     # Geo-proxy Flask (porta 5001)
+├── validation.py                 # Validazione/normalizzazione dell'input JSON delle route
+├── auth/                         # Autenticazione: Google OAuth, sessioni, rate limiter
+│   ├── auth.py
+│   ├── rate_limiter.py
+│   ├── middleware/
+│   │   └── session_middleware.py
+│   └── auth_google/
+│       └── auth.py
+├── database/                     # Livello dati SQLAlchemy
+│   ├── database_helper.py        # Unico punto di accesso al DB
+│   └── models/                   # Un file per tabella
+│       ├── active_session.py
+│       ├── application.py
+│       ├── base.py
+│       ├── company.py
+│       ├── company_access_code.py
+│       ├── experience.py
+│       ├── job_offer.py
+│       ├── job_offer_skill.py
+│       ├── job_offer_soft_skill.py
+│       ├── language.py
+│       ├── match.py
+│       ├── notification.py
+│       ├── privacy_consent.py
+│       ├── route.py
+│       ├── skill.py
+│       ├── soft_skill.py
+│       ├── user.py
+│       └── user_preferences.py
+├── matching/                     # Motore di matching studente/annuncio (deterministico + rifinitura AI)
+│   ├── __init__.py
+│   ├── engine.py                 # Orchestrazione: database_helper + scorer + geo + ai_refiner
+│   ├── scorer.py                 # Punteggio deterministico (funzioni pure, no DB/rete)
+│   ├── geo.py                    # Distanza/durata casa-azienda (cache UserRoute + geo-proxy)
+│   ├── ai_refiner.py             # Rifinitura via Anthropic/DeepSeek su payload anonimizzato
+│   └── worker.py                 # Coda in-memory a thread singolo per l'esecuzione in background
+├── resources/                     # Frontend: template Jinja + asset statici (HTML/CSS/JS vanilla)
+│   ├── html/                      # Una pagina per file
+│   │   ├── admin-codes.html
+│   │   ├── complete-login.html
+│   │   ├── dashboard-student.html
+│   │   ├── home-company.html
+│   │   ├── landing.html
+│   │   ├── login-company.html
+│   │   ├── login-student.html
+│   │   ├── login.html
+│   │   ├── map-view.html
+│   │   ├── privacy.html
+│   │   └── terms.html
+│   ├── css/                       # Stili; brand-variables.css contiene le variabili del design system
+│   │   ├── admin-codes.css
+│   │   ├── brand-variables.css
+│   │   ├── complete-login.css
+│   │   ├── dashboard-student.css
+│   │   ├── home-company.css
+│   │   ├── landing.css
+│   │   ├── login-company.css
+│   │   ├── login-student.css
+│   │   ├── login.css
+│   │   ├── map-view.css
+│   │   └── privacy.css
+│   ├── js/                        # Script lato client, vanilla JS (uno per pagina, con l'eccezione di theme.js e account-data.js)
+│   │   ├── account-data.js
+│   │   ├── admin-codes.js
+│   │   ├── complete-login.js
+│   │   ├── dashboard-student.js
+│   │   ├── home-company.js
+│   │   ├── landing.js
+│   │   ├── login-company.js
+│   │   ├── login-student.js
+│   │   ├── login.js
+│   │   ├── map-view.js
+│   │   └── theme.js
+│   └── img/                       # Immagini e asset statici
+│       ├── android-chrome-icon.svg
+│       ├── apple-touch-icon.svg
+│       ├── bergamoalto.jpg
+│       ├── favicon.svg
+│       └── logo.svg
+├── .agents/
+│   └── skills -> .claude/skills   # Symlink per tool che cercano le skill in .agents/
+├── .claude/
+│   └── skills/stagematch-design/  # Skill di design usata da Claude Code (vedi sezione Design)
+│       ├── SKILL.md
+│       ├── assets/brand-variables.css
+│       └── references/design-system.md
+├── .devcontainer/
+│   └── devcontainer.json          # Configurazione Dev Container
+├── .dockerignore
+├── .editorconfig
+├── .env.example                   # Variabili d'ambiente di esempio (copiare in .env)
+├── .gitattributes
+├── .github/
+│   └── workflows/ci.yml           # CI: ruff + pytest
+├── .gitignore
+├── AGENTS.md -> CLAUDE.md         # Symlink, stesse istruzioni di CLAUDE.md per altri agenti AI
+├── ARCHITECTURE.md                # Diagramma del flusso richieste/dati
+├── CLAUDE.md                      # Istruzioni per Claude Code
+├── CONTRIBUTING.md                # Regole di branch, commit e Pull Request
+├── Dockerfile
+├── LICENSE
+├── NOTICE
+├── README.md
+├── docker-compose.yml             # Orchestrazione dei due servizi (web + api)
+├── jsconfig.json
+├── requirements.txt
+├── requirements-dev.txt           # Dipendenze di sviluppo (pytest, ruff)
+├── ruff.toml
+└── tests/                         # Test pytest (scorer, AI refiner, worker, database, API)
 ```
 
-## Testing e verifica manuale
+`resources/js/theme.js` (insieme a `account-data.js`, condiviso dalle due dashboard per l'eliminazione dell'account) è un'eccezione alla convenzione "un JS per pagina": `theme.js` è caricato da tutte le pagine per applicare il tema chiaro/scuro prima del paint (evitando un flash del tema sbagliato). Su una pagina con sessione utente/azienda attiva legge la preferenza da un meta tag server-side (`<meta name="app-theme" data-role="user|company">`) e, se diverge dal valore in `localStorage`, sincronizza quest'ultimo verso il database tramite `/api/users/preferences/save` o `/api/companies/preferences/save`; sulle pagine pubbliche usa solo `localStorage`, con fallback a `prefers-color-scheme`.
 
-Non è presente una test suite top-level. Per validare una modifica:
+Per il diagramma completo del flusso richieste/dati, consulta [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-- avvia `python server.py` e `python app.py`;
-- verifica login dev o SSO, completamento profilo e logout;
-- controlla homepage, salvataggio profilo e consenso privacy;
-- prova suggerimenti indirizzo, rendering mappa e generazione percorso;
-- se tocchi `auth/` o flussi SSO, verifica anche l'app in `test_auth/`.
+## Avvio rapido
 
-## Troubleshooting
+Copia `.env.example` in `.env` e compilalo con le tue credenziali, quindi installa le dipendenze:
 
-| Problema | Soluzione |
-|---|---|
-| L'app parte su una porta inattesa | Controlla `PORT` nel file `.env`. |
-| Login dev non funziona | Verifica `SSO_MODE=dev`, `SERVER_SECRET_KEY` e `DEV_USER_EMAIL`. |
-| Redirect logout verso un URL inatteso | Controlla `PORTAL_URL`. |
-| Percorsi non calcolati | Verifica `ORS_API_KEY` e che `server.py` sia avviato su `127.0.0.1:5001`. |
-| Suggerimenti o mappe non caricano | Verifica la connessione internet e l'accesso ai servizi OpenStreetMap/Photon. |
-| Errori CORS | Verifica che l'app principale usi `127.0.0.1:5000` o aggiorna le origini in `server.py`. |
+```bash
+pip install -r requirements.txt
+
+python app.py       # app principale — porta 5000
+python server.py    # geo-proxy — porta 5001
+```
+
+`SERVER_SECRET_KEY` è obbligatoria: senza, l'app si rifiuta di partire.
+
+Lo schema del database viene creato all'avvio (`create_all`), ma le tabelle già esistenti non vengono modificate: dopo un aggiornamento che cambia lo schema, in sviluppo elimina il file SQLite e lascia che venga ricreato.
+
+In alternativa, con Docker Compose (avvia entrambi i servizi collegati tra loro):
+
+```bash
+docker compose up --build
+```
+
+In Docker l'app gira con **Gunicorn** (un solo worker con più thread: la coda di matching è in memoria, quindi un solo processo applicativo), `DEBUG` è forzato a `False` e il database SQLite vive nel volume `db_data`. Il servizio `api` (geo-proxy) riceve solo `ORS_API_KEY` e `NOMINATIM_USER_AGENT`, non le altre credenziali. Entrambi i servizi hanno un healthcheck.
+
+### Registrazione delle aziende e codici di accesso
+
+1. Imposta `ADMIN_EMAILS` con le email Google degli amministratori.
+2. Accedi con uno di quegli account e apri `/admin/codes`: genera un codice monouso e copialo.
+3. Invia il codice all'azienda, che lo inserisce nel form di registrazione. Un codice usato o inesistente viene rifiutato.
+
+### Test e controlli
+
+```bash
+pip install -r requirements-dev.txt
+
+python -m pytest    # test automatici
+ruff check .        # lint (errori reali, non stile)
+```
+
+La stessa coppia di comandi gira in CI (`.github/workflows/ci.yml`).
+
+Il login (sia studenti che aziende) richiede credenziali Google OAuth valide (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) configurate su Google Cloud Console anche in locale.
+
+### Variabili d'ambiente principali
+
+Le principali variabili sono documentate in `.env.example`:
+
+| Variabile | Descrizione |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenziali OAuth per il login/registrazione Google di studenti e aziende. |
+| `ORS_API_KEY` | API key di OpenRouteService, usata da `server.py` per il calcolo dei percorsi. |
+| `SERVER_SECRET_KEY` | Segreto Flask per la firma dei cookie di sessione. |
+| `MAX_SESSIONS_PER_USER` / `MAX_SESSIONS_GLOBAL` | Limiti del rate limiter sulle sessioni simultanee. |
+| `SESSION_TTL_SECONDS` | Durata (secondi) prima che una sessione inattiva sia considerata scaduta. |
+| `ADMIN_EMAILS` | Email Google (separate da virgola) degli amministratori che accedono a `/admin/codes`. |
+| `DB_CONNECTION_STRING` | Percorso/stringa di connessione del database SQLite (default `database.db`). |
+| `PRIVACY_POLICY_VERSION` | Versione dell'informativa privacy registrata con il consenso (default `1.0`). |
+| `APP_VERSION` | Versione applicativa mostrata in Impostazioni > Informazioni (default `1.0.0`). |
+| `DEBUG` | `True` solo in sviluppo: abilita il debugger di Werkzeug e disattiva il flag `Secure` dei cookie (default `False`). |
+| `LOG_LEVEL` / `SQL_ECHO` | Livello di log (default `INFO`) e log delle query SQL, che contengono dati personali (default `False`). |
+| `MATCH_NOTIFY_MIN_SCORE` | Punteggio minimo per notificare allo studente un nuovo match (default `70`). |
+| `SUPPORT_EMAIL` | Email di supporto mostrata in Impostazioni, informativa e termini (opzionale: se vuota il contatto non compare). |
+| `NOMINATIM_USER_AGENT` | User-Agent inviato a Nominatim/Photon: le policy OSM richiedono un contatto reale. |
+| `ANTHROPIC_MATCHING_ENABLED` | Abilita/disabilita la rifinitura AI del punteggio di matching (default `True`); se disabilitata, priva di API key o in errore, si usa sempre il punteggio deterministico. |
+| `MATCH_AI_PROVIDER` | Provider usato per la rifinitura AI: `anthropic` (default) oppure `deepseek` (endpoint compatibile con la Messages API di Anthropic). |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Credenziali e modello Anthropic usati quando `MATCH_AI_PROVIDER=anthropic`. |
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` | Credenziali e modello DeepSeek usati quando `MATCH_AI_PROVIDER=deepseek`. |
+| `PORT` / `PORT_API` | Porte di ascolto di `app.py` (default `5000`) e `server.py` (default `5001`) quando avviati con `python`. In Docker la porta host di `web` è `PORT`. |
+| `HOST` | Host di bind per `python app.py` / `python server.py` (default `127.0.0.1`). |
+| `API_URL` | URL del geo-proxy usato da `app.py` e dal matching (default `http://127.0.0.1:5001`; in Compose `http://api:5001`). |
 
 ## Contribuire
 

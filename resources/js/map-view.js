@@ -56,7 +56,14 @@ const div_suggestion_end = document.getElementById("suggestions_end");
 const initial_coordinates = [45.695, 9.67];
 
 const map = L.map("map").setView([initial_coordinates[0], initial_coordinates[1]], 13);
-// const intre = L.marker([45.592, 9.301]).addTo(map);
+
+// Gli indirizzi possono arrivare dall'URL o da dati OSM: mai come HTML nei popup.
+function textPopup(text) {
+    const popup = document.createElement("div");
+    popup.textContent = String(text ?? "");
+
+    return popup;
+}
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributori',
@@ -65,27 +72,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const marker = L.marker(initial_coordinates).addTo(map);
 marker.bindPopup('Questa è Bergamo').openPopup();
 
-/**
- * Calcola e visualizza il percorso tra due indirizzi sulla mappa.
- *
- * @async
- * @function calcolaPercorso
- * @returns {Promise<void>}
- * @throws {Error} Se la richiesta al backend fallisce (response.ok === false), la risposta non è un GeoJSON valido,
- *                 gli indirizzi non sono stati inseriti o il mezzo di trasporto non è selezionato.
- *
- * @description
- * - Legge gli indirizzi dagli input #address_start e #address_end e valida i valori.
- * - Verifica che sia stato selezionato un mezzo di trasporto (variabile globale `mode`).
- * - Effettua una chiamata GET a /routejson del backend con startaddress, endaddress e routemode.
- * - Rimuove dalla mappa il layer GeoJSON e i marker precedenti se presenti.
- * - Aggiunge il nuovo layer GeoJSON (stile rosso, weight: 4) e posiziona due marker personalizzati (startIcon, endIcon).
- * - Chiude il pannello di controllo (rimuove la classe "open") e adatta la vista della mappa ai bounds del percorso.
- *
- * @sideEffects
- * - Modifica il DOM (chiusura pannello, eventuale visualizzazione di spinner/suggerimenti).
- * - Modifica la mappa Leaflet (rimozione/aggiunta di layer e marker, chiamata a map.fitBounds()).
- */
 async function calcolaPercorso() {
     const panel = document.getElementById("controlPanel");
 
@@ -145,35 +131,15 @@ async function calcolaPercorso() {
     panel.classList.remove("open");
     prev_layer = L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(map);
     prev_marker_start = L.marker([f_c[1], f_c[0]], { icon: startIcon }).addTo(map);
-    prev_marker_start.bindPopup(`${address_start}`);
+    prev_marker_start.bindPopup(textPopup(address_start));
     prev_marker_end = L.marker([l_c[1], l_c[0]], { icon: endIcon }).addTo(map);
-    prev_marker_end.bindPopup(`${address_end}`);
+    prev_marker_end.bindPopup(textPopup(address_end));
 
     if (prev_layer.getBounds) map.fitBounds(prev_layer.getBounds());
 }
 
 button.addEventListener("click", calcolaPercorso);
 
-/**
- * Recupera suggerimenti di indirizzi dall'API Photon Komoot basandosi sul valore dell'input.
- *
- * @async
- * @function suggestion
- * @this {HTMLInputElement} L'elemento input che ha invocato la funzione (start o end).
- * @returns {Promise<void>}
- * @throws {Error} Se la richiesta all'API fallisce o la risposta non può essere elaborata.
- *
- * @description
- * - Applica debounce (100ms) tramite la variabile globale `wait_time` prima di mostrare lo spinner e chiamare l'API.
- * - Interroga Photon Komoot con bias geografico (lat/lon da `initial_coordinates`) e limita a 5 risultati.
- * - Estrae via, numero civico, CAP e città dai risultati e popola il relativo container (#suggestions_start o #suggestions_end).
- * - Crea/rimuove uno spinner nell'input wrapper mentre la richiesta è in corso.
- * - Aggiunge listener sui suggerimenti per impostare `this.value`, nascondere la lista e rimuovere lo spinner.
- *
- * @sideEffects
- * - Aggiorna il DOM (spinner, lista suggerimenti, event listeners).
- * - Imposta il valore dell'input invocante tramite `this.value` alla selezione di un suggerimento.
- */
 async function suggestion() {
     const address = this.value.trim();
 
@@ -259,26 +225,27 @@ async function suggestion() {
             }
         ));
 
-        const data_address_html = data_address.map(data => {
-            return `
-            <a href="#" data-index="${data.id}">${data.indirizzo_via} ${data.indirizzo_civico} ${data.indirizzo_cap} ${data.indirizzo_city}</a>
-            `
-        });
-
-        div_suggestion.innerHTML = data_address_html.join('');
+        div_suggestion.replaceChildren();
 
         const input_spinner = input_wrapper.querySelector(".input-spinner");
 
         if (input_spinner) input_spinner.remove();
 
-        for (let i = 0; i < data_address_html.length; ++i) {
-            const dah = div_suggestion.querySelector(`[data-index="${i}"]`);
-            dah.addEventListener("click", () => {
+        data_address.forEach((data) => {
+            const dah = document.createElement("a");
+            dah.href = "#";
+            dah.dataset.index = data.id;
+            dah.textContent = [data.indirizzo_via, data.indirizzo_civico, data.indirizzo_cap, data.indirizzo_city]
+                .filter(Boolean)
+                .join(" ");
+            dah.addEventListener("click", (e) => {
+                e.preventDefault();
                 this.value = dah.textContent;
                 div_suggestion.classList.add("not-visible");
-                div_suggestion.innerHTML = "";
+                div_suggestion.replaceChildren();
             });
-        }
+            div_suggestion.appendChild(dah);
+        });
     } catch (error) {
         throw new Error(error);
     } finally {
@@ -298,7 +265,6 @@ input_address_end.addEventListener("keydown", (e) => {
     if (e.key === "Enter") suggestion.call(input_address_end);
 });
 
-// GESTIONE TOGGLE PANNELLO
 document.addEventListener("DOMContentLoaded", () => {
     const panel = document.getElementById("controlPanel");
     const toggle = document.getElementById("togglePanel");
@@ -337,14 +303,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && panel.classList.contains("open")) {
             panel.classList.remove("open");
-            console.log("Pannello chiuso con ESC");
         }
     });
 
     toggle.click();
 });
 
-// GESTIONE MEZZI DI TRASPORTO
 document.addEventListener("DOMContentLoaded", () => {
     const transportButtons = document.querySelectorAll(".transport-modes .mode");
     transportButtons.forEach(btn => {
@@ -353,15 +317,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             btn.classList.add("active");
             mode = btn.dataset.mode;
-            console.log("Mezzo selezionato:", mode);
         });
     });
 
-    // Controllo parametri URL per ripetere percorso
     const urlParams = new URLSearchParams(window.location.search);
     const start = urlParams.get('startaddress');
     const end = urlParams.get('endaddress');
-    const routeMode = urlParams.get('routemode');
+    const validModes = Array.from(transportButtons).map(btn => btn.dataset.mode);
+    const requestedMode = urlParams.get('routemode');
+    // Mezzo esplicito nell'URL > mezzo predefinito dalle impostazioni > nessuno
+    const routeMode = validModes.includes(requestedMode)
+        ? requestedMode
+        : (validModes.includes(window.DEFAULT_TRANSPORT_MODE) ? window.DEFAULT_TRANSPORT_MODE : null);
 
     if (start && end && routeMode) {
         input_address_start.value = start;
@@ -377,5 +344,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         calcolaPercorso();
+    } else if (routeMode) {
+        mode = routeMode;
+
+        transportButtons.forEach(btn => {
+            if (btn.dataset.mode === routeMode) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
     }
 });

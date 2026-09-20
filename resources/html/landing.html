@@ -2,28 +2,25 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8"/>
+    {% if color_mode %}<meta name="app-theme" content="{{ color_mode }}" data-role="{{ auth_type }}">{% endif %}
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>stageMatch | Trova il tuo stage ideale</title>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
 
-    <!-- Mobile Icons (Apple & Android) -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.svg') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="stageMatch">
 
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}" />
 </head>
 <body>
 
-    <!-- NAVBAR -->
     <nav id="main-nav">
         <a class="nav-logo" href="#">
             <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="stageMatch Logo" class="logo-img">
@@ -34,11 +31,14 @@
             <li><a href="#aziende">Per le aziende</a></li>
         </ul>
         <div class="nav-cta">
-            <a href="{{ url_for('loginStudent') }}" class="btn btn-primary">Accedi</a>
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Accedi</a>
+            <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Cambia tema" title="Cambia tema">
+                <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            </button>
         </div>
         </nav>
 
-        <!-- HERO -->
         <header class="hero">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
@@ -60,7 +60,6 @@
         </div>
         </header>
 
-    <!-- FEATURES -->
     <section id="features">
         <div class="section-header" data-reveal>
             <span class="section-eyebrow">Perché noi</span>
@@ -86,7 +85,6 @@
         </div>
     </section>
 
-    <!-- HOW IT WORKS -->
     <section id="howto">
         <div class="section-header" data-reveal>
             <span class="section-eyebrow">Processo</span>
@@ -118,7 +116,6 @@
         </div>
     </section>
 
-    <!-- PER LE AZIENDE -->
     <section id="aziende">
         <div class="section-header" data-reveal>
             <span class="section-eyebrow">Aziende</span>
@@ -143,7 +140,6 @@
         </div>
     </section>
 
-    <!-- FOOTER -->
     <footer>
         <div>
             <a class="nav-logo" href="#">
@@ -154,14 +150,13 @@
 
         <ul class="footer-links">
             <li><a href="{{ url_for('privacy') }}">Privacy Policy</a></li>
-            <li><a href="#">Termini di Servizio</a></li>
+            <li><a href="{{ url_for('terms') }}">Termini di Servizio</a></li>
             <li><a href="mailto:info@stagematch.it">Contatti</a></li>
         </ul>
 
         <span class="footer-copy">© 2025-2026 stageMatch. Tutti i diritti riservati.</span>
     </footer>
 
-    <!-- Script -->
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
 </html>

@@ -1,91 +1,9 @@
-/* ─── DATI MOCK ───────────────────────────────────────────
-   In produzione sostituire con fetch() verso le API Flask.
-   ─────────────────────────────────────────────────────── */
-
-   const MOCK_COMPANIES = [
-    {
-        id: 1,
-        initials: "AT",
-        name: "Alpha Tech Srl",
-        sector: "Sviluppo Software",
-        matchPct: 94,
-        tags: ["Python", "JavaScript", "Flask"],
-        description:
-            "Azienda bergamasca specializzata nello sviluppo di applicazioni web e mobile per il settore industriale.",
-        distanceKm: 12,
-        durationMin: 18,
-        city: "Dalmine",
-        address: "Via Roma 12, Dalmine BG",
-        contacts: {
-            email: "stage@alphatech.it",
-            web: "www.alphatech.it",
-            phone: "035 123 456",
-        },
-    },
-    {
-        id: 2,
-        initials: "BS",
-        name: "Beta Systems",
-        sector: "Cybersecurity",
-        matchPct: 81,
-        tags: ["Networking", "Linux", "Python"],
-        description:
-            "Società di consulenza specializzata in sicurezza informatica e infrastrutture di rete per PMI lombarde.",
-        distanceKm: 8,
-        durationMin: 12,
-        city: "Seriate",
-        address: "Via Industria 5, Seriate BG",
-        contacts: {
-            email: "hr@betasystems.it",
-            web: "www.betasystems.it",
-            phone: "035 654 321",
-        },
-    },
-    {
-        id: 3,
-        initials: "GI",
-        name: "Gamma Informatica",
-        sector: "Cloud & DevOps",
-        matchPct: 74,
-        tags: ["Docker", "AWS", "CI/CD"],
-        description:
-            "Provider di servizi cloud e automazione per aziende del territorio bergamasco e bresciano.",
-        distanceKm: 7,
-        durationMin: 10,
-        city: "Curno",
-        address: "Via Milano 88, Curno BG",
-        contacts: {
-            email: "tirocini@gammainf.it",
-            web: "www.gammainformatica.it",
-            phone: "035 789 000",
-        },
-    },
-    {
-        id: 4,
-        initials: "DN",
-        name: "Delta Networks",
-        sector: "Telecomunicazioni",
-        matchPct: 61,
-        tags: ["SQL", "Java", "IoT"],
-        description:
-            "Azienda nel settore delle reti di telecomunicazione con focus su soluzioni IoT industriali.",
-        distanceKm: 15,
-        durationMin: 22,
-        city: "Stezzano",
-        address: "Via Orio 3, Stezzano BG",
-        contacts: {
-            email: "info@deltanetworks.it",
-            web: "www.deltanetworks.it",
-            phone: "035 901 234",
-        },
-    },
-];
-
 let userRoutes = [];
+let currentCompanies = [];
 
-/* ─── HELPERS ─────────────────────────────────────────── */
+// L'id dell'icona può derivare da dati utente (es. soft skill): solo caratteri sicuri.
 const svgIcon = (id, extraClass = "icon") =>
-    `<span class="${extraClass}"><svg><use href="#${id}"></use></svg></span>`;
+    `<span class="${extraClass}"><svg><use href="#${String(id).replace(/[^\w-]/g, "")}"></use></svg></span>`;
 
 const modeLabel = {
     "driving-car": "Auto",
@@ -103,11 +21,6 @@ const modeBadge = {
     "cycling-regular": "bike",
 };
 
-/* ════════════════════════════════════════════════════════
-   NAVIGAZIONE SEZIONI
-   showSection('dashboard' | 'aziende' | 'percorsi')
-   Nasconde tutte le sezioni e mostra solo quella richiesta.
-   ════════════════════════════════════════════════════════ */
 const SECTIONS = [
     "sectionDashboard",
     "sectionAziende",
@@ -141,11 +54,9 @@ function showSection(name) {
         loadRoutes();
     }
 
-    // Mobile: chiudi sidebar
     if (window.innerWidth <= 1100) closeSidebar();
 }
 
-/* ─── setActive ───────────────────────────────────────── */
 function setActive(el) {
     document
         .querySelectorAll(".nav-item")
@@ -153,66 +64,141 @@ function setActive(el) {
     if (el) el.classList.add("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   AZIENDE MATCH
-   Renderizza le card nella sezione principale (non panel).
-   ════════════════════════════════════════════════════════ */
-function renderCompanies(companies) {
+const APPLICATION_STATUS_LABEL = {
+    inviata: "Candidatura inviata",
+    vista: "Candidatura visualizzata",
+    accettata: "Candidatura accettata",
+    rifiutata: "Candidatura rifiutata",
+};
+
+function offerInitials(name) {
+    return String(name || "?")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join("")
+        .toUpperCase();
+}
+
+const MAX_VISIBLE_TAGS = 4;
+
+function renderTagsHtml(tags, max) {
+    const visible = tags.slice(0, max);
+    const remaining = tags.length - visible.length;
+    const chips = visible.map((t) => `<span class="co-tag">${escapeHtml(t)}</span>`).join("");
+    const moreChip = remaining > 0 ? `<span class="co-tag co-tag-more">+${remaining} altre</span>` : "";
+    return chips + moreChip;
+}
+
+function mapOfferToCard(offer) {
+    const tags = [
+        ...offer.required_skills.map((s) => s.name),
+        ...offer.required_soft_skills.map((s) => s.label),
+    ];
+
+    return {
+        id: offer.id,
+        initials: offerInitials(offer.company_name),
+        name: offer.company_name,
+        sector: offer.title,
+        companySector: offer.company_settore || "Settore non specificato",
+        matchPct: offer.final_score != null ? Math.round(offer.final_score) : null,
+        aiStatus: offer.ai_status,
+        explanation: offer.explanation,
+        tags,
+        description: offer.description || offer.company_descrizione || "Nessuna descrizione disponibile.",
+        distanceKm: offer.distance_km != null ? offer.distance_km.toFixed(1) : null,
+        durationMin: offer.duration_min != null ? Math.round(offer.duration_min) : null,
+        address: offer.company_address || "Indirizzo non disponibile",
+        contacts: {
+            email: offer.company_email,
+            web: offer.company_sito_web,
+            phone: offer.company_telefono,
+        },
+        applicationStatus: offer.application_status,
+    };
+}
+
+function renderCompanies(offers) {
+    currentCompanies = Array.isArray(offers) ? offers.map(mapOfferToCard) : [];
+    renderCompanyCards();
+}
+
+function getApplyLabel(company) {
+    return company.applicationStatus
+        ? APPLICATION_STATUS_LABEL[company.applicationStatus] || "Candidato"
+        : "Candidati";
+}
+
+function renderCompanyCards() {
     const list = document.getElementById("aziendeList");
     const empty = document.getElementById("aziendeEmpty");
     const badge = document.getElementById("badgeAziende");
+    const statAziende = document.getElementById("statAziendeMatch");
     const subtitle = document.getElementById("aziendeSubtitle");
 
-    currentCompanies = Array.isArray(companies) ? companies : [];
+    badge.textContent = currentCompanies.length;
+    if (statAziende) statAziende.textContent = currentCompanies.length;
 
-    badge.textContent = companies.length;
-
-    if (!companies || companies.length === 0) {
+    if (currentCompanies.length === 0) {
         list.style.display = "none";
         empty.style.display = "flex";
-        subtitle.textContent = "Nessuna azienda compatibile trovata";
+        subtitle.textContent = "Nessun annuncio compatibile trovato";
         return;
     }
 
-    const n = companies.length;
-    subtitle.textContent = `${n} aziend${n === 1 ? "a" : "e"} compatibil${n === 1 ? "e" : "i"} con il tuo profilo`;
+    const n = currentCompanies.length;
+    subtitle.textContent = `${n} annunci${n === 1 ? "o" : ""} compatibil${n === 1 ? "e" : "i"} con il tuo profilo`;
     empty.style.display = "none";
     list.style.display = "grid";
     list.innerHTML = "";
 
-    companies.forEach((c, i) => {
-        const isBest = i === 0;
-        const tags = c.tags
-            .map((t) => `<span class="co-tag">${t}</span>`)
-            .join("");
+    currentCompanies.forEach((c, i) => {
+        const isBest = i === 0 && c.matchPct != null;
+        const tags = renderTagsHtml(c.tags, MAX_VISIBLE_TAGS);
         const card = document.createElement("div");
         card.className = `co-card${isBest ? " best" : ""}`;
         card.dataset.id = c.id;
 
+        const matchBlock =
+            c.matchPct != null
+                ? `<div class="co-match">
+                    <div class="co-pct">${c.matchPct}%</div>
+                    <div class="co-pct-label">match</div>
+                  </div>`
+                : `<div class="co-match">
+                    <div class="co-pct-label">In elaborazione…</div>
+                  </div>`;
+
+        const applyLabel = getApplyLabel(c);
+
         card.innerHTML = `
           <div class="co-top">
             <div class="co-row1">
-              <div class="co-logo">${c.initials}</div>
+              <div class="co-logo">${escapeHtml(c.initials)}</div>
               <div class="co-info">
-                <div class="co-name">${c.name}</div>
-                <div class="co-sector">${c.sector}</div>
+                <div class="co-name">${escapeHtml(c.name)}</div>
+                <div class="co-sector">${escapeHtml(c.sector)}</div>
               </div>
-              <div class="co-match">
-                <div class="co-pct">${c.matchPct}%</div>
-                <div class="co-pct-label">match</div>
-              </div>
+              ${matchBlock}
             </div>
-            <div class="co-bar-wrap"><div class="co-bar" style="width:${c.matchPct}%"></div></div>
+            ${c.matchPct != null ? `<div class="co-bar-wrap"><div class="co-bar" style="width:${c.matchPct}%"></div></div>` : ""}
             <div class="co-tags">${tags}</div>
             <div class="co-meta">
-              <div class="co-meta-item">${svgIcon("i-pin")}<span>${c.city} · ${c.distanceKm} km</span></div>
+              <div class="co-meta-item">${svgIcon("i-pin")}<span>${c.distanceKm != null ? c.distanceKm + " km" : "distanza n/d"}</span></div>
               <div class="co-meta-sep">·</div>
-              <div class="co-meta-item">${svgIcon("i-route")}<span>${c.durationMin} min in auto</span></div>
+              <div class="co-meta-item">${svgIcon("i-route")}<span>${c.durationMin != null ? c.durationMin + " min in auto" : "durata n/d"}</span></div>
             </div>
           </div>
-          <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}">
-            Dettagli e contatti
-          </button>
+          <div class="co-card-actions">
+            <button class="co-toggle" type="button" data-action="open-company-details" data-company-id="${c.id}">
+              Dettagli e contatti
+            </button>
+            <button class="co-toggle" type="button" data-action="apply-offer" data-company-id="${c.id}" ${c.applicationStatus ? "disabled" : ""}>
+              ${applyLabel}
+            </button>
+          </div>
         `;
         list.appendChild(card);
     });
@@ -222,15 +208,37 @@ async function loadCompanies() {
     document.getElementById("aziendeLoading").style.display = "flex";
     document.getElementById("aziendeList").style.display = "none";
 
-    /* ── Sostituire con fetch reale: ──────────────────────────
-       const res  = await fetch('/api/companies/matches');
-       const data = await res.json();
-       renderCompanies(data);
-       ─────────────────────────────────────────────────────── */
-    await new Promise((r) => setTimeout(r, 700));
+    try {
+        const res = await fetch("/api/students/offers");
+        if (!res.ok) throw new Error(`http ${res.status}`);
+        renderCompanies(await res.json());
+    } catch (err) {
+        console.error("Errore caricamento annunci:", err);
+        renderCompanies([]);
+    } finally {
+        document.getElementById("aziendeLoading").style.display = "none";
+    }
+}
 
-    document.getElementById("aziendeLoading").style.display = "none";
-    renderCompanies(MOCK_COMPANIES);
+async function applyToOffer(companyId) {
+    try {
+        const res = await fetch(`/api/students/offers/${companyId}/apply`, { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            showToast(data.error || "Errore durante l'invio della candidatura");
+            return;
+        }
+
+        const offer = currentCompanies.find((c) => String(c.id) === String(companyId));
+        if (offer) offer.applicationStatus = "inviata";
+
+        showToast("Candidatura inviata");
+        renderCompanyCards();
+    } catch (err) {
+        console.error("Errore candidatura:", err);
+        showToast("Errore durante l'invio della candidatura");
+    }
 }
 
 function getCompanyById(companyId) {
@@ -239,50 +247,67 @@ function getCompanyById(companyId) {
 
 function renderCompanyDetailsModal(company) {
     const content = document.getElementById("companyDetailsContent");
+    const explanationBlock = company.explanation
+        ? `<div class="co-desc">${escapeHtml(company.explanation)}</div>`
+        : `<div class="co-desc">Punteggio calcolato automaticamente in base a skill, soft skill e distanza.</div>`;
 
     content.innerHTML = `
       <div class="company-modal-hero">
-        <div class="company-modal-logo">${company.initials}</div>
+        <div class="company-modal-logo">${escapeHtml(company.initials)}</div>
         <div class="company-modal-head">
-          <div class="company-modal-name">${company.name}</div>
-          <div class="company-modal-sector">${company.sector}</div>
+          <div class="company-modal-name">${escapeHtml(company.name)}</div>
+          <div class="company-modal-sector">${escapeHtml(company.sector)} · ${escapeHtml(company.companySector)}</div>
         </div>
         <div class="company-modal-match">
-          <div class="company-modal-match-pct">${company.matchPct}%</div>
+          <div class="company-modal-match-pct">${company.matchPct != null ? company.matchPct + "%" : "--"}</div>
           <div class="company-modal-match-label">match</div>
         </div>
       </div>
       <div class="company-modal-tags">
-        ${company.tags.map((tag) => `<span class="co-tag">${tag}</span>`).join("")}
+        ${company.tags.map((tag) => `<span class="co-tag">${escapeHtml(tag)}</span>`).join("")}
       </div>
       <div class="company-modal-grid">
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Descrizione</div>
-          <div class="co-desc">${company.description}</div>
+          <div class="co-desc">${escapeHtml(company.description)}</div>
+        </div>
+        <div class="company-modal-panel has-tip">
+          <div class="company-modal-section-title">
+            Perché questo match
+            <button class="info-tip-btn" type="button" aria-label="Come viene generato il motivo del match" aria-describedby="matchReasonTip" aria-expanded="false">?</button>
+            <div class="info-tip" id="matchReasonTip" role="tooltip">Il motivo del match può essere generato da un'intelligenza artificiale, che analizza in modo anonimo competenze, soft skill, lingue, esperienze e distanza. Se l'AI non è disponibile, viene mostrato il punteggio calcolato automaticamente.</div>
+          </div>
+          ${explanationBlock}
         </div>
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Dettagli</div>
           <div class="company-modal-info-list">
-            <div class="co-contact-row">${svgIcon("i-pin")}<span>${company.address}</span></div>
-            <div class="co-contact-row">${svgIcon("i-route")}<span>${company.city} · ${company.distanceKm} km · ${company.durationMin} min in auto</span></div>
+            <div class="co-contact-row">${svgIcon("i-pin")}<span>${escapeHtml(company.address)}</span></div>
+            <div class="co-contact-row">${svgIcon("i-route")}<span>${company.distanceKm != null ? company.distanceKm + " km · " + company.durationMin + " min in auto" : "Distanza non disponibile"}</span></div>
           </div>
         </div>
         <div class="company-modal-panel">
           <div class="company-modal-section-title">Contatti</div>
           <div class="co-contacts">
-            <div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${company.contacts.email}">${company.contacts.email}</a></div>
-            <div class="co-contact-row">${svgIcon("i-link")}<a href="https://${company.contacts.web}" target="_blank" rel="noopener noreferrer">${company.contacts.web}</a></div>
-            <div class="co-contact-row">${svgIcon("i-phone")}<span>${company.contacts.phone}</span></div>
+            ${company.contacts.email ? `<div class="co-contact-row">${svgIcon("i-mail")}<a href="mailto:${encodeURI(company.contacts.email)}">${escapeHtml(company.contacts.email)}</a></div>` : ""}
+            ${company.contacts.web ? renderWebContact(company.contacts.web) : ""}
+            ${company.contacts.phone ? `<div class="co-contact-row">${svgIcon("i-phone")}<span>${escapeHtml(company.contacts.phone)}</span></div>` : ""}
           </div>
         </div>
       </div>
-      <button class="co-map-btn" type="button" data-action="go-to-company-map" data-company-id="${company.id}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-             fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-        Mostra percorso sulla mappa
-      </button>
+      <div class="company-modal-actions">
+        <button class="co-map-btn" type="button" data-action="apply-offer" data-company-id="${company.id}" ${company.applicationStatus ? "disabled" : ""}>
+          ${svgIcon("i-check")}
+          ${getApplyLabel(company)}
+        </button>
+        <button class="co-map-btn co-map-btn-outline" type="button" data-action="go-to-company-map" data-company-id="${company.id}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Mostra percorso sulla mappa
+        </button>
+      </div>
     `;
 }
 
@@ -302,10 +327,6 @@ function closeCompanyDetails() {
     overlay.classList.remove("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   I MIEI PERCORSI
-   Renderizza la lista completa con filtri per mezzo.
-   ════════════════════════════════════════════════════════ */
 function renderRoutes(routes, filter = "all") {
     const list = document.getElementById("percorsiList");
     const count = document.getElementById("percorsiCount");
@@ -329,13 +350,12 @@ function renderRoutes(routes, filter = "all") {
             const label = modeLabel[r.mode] || r.mode;
             const icon = modeIcon[r.mode] || svgIcon("i-car");
             const badge = modeBadge[r.mode] || "car";
-            const safeR = encodeURIComponent(JSON.stringify(r));
 
             return `
-        <div class="route-card" data-mode="${r.mode}">
+        <div class="route-card" data-mode="${r.mode}" data-id="${r.id}">
           <div class="route-card-icon">${icon}</div>
           <div class="route-card-info">
-            <div class="route-card-title">${r.from} → ${r.to}</div>
+            <div class="route-card-title">${escapeHtml(r.from)} → ${escapeHtml(r.to)}</div>
             <div class="route-card-meta">
               <span><strong>${r.date || "--"}</strong></span>
               <span><strong>${r.distanceKm || "--"} km</strong></span>
@@ -344,7 +364,7 @@ function renderRoutes(routes, filter = "all") {
             </div>
           </div>
           <div class="route-card-actions">
-            <button class="btn-repeat" onclick="repeatRoute(decodeURIComponent('${safeR}'))">
+            <button class="btn-repeat" type="button" data-action="repeat-route" data-id="${r.id}">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
                    fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -363,7 +383,6 @@ async function loadRoutes() {
         if (!res.ok) throw new Error("Errore nel caricamento dei percorsi");
         const data = await res.json();
 
-        // Mappatura dei dati dal database al formato UI
         userRoutes = data.map(r => ({
             id: r.id,
             mode: r.mode,
@@ -371,9 +390,9 @@ async function loadRoutes() {
             to: r.end_address,
             startaddress: r.start_address,
             endaddress: r.end_address,
-            distanceKm: null, // Non presente nel DB
-            durationMin: null, // Non presente nel DB
-            date: null // Non presente nel DB
+            distanceKm: r.distance_km != null ? r.distance_km.toFixed(1) : null,
+            durationMin: r.duration_min != null ? Math.round(r.duration_min) : null,
+            date: r.updated_at ? new Date(r.updated_at).toLocaleDateString("it-IT") : null
         }));
 
         percorsiLoaded = true;
@@ -384,32 +403,71 @@ async function loadRoutes() {
     }
 }
 
-function repeatRoute(routeJSON) {
-    const r = JSON.parse(routeJSON);
+function getUserRouteById(routeId) {
+    return userRoutes.find((r) => String(r.id) === String(routeId));
+}
+
+function repeatRoute(route) {
+    if (!route) return;
     const params = new URLSearchParams({
-        startaddress: r.startaddress,
-        endaddress: r.endaddress,
-        routemode: r.mode,
+        startaddress: route.startaddress,
+        endaddress: route.endaddress,
+        routemode: route.mode,
     });
     window.location.href = `/logged/map?${params.toString()}`;
 }
 
-/* ════════════════════════════════════════════════════════
-   REDIRECT MAPPA (da card azienda)
-   ════════════════════════════════════════════════════════ */
+function renderRouteDetailsModal(route) {
+    const content = document.getElementById("routeDetailsContent");
+    const label = modeLabel[route.mode] || route.mode;
+    const icon = modeIcon[route.mode] || svgIcon("i-car");
+
+    content.innerHTML = `
+      <div class="pro-rows">
+        <div class="pro-row"><span class="pro-lbl">Partenza</span><span class="pro-val">${escapeHtml(route.from)}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Destinazione</span><span class="pro-val">${escapeHtml(route.to)}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Mezzo</span><span class="pro-val">${icon} ${label}</span></div>
+        <div class="pro-row"><span class="pro-lbl">Distanza</span><span class="pro-val">${route.distanceKm || "--"} km</span></div>
+        <div class="pro-row"><span class="pro-lbl">Durata</span><span class="pro-val">${route.durationMin || "--"} min</span></div>
+        <div class="pro-row"><span class="pro-lbl">Data</span><span class="pro-val">${route.date || "--"}</span></div>
+      </div>
+      <button class="co-map-btn" type="button" data-action="repeat-route" data-id="${route.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+             fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Ripeti
+      </button>
+    `;
+}
+
+function openRouteDetails(routeId) {
+    const route = getUserRouteById(routeId);
+    const overlay = document.getElementById("routeDetailsOverlay");
+    if (!route || !overlay) return;
+
+    renderRouteDetailsModal(route);
+    overlay.classList.add("active");
+}
+
+function closeRouteDetails() {
+    const overlay = document.getElementById("routeDetailsOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("active");
+}
+
 function goToMap(companyId) {
     const c = getCompanyById(companyId);
     if (!c) return;
     const params = new URLSearchParams({
-        startaddress: "Bergamo, BG", // ← sostituire con indirizzo da sessione utente
+        startaddress: "Bergamo, BG",
         endaddress: c.address,
         endname: c.name,
-        routemode: "driving-car",
+        routemode: window.DEFAULT_TRANSPORT_MODE || "driving-car",
     });
     window.location.href = `/logged/map?${params.toString()}`;
 }
 
-/* ─── ANTEPRIMA PERCORSI RECENTI (nella dashboard) ───── */
 function renderRecentRoutes() {
     const list = document.getElementById("recentRoutesList");
     if (!userRoutes || userRoutes.length === 0) {
@@ -425,10 +483,10 @@ function renderRecentRoutes() {
     list.innerHTML = recent
         .map(
             (r) => `
-      <div class="route-item">
+      <div class="route-item" data-id="${r.id}">
         <div class="route-icon">${modeIcon[r.mode] || svgIcon("i-car")}</div>
         <div class="route-info">
-          <div class="route-from-to">${r.from} → ${r.to}</div>
+          <div class="route-from-to">${escapeHtml(r.from)} → ${escapeHtml(r.to)}</div>
           <div class="route-meta">${r.date || "--"} · ${r.distanceKm || "--"} km · ${r.durationMin || "--"} min</div>
         </div>
         <span class="route-badge ${modeBadge[r.mode] || "car"}">${modeLabel[r.mode] || "Auto"}</span>
@@ -437,9 +495,6 @@ function renderRecentRoutes() {
         .join("");
 }
 
-/* ════════════════════════════════════════════════════════
-   PROFILO — dati caricati da /api/users/profile
-   ════════════════════════════════════════════════════════ */
 const EMPTY_PROFILO_DATA = {
     name: "",
     surname: "",
@@ -453,8 +508,11 @@ const EMPTY_PROFILO_DATA = {
     classe: "",
     indirizzo: "",
     picture: "",
+    istituto: "",
     skills: [],
     soft_skills: [],
+    languages: [],
+    experiences: [],
 };
 let profiloData = { ...EMPTY_PROFILO_DATA };
 let profiloLoaded = false;
@@ -475,6 +533,29 @@ const ALL_SOFT_SKILLS = [
 const SKILL_LV_MAP = { Base: 33, Intermedio: 65, Avanzato: 90 };
 const SKILL_LV_DB_MAP = { Base: 1, Intermedio: 2, Avanzato: 3 };
 const SKILL_LV_LABEL_MAP = { 1: "Base", 2: "Intermedio", 3: "Avanzato" };
+const LANGUAGE_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+function sanitizeUrl(url) {
+    const value = String(url || "").trim();
+    if (!value) return "";
+
+    if (/^(https?:)?\/\//i.test(value)) return value;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return "";
+
+    return `https://${value}`;
+}
+
+// Sito dell'azienda: link solo se è un URL http(s) valido, altrimenti testo semplice.
+function renderWebContact(web) {
+    const safeUrl = sanitizeUrl(web);
+    const label = escapeHtml(web);
+
+    if (!safeUrl) {
+        return `<div class="co-contact-row">${svgIcon("i-link")}<span>${label}</span></div>`;
+    }
+
+    return `<div class="co-contact-row">${svgIcon("i-link")}<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+}
 
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -514,20 +595,17 @@ function splitIndirizzo(value) {
         .map((part) => part.trim());
 }
 
-function getComuneResidenza(indirizzo) {
-    return splitIndirizzo(indirizzo)[3] || "";
+function splitLabels(value) {
+    if (Array.isArray(value)) return value.map((v) => String(v || "").trim()).filter(Boolean);
+
+    return String(value || "")
+        .split("££")
+        .map((label) => label.trim())
+        .filter(Boolean);
 }
 
-function setComuneResidenza(indirizzo, comune) {
-    const parts = splitIndirizzo(indirizzo);
-
-    while (parts.length < 4) {
-        parts.push("");
-    }
-
-    parts[3] = comune;
-
-    return parts.join(" ££ ");
+function getComuneResidenza(indirizzo) {
+    return splitIndirizzo(indirizzo)[3] || "";
 }
 
 function normalizeProfiloData(data) {
@@ -548,6 +626,21 @@ function normalizeProfiloData(data) {
             ? data.soft_skills.map((soft) => ({
                 label: soft.label || "",
                 icon: soft.icon || "i-brain",
+            }))
+            : [],
+        languages: Array.isArray(data.languages)
+            ? data.languages.map((l) => ({
+                name: l.name || "",
+                level: l.level || "A1",
+                certification: l.certification || "",
+            }))
+            : [],
+        experiences: Array.isArray(data.experiences)
+            ? data.experiences.map((e) => ({
+                title: e.title || "",
+                link: e.link || "",
+                description: e.description || "",
+                labels: splitLabels(e.labels),
             }))
             : [],
     };
@@ -629,7 +722,6 @@ async function loadProfiloData() {
     }
 }
 
-/* ─── Apre il modal e popola i form ──────────────────── */
 function openProfiloModal() {
     if (!profiloLoaded) {
         showToast("Attendi il caricamento del profilo");
@@ -637,33 +729,24 @@ function openProfiloModal() {
         return;
     }
 
-    // Anagrafica
-    document.getElementById("fNome").value = profiloData.name;
-    document.getElementById("fCognome").value = profiloData.surname;
-    document.getElementById("fNascita").value = profiloData.data_nascita;
-    document.getElementById("fCF").value = profiloData.codice_fiscale;
-    document.getElementById("fComune").value = getComuneResidenza(profiloData.indirizzo);
-    document.getElementById("fTel").value = profiloData.telefono;
-
-    // Skills editor
     renderSkillsEditor();
 
-    // Soft skills checkboxes
     renderSoftEditor();
 
-    // Reset status
+    renderLangEditor();
+
+    renderExpEditor();
+
     setApiStatus("", "");
 
     document.getElementById("profiloOverlay").classList.add("active");
-    // Attiva prima tab
-    switchTab("anagrafica");
+    switchTab("skills");
 }
 
 function closeProfiloModal() {
     document.getElementById("profiloOverlay").classList.remove("active");
 }
 
-/* ─── Tab switching ──────────────────────────────────── */
 function switchTab(name) {
     document.querySelectorAll(".pro-tab").forEach((t) => {
         t.classList.toggle("active", t.dataset.tab === name);
@@ -676,7 +759,6 @@ function switchTab(name) {
     });
 }
 
-/* ─── Skill editor ───────────────────────────────────── */
 function renderSkillsEditor() {
     const el = document.getElementById("proSkillsEditor");
     el.innerHTML = profiloData.skills
@@ -704,7 +786,6 @@ function removeSkill(i) {
     renderSkillsEditor();
 }
 
-/* ─── Soft skills editor ─────────────────────────────── */
 function renderSoftEditor() {
     const el = document.getElementById("proSoftEditor");
     el.innerHTML = ALL_SOFT_SKILLS.map((s) => {
@@ -732,7 +813,80 @@ function toggleSoft(el, label) {
     }
 }
 
-/* ─── Status helper ──────────────────────────────────── */
+function renderLangEditor() {
+    const el = document.getElementById("proLangEditor");
+    el.innerHTML = profiloData.languages
+        .map((l, i) => `
+            <div class="pro-lang-edit-row" data-lang-index="${i}">
+                <input type="text" value="${escapeHtml(l.name)}" placeholder="Es. Inglese" data-lang-index="${i}" data-lang-field="name"/>
+                <select data-lang-index="${i}" data-lang-field="level">
+                    ${LANGUAGE_LEVELS
+                    .map((lv) =>
+                        `<option value="${lv}"${l.level === lv ? " selected" : ""}>${lv}</option>`,
+                    ).join("")}
+                </select>
+                <input type="text" value="${escapeHtml(l.certification)}" placeholder="Certificazione (opz.)" data-lang-index="${i}" data-lang-field="certification"/>
+                <button class="pro-del-btn pro-del-btn-corner" data-lang-remove="${i}" title="Rimuovi lingua">✕</button>
+            </div>
+        `).join("");
+}
+
+function addLangRow() {
+    profiloData.languages.push({ name: "", level: "A1", certification: "" });
+    renderLangEditor();
+}
+
+function removeLang(i) {
+    profiloData.languages.splice(i, 1);
+    renderLangEditor();
+}
+
+function renderExpEditor() {
+    const el = document.getElementById("proExpEditor");
+    el.innerHTML = profiloData.experiences
+        .map((e, i) => `
+            <div class="pro-exp-edit-row" data-exp-index="${i}">
+                <input type="text" value="${escapeHtml(e.title)}" placeholder="Titolo (es. Stage — TechLab Srl)" data-exp-index="${i}" data-exp-field="title"/>
+                <input type="text" value="${escapeHtml(e.link)}" placeholder="Link (opzionale)" data-exp-index="${i}" data-exp-field="link"/>
+                <textarea placeholder="Breve descrizione" data-exp-index="${i}" data-exp-field="description">${escapeHtml(e.description)}</textarea>
+                <div class="pro-exp-labels-editor">
+                    ${e.labels
+                    .map((label, li) => `
+                        <span class="pro-chip">${escapeHtml(label)}<button type="button" class="pro-chip-remove" data-exp-index="${i}" data-label-remove="${li}">✕</button></span>
+                    `).join("")}
+                    <input type="text" class="pro-chip-input" placeholder="Aggiungi etichetta e premi Invio" data-exp-label-input="${i}"/>
+                </div>
+                <button class="pro-del-btn" data-exp-remove="${i}">✕ Rimuovi esperienza</button>
+            </div>
+        `).join("");
+}
+
+function addExpRow() {
+    profiloData.experiences.push({ title: "", link: "", description: "", labels: [] });
+    renderExpEditor();
+}
+
+function removeExp(i) {
+    profiloData.experiences.splice(i, 1);
+    renderExpEditor();
+}
+
+function addExpLabel(expIndex, text) {
+    const label = String(text || "").trim();
+    if (!label) return;
+
+    const exp = profiloData.experiences[expIndex];
+    const alreadyPresent = exp.labels.some((l) => l.toLowerCase() === label.toLowerCase());
+    if (!alreadyPresent) exp.labels.push(label);
+
+    renderExpEditor();
+}
+
+function removeExpLabel(expIndex, labelIndex) {
+    profiloData.experiences[expIndex].labels.splice(labelIndex, 1);
+    renderExpEditor();
+}
+
 function setApiStatus(msg, cls) {
     const el = document.getElementById("proApiStatus");
     el.textContent = msg;
@@ -744,18 +898,6 @@ function setApiStatus(msg, cls) {
 
 function buildProfiloPayload() {
     return {
-        name: profiloData.name,
-        surname: profiloData.surname,
-        email: profiloData.email,
-        data_nascita: profiloData.data_nascita,
-        sesso: profiloData.sesso,
-        comune_nascita: profiloData.comune_nascita,
-        codice_fiscale: profiloData.codice_fiscale,
-        telefono: profiloData.telefono,
-        indirizzo_studio: profiloData.indirizzo_studio,
-        classe: profiloData.classe,
-        indirizzo: profiloData.indirizzo,
-        picture: profiloData.picture,
         skills: profiloData.skills
             .filter((skill) => String(skill.name || "").trim())
             .map((skill) => ({
@@ -766,24 +908,25 @@ function buildProfiloPayload() {
             label: soft.label,
             icon: soft.icon || "i-brain",
         })),
+        languages: profiloData.languages
+            .filter((l) => String(l.name || "").trim())
+            .map((l) => ({
+                name: String(l.name).trim(),
+                level: l.level,
+                certification: String(l.certification || "").trim() || null,
+            })),
+        experiences: profiloData.experiences
+            .filter((e) => String(e.title || "").trim())
+            .map((e) => ({
+                title: String(e.title).trim(),
+                link: String(e.link || "").trim() || null,
+                description: String(e.description || "").trim() || null,
+                labels: e.labels || [],
+            })),
     };
 }
 
-/* ════════════════════════════════════════════════════════
-   SALVA PROFILO — salvataggio locale
-   In produzione sostituire con: fetch('/api/profile', { method: 'POST', body: JSON.stringify(profiloData) })
-   ════════════════════════════════════════════════════════ */
 async function salvaProfilo() {
-    // Leggi valori dal form anagrafica
-    profiloData.name = document.getElementById("fNome").value.trim();
-    profiloData.surname = document.getElementById("fCognome").value.trim();
-    profiloData.data_nascita = document.getElementById("fNascita").value;
-    profiloData.codice_fiscale = document.getElementById("fCF").value.trim().toUpperCase();
-    profiloData.indirizzo = setComuneResidenza(
-        profiloData.indirizzo,
-        document.getElementById("fComune").value.trim(),
-    );
-    profiloData.telefono = document.getElementById("fTel").value.trim();
     const payload = buildProfiloPayload();
     const btn = document.getElementById("btnSalvaProfilo");
     btn.textContent = "Salvataggio...";
@@ -819,11 +962,10 @@ async function salvaProfilo() {
     }
 }
 
-/* ─── Aggiorna la sezione profilo con i nuovi dati ───── */
 function updateProfiloUI(apiResult) {
     // Nome hero
     document.querySelector(".profilo-hero-name").textContent = profiloData.name + " " + profiloData.surname;
-    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ITIS Paleocapa, Bergamo`;
+    document.querySelector(".profilo-hero-sub").textContent = `Studente · ${profiloData.classe || ""} · ${profiloData.istituto || ""}`;
     const sidebarRole = document.querySelector(".user-role");
 
     if (sidebarRole) {
@@ -845,10 +987,9 @@ function updateProfiloUI(apiResult) {
     const scuolaEl = document.getElementById("proScuola");
     if (scuolaEl) {
         scuolaEl.innerHTML = `
-            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">ITIS Paleocapa</span></div>
+            <div class="pro-row"><span class="pro-lbl">Istituto</span><span class="pro-val">${escapeHtml(profiloData.istituto)}</span></div>
             <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">${escapeHtml(profiloData.indirizzo_studio)}</span></div>
-            <div class="pro-row"><span class="pro-lbl">Classe</span><span class="pro-val">${escapeHtml(profiloData.classe)}</span></div>
-            <div class="pro-row"><span class="pro-lbl">Anno diploma</span><span class="pro-val">2025</span></div>`;
+            <div class="pro-row"><span class="pro-lbl">Classe</span><span class="pro-val">${escapeHtml(profiloData.classe)}</span></div>`;
     }
 
     // Aggiorna suggerimento come tag (se presente)
@@ -862,7 +1003,6 @@ function updateProfiloUI(apiResult) {
         tagsEl.appendChild(tag);
     }
 
-    // Ri-renderizza skills bar
     const skillsEl = document.getElementById("proSkills");
     if (skillsEl) {
         skillsEl.innerHTML = profiloData.skills
@@ -880,7 +1020,6 @@ function updateProfiloUI(apiResult) {
             .join("");
     }
 
-    // Ri-renderizza soft skills
     const softEl = document.getElementById("proSoftSkills");
     if (softEl) {
         softEl.innerHTML = profiloData.soft_skills
@@ -894,58 +1033,92 @@ function updateProfiloUI(apiResult) {
             })
             .join("");
     }
+
+    const linguaEl = document.getElementById("proLingue");
+    if (linguaEl) {
+        linguaEl.innerHTML = profiloData.languages
+            .map((l) => `
+                <div class="pro-row">
+                    <span class="pro-lbl">${escapeHtml(l.name)}</span>
+                    <span class="pro-val"><span class="pro-badge">${escapeHtml(l.level)}</span>${l.certification ? " " + escapeHtml(l.certification) : ""}</span>
+                </div>
+            `)
+            .join("") || `<div class="section-state profile-state"><span>Nessuna lingua inserita.</span></div>`;
+    }
+
+    const espEl = document.getElementById("proEsperienze");
+    if (espEl) {
+        espEl.innerHTML = profiloData.experiences
+            .map((e) => {
+                const safeLink = sanitizeUrl(e.link);
+                const title = safeLink
+                    ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(e.title)}</a>`
+                    : escapeHtml(e.title);
+                const labels = e.labels
+                    .map((label) => `<span class="pro-badge">${escapeHtml(label)}</span>`)
+                    .join("");
+
+                return `
+                    <div class="pro-exp-item">
+                        <div class="pro-exp-dot"></div>
+                        <div class="pro-exp-body">
+                            <div class="pro-exp-title-row">
+                                <div class="pro-exp-title">${title}</div>
+                                ${labels ? `<div class="pro-exp-labels">${labels}</div>` : ""}
+                            </div>
+                            ${e.description ? `<div class="pro-exp-desc">${escapeHtml(e.description)}</div>` : ""}
+                        </div>
+                    </div>
+                `;
+            })
+            .join("") || `<div class="section-state profile-state"><span>Nessuna esperienza inserita.</span></div>`;
+    }
 }
 
-/* ════════════════════════════════════════════════════════
-   IMPOSTAZIONI
-   ════════════════════════════════════════════════════════ */
 let impostazioniData = {
-    notifMatch: true,
-    notifPercorsi: true,
-    notifScuola: true,
-    notifScadenze: false,
-    notifEmail: true,
-    privVisibilita: "school",
-    privCondividi: true,
-    privLink: false,
     tema: "dark",
-    mezzoDefault: "driving-car",
+    mezzoDefault: window.DEFAULT_TRANSPORT_MODE || "driving-car",
     lingua: "it",
-    reduceMotion: false,
 };
 
-/* ─── Salva toggle/select cambiati direttamente nella pagina ─ */
-function saveImpostazioni() {
-    impostazioniData.notifMatch =
-        document.getElementById("notifMatch")?.checked;
-    impostazioniData.notifPercorsi =
-        document.getElementById("notifPercorsi")?.checked;
-    impostazioniData.notifScuola =
-        document.getElementById("notifScuola")?.checked;
-    impostazioniData.notifScadenze =
-        document.getElementById("notifScadenze")?.checked;
-    impostazioniData.notifEmail =
-        document.getElementById("notifEmail")?.checked;
-    impostazioniData.privVisibilita =
-        document.getElementById("privVisibilita")?.value;
-    impostazioniData.privCondividi =
-        document.getElementById("privCondividi")?.checked;
-    impostazioniData.privLink = document.getElementById("privLink")?.checked;
+async function salvaPreferenzeRemote(payload) {
+    try {
+        const res = await fetch("/api/users/preferences/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Richiesta fallita");
+    } catch (err) {
+        console.error("Errore salvataggio preferenze:", err);
+        showToast("Errore nel salvataggio della preferenza");
+    }
+}
+
+function saveImpostazioni(e) {
     impostazioniData.mezzoDefault =
         document.getElementById("mezzoDefault")?.value;
     impostazioniData.lingua = document.getElementById("lingua")?.value;
-    impostazioniData.reduceMotion =
-        document.getElementById("reduceMotion")?.checked;
     showToast("Impostazione salvata");
+
+    if (e && e.target && e.target.id === "lingua") {
+        salvaPreferenzeRemote({ lingua: impostazioniData.lingua });
+    }
+
+    if (e && e.target && e.target.id === "mezzoDefault") {
+        window.DEFAULT_TRANSPORT_MODE = impostazioniData.mezzoDefault;
+        salvaPreferenzeRemote({ default_transport_mode: impostazioniData.mezzoDefault });
+    }
 }
 
-/* ─── Tema segmented ─────────────────────────────────────── */
 function setTema(btn) {
     document
         .querySelectorAll(".imp-seg")
         .forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     impostazioniData.tema = btn.dataset.val;
+    if (window.__setTheme) window.__setTheme(btn.dataset.val);
+    salvaPreferenzeRemote({ color_mode: btn.dataset.val });
     showToast("Tema aggiornato");
 }
 
@@ -958,7 +1131,6 @@ function salvaImpModal() {
     closeImpModal();
 }
 
-/* ─── Toast ──────────────────────────────────────────────── */
 let toastTimer;
 function showToast(msg) {
     const t = document.getElementById("impToast");
@@ -969,44 +1141,203 @@ function showToast(msg) {
     toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
-let notificationsMuted = false;
+let sessioniLoaded = false;
 
-function updateNotificationsToggle() {
-    const btn = document.getElementById("notificationsToggle");
-    if (!btn) return;
-    btn.classList.toggle("muted", notificationsMuted);
-    btn.setAttribute("aria-pressed", String(notificationsMuted));
-    btn.title = notificationsMuted
-        ? "Riattiva notifiche"
-        : "Disattiva notifiche";
-}
-
-/* ─── Esporta dati GDPR ──────────────────────────────────── */
-function esportaDati() {
-    const payload = {
-        profilo: profiloData,
-        impostazioni: impostazioniData,
-        esportato: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
+function formatSessioneTime(iso) {
+    const date = new Date(iso);
+    if (isNaN(date)) return "";
+    return date.toLocaleString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
     });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "stagematch_dati.json";
-    a.click();
-    showToast("Download avviato");
 }
 
-/* ─── Esporta CV PDF (stub) ──────────────────────────────── */
-function esportaCV() {
-    showToast("Generazione PDF in corso...");
-    setTimeout(() => showToast("CV pronto per il download"), 1800);
+function renderSessioni(sessions) {
+    const list = document.getElementById("sessioniList");
+    if (!list) return;
+
+    if (!sessions || sessions.length === 0) {
+        list.innerHTML = `<div class="imp-row-sub">Nessuna sessione attiva trovata.</div>`;
+        return;
+    }
+
+    list.innerHTML = sessions
+        .map(
+            (s) => `
+        <div class="imp-sessione-row">
+            <div class="imp-row-info">
+                <div class="imp-row-label">Ultimo utilizzo: ${formatSessioneTime(s.last_seen)}</div>
+                <div class="imp-row-sub">Accesso il ${formatSessioneTime(s.created_at)}</div>
+            </div>
+            ${s.is_current ? `<span class="imp-badge-current">Questo dispositivo</span>` : ""}
+        </div>`,
+        )
+        .join("");
 }
 
-/* ════════════════════════════════════════════════════════
-   LOGOUT MODAL
-   ════════════════════════════════════════════════════════ */
+async function loadSessioniData() {
+    const list = document.getElementById("sessioniList");
+    if (list) list.innerHTML = `<div class="imp-row-sub">Caricamento…</div>`;
+
+    try {
+        const res = await fetch("/api/users/sessions");
+        if (!res.ok) throw new Error("Richiesta fallita");
+        const sessions = await res.json();
+        renderSessioni(sessions);
+    } catch (err) {
+        console.error("Errore caricamento sessioni:", err);
+        if (list) list.innerHTML = `<div class="imp-row-sub">Errore nel caricamento delle sessioni.</div>`;
+    }
+}
+
+async function terminaAltreSessioni() {
+    try {
+        const res = await fetch("/api/users/sessions/terminate-others", {
+            method: "POST",
+        });
+        if (!res.ok) throw new Error("Richiesta fallita");
+        showToast("Sessioni terminate");
+        loadSessioniData();
+    } catch (err) {
+        console.error("Errore terminazione sessioni:", err);
+        showToast("Errore nella terminazione delle sessioni");
+    }
+}
+
+let notifications = [];
+
+function loadNotificationsData() {
+    const el = document.getElementById("notifications-data");
+    if (!el) return;
+    try {
+        notifications = JSON.parse(el.textContent) || [];
+    } catch {
+        notifications = [];
+    }
+}
+
+function formatNotifTime(iso) {
+    const date = new Date(iso);
+    if (isNaN(date)) return "";
+    return date.toLocaleString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function renderNotifications() {
+    const list = document.getElementById("notifList");
+    const empty = document.getElementById("notifEmpty");
+    const badge = document.getElementById("notifBadge");
+    if (!list || !empty || !badge) return;
+
+    const unreadCount = notifications.filter((n) => !n.is_read).length;
+    badge.textContent = String(unreadCount);
+    badge.classList.toggle("hidden", unreadCount === 0);
+
+    if (notifications.length === 0) {
+        list.innerHTML = "";
+        empty.classList.remove("hidden");
+        return;
+    }
+
+    empty.classList.add("hidden");
+    list.innerHTML = notifications
+        .map(
+            (n) => `
+        <div class="notif-item ${n.is_read ? "read" : "unread"}" data-notif-id="${n.id}">
+            <div class="notif-item-dot"></div>
+            <div class="notif-item-body">
+                <div class="notif-item-top">
+                    <span class="notif-item-title">${escapeHtml(n.title)}</span>
+                    <span class="notif-item-time">${formatNotifTime(n.created_at)}</span>
+                </div>
+                ${n.sender ? `<div class="notif-item-sender">${escapeHtml(n.sender)}</div>` : ""}
+                <div class="notif-item-message">${escapeHtml(n.message)}</div>
+                ${
+                    !n.is_read
+                        ? `<div class="notif-item-footer">
+                        <button class="notif-item-check" type="button" title="Segna come letta" data-notif-check="${n.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg>
+                        </button>
+                    </div>`
+                        : ""
+                }
+            </div>
+        </div>`,
+        )
+        .join("");
+}
+
+function openNotifDetails(id) {
+    const notif = notifications.find((n) => n.id === id);
+    const overlay = document.getElementById("notifDetailsOverlay");
+    if (!notif || !overlay) return;
+
+    document.getElementById("notifDetailsTitle").textContent = notif.title;
+    document.getElementById("notifDetailsMeta").textContent = notif.sender
+        ? `${notif.sender} · ${formatNotifTime(notif.created_at)}`
+        : formatNotifTime(notif.created_at);
+    document.getElementById("notifDetailsMessage").textContent = notif.message;
+
+    overlay.classList.add("active");
+    markNotificationRead(id);
+}
+
+function closeNotifDetails() {
+    const overlay = document.getElementById("notifDetailsOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("active");
+}
+
+async function markNotificationRead(id) {
+    const notif = notifications.find((n) => n.id === id);
+    if (!notif || notif.is_read) return;
+
+    notif.is_read = true;
+    renderNotifications();
+
+    try {
+        await fetch("/api/users/notifications/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notification_id: id }),
+        });
+    } catch {
+        // Stato locale già aggiornato; un eventuale errore di rete non blocca la UI.
+    }
+}
+
+function toggleNotifPanel() {
+    const panel = document.getElementById("notifPanel");
+    const btn = document.getElementById("notificationsToggle");
+    if (!panel || !btn) return;
+    const isActive = panel.classList.toggle("active");
+    btn.setAttribute("aria-expanded", String(isActive));
+}
+
+function closeNotifPanel() {
+    const panel = document.getElementById("notifPanel");
+    const btn = document.getElementById("notificationsToggle");
+    if (!panel || !btn) return;
+    panel.classList.remove("active");
+    btn.setAttribute("aria-expanded", "false");
+}
+
+// Saluto in base all'ora locale.
+function updateGreeting() {
+    const word = document.getElementById("greetingWord");
+    if (!word) return;
+
+    const hour = new Date().getHours();
+    word.textContent = hour < 6 ? "Buonanotte" : hour < 13 ? "Buongiorno" : hour < 18 ? "Buon pomeriggio" : "Buonasera";
+}
+
 function openLogoutModal() {
     document.getElementById("logoutOverlay").classList.add("active");
     document.getElementById("logoutCancel").focus();
@@ -1016,7 +1347,6 @@ function closeLogoutModal() {
     document.getElementById("logoutOverlay").classList.remove("active");
 }
 
-/* ─── SIDEBAR MOBILE ──────────────────────────────────── */
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("open");
     document.getElementById("overlay").classList.toggle("active");
@@ -1027,25 +1357,20 @@ function closeSidebar() {
     document.getElementById("overlay").classList.remove("active");
 }
 
-/* ════════════════════════════════════════════════════════
-   INIZIALIZZAZIONE — tutti gli event listener centralizzati
-   qui, nessun onclick/onchange nel markup HTML
-   ════════════════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
-    /* ── Render iniziale ─────────────────────────────────── */
     loadRoutes();
-    updateNotificationsToggle();
+    loadNotificationsData();
+    renderNotifications();
     loadProfiloData();
+    aziendeLoaded = true;
+    loadCompanies();
 
-    /* ── Sidebar overlay (chiudi cliccando fuori) ────────── */
     document.getElementById("overlay").addEventListener("click", closeSidebar);
 
-    /* ── Hamburger (mobile) ──────────────────────────────── */
     document
         .querySelector(".hamburger")
         .addEventListener("click", toggleSidebar);
 
-    /* ── Nav items sidebar ───────────────────────────────── */
     document.getElementById("navDashboard").addEventListener("click", (e) => {
         e.preventDefault();
         showSection("dashboard");
@@ -1077,6 +1402,10 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             showSection("impostazioni");
             setActive(e.currentTarget);
+            if (!sessioniLoaded) {
+                sessioniLoaded = true;
+                loadSessioniData();
+            }
         });
     document.getElementById("navLogout").addEventListener("click", (e) => {
         e.preventDefault();
@@ -1084,6 +1413,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("aziendeList").addEventListener("click", (e) => {
+        const applyButton = e.target.closest('[data-action="apply-offer"]');
+        if (applyButton) {
+            if (!applyButton.disabled) applyToOffer(applyButton.dataset.companyId);
+            return;
+        }
+
         const detailsButton = e.target.closest('[data-action="open-company-details"]');
         if (detailsButton) {
             openCompanyDetails(detailsButton.dataset.companyId);
@@ -1104,10 +1439,26 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     document
         .getElementById("companyDetailsContent")
-        .addEventListener("click", (e) => {
+        .addEventListener("click", async (e) => {
+            const tipButton = e.target.closest(".info-tip-btn");
+            e.currentTarget.querySelectorAll(".info-tip-btn").forEach((btn) => {
+                const open = btn === tipButton && !btn.closest(".has-tip").classList.contains("tip-open");
+                btn.closest(".has-tip").classList.toggle("tip-open", open);
+                btn.setAttribute("aria-expanded", String(open));
+            });
+            if (tipButton) return;
+
             const mapButton = e.target.closest('[data-action="go-to-company-map"]');
             if (mapButton) {
                 goToMap(mapButton.dataset.companyId);
+                return;
+            }
+
+            const applyButton = e.target.closest('[data-action="apply-offer"]');
+            if (applyButton && !applyButton.disabled) {
+                await applyToOffer(applyButton.dataset.companyId);
+                const company = getCompanyById(applyButton.dataset.companyId);
+                if (company) renderCompanyDetailsModal(company);
             }
         });
     document.addEventListener("keydown", (e) => {
@@ -1121,40 +1472,120 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    /* ── Bottoni dashboard ───────────────────────────────── */
     document.getElementById("btnDashAziende").addEventListener("click", () => {
         showSection("aziende");
         setActive(document.getElementById("navAziende"));
     });
-    document.getElementById("btnVediPercorsi").addEventListener("click", () => {
+    function goToPercorsiSection() {
         showSection("percorsi");
         setActive(document.getElementById("navPercorsi"));
+    }
+
+    document
+        .getElementById("btnVediPercorsi")
+        .addEventListener("click", goToPercorsiSection);
+
+    document.getElementById("recentRoutesList").addEventListener("click", (e) => {
+        if (e.target.closest(".route-item")) goToPercorsiSection();
+    });
+
+    document.getElementById("percorsiList").addEventListener("click", (e) => {
+        const repeatButton = e.target.closest('[data-action="repeat-route"]');
+        if (repeatButton) {
+            repeatRoute(getUserRouteById(repeatButton.dataset.id));
+            return;
+        }
+
+        const card = e.target.closest(".route-card");
+        if (card) openRouteDetails(card.dataset.id);
+    });
+
+    document
+        .getElementById("routeDetailsClose")
+        .addEventListener("click", closeRouteDetails);
+    document
+        .getElementById("routeDetailsOverlay")
+        .addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeRouteDetails();
+        });
+    document
+        .getElementById("routeDetailsContent")
+        .addEventListener("click", (e) => {
+            const repeatButton = e.target.closest('[data-action="repeat-route"]');
+            if (repeatButton) repeatRoute(getUserRouteById(repeatButton.dataset.id));
+        });
+    document.addEventListener("keydown", (e) => {
+        if (
+            e.key === "Escape" &&
+            document
+                .getElementById("routeDetailsOverlay")
+                .classList.contains("active")
+        ) {
+            closeRouteDetails();
+        }
     });
 
     const notificationsToggle = document.getElementById("notificationsToggle");
     if (notificationsToggle) {
-        notificationsToggle.addEventListener("click", () => {
-            notificationsMuted = !notificationsMuted;
-            updateNotificationsToggle();
-            showToast(
-                notificationsMuted
-                    ? "Notifiche silenziate"
-                    : "Notifiche riattivate",
-            );
+        notificationsToggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleNotifPanel();
         });
     }
 
-    /* ── Transport pills (hero card) ─────────────────────── */
+    const notifList = document.getElementById("notifList");
+    if (notifList) {
+        notifList.addEventListener("click", (e) => {
+            const checkBtn = e.target.closest("[data-notif-check]");
+            if (checkBtn) {
+                e.stopPropagation();
+                markNotificationRead(Number(checkBtn.dataset.notifCheck));
+                return;
+            }
+
+            const item = e.target.closest(".notif-item");
+            if (!item) return;
+
+            openNotifDetails(Number(item.dataset.notifId));
+        });
+    }
+
+    const notifDetailsOverlay = document.getElementById("notifDetailsOverlay");
+    if (notifDetailsOverlay) {
+        document
+            .getElementById("notifDetailsClose")
+            .addEventListener("click", closeNotifDetails);
+        notifDetailsOverlay.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeNotifDetails();
+        });
+    }
+
+    document.addEventListener("click", (e) => {
+        const wrap = document.getElementById("notifWrap");
+        if (wrap && !wrap.contains(e.target)) closeNotifPanel();
+    });
+
+    const heroGoToMapBtn = document.getElementById("heroGoToMapBtn");
+
+    function updateHeroMapLink(mode) {
+        if (!heroGoToMapBtn) return;
+        const params = new URLSearchParams({ routemode: mode });
+        heroGoToMapBtn.href = `${heroGoToMapBtn.getAttribute("href").split("?")[0]}?${params.toString()}`;
+    }
+
     document.querySelectorAll(".t-pill").forEach((pill) => {
         pill.addEventListener("click", () => {
             document
                 .querySelectorAll(".t-pill")
                 .forEach((p) => p.classList.remove("active"));
             pill.classList.add("active");
+            updateHeroMapLink(pill.dataset.mode);
         });
     });
 
-    /* ── Filtri percorsi ─────────────────────────────────── */
+    const activePill = document.querySelector(".t-pill.active");
+    if (activePill) updateHeroMapLink(activePill.dataset.mode);
+
     document.querySelectorAll(".filter-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
             document
@@ -1166,27 +1597,22 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /* ── Profilo: apri modal ─────────────────────────────── */
     document
         .getElementById("btnEditProfilo")
         .addEventListener("click", openProfiloModal);
 
-    /* ── Profilo modal: tab switching ────────────────────── */
     document.querySelectorAll(".pro-tab").forEach((tab) => {
         tab.addEventListener("click", () => switchTab(tab.dataset.tab));
     });
 
-    /* ── Profilo modal: tasto ✕ chiude il modal ─────────── */
     document
         .querySelector("#profiloOverlay .profilo-modal-close")
         .addEventListener("click", closeProfiloModal);
 
-    /* ── Profilo modal: aggiungi competenza ──────────────── */
     document
-        .querySelector(".pro-add-btn")
+        .getElementById("btnAddSkill")
         .addEventListener("click", addSkillRow);
 
-    /* ── Profilo modal: skill editor dinamico ───────────── */
     document.getElementById("proSkillsEditor").addEventListener("change", (e) => {
         const { skillIndex, skillField } = e.target.dataset;
         if (skillIndex === undefined || !skillField) return;
@@ -1200,59 +1626,107 @@ document.addEventListener("DOMContentLoaded", () => {
         removeSkill(Number(removeButton.dataset.skillRemove));
     });
 
-    /* ── Profilo modal: annulla e salva ──────────────────── */
     document
-        .querySelector("#profiloOverlay .logout-btn-cancel")
+        .getElementById("btnAddLanguage")
+        .addEventListener("click", addLangRow);
+
+    document.getElementById("proLangEditor").addEventListener("change", (e) => {
+        const { langIndex, langField } = e.target.dataset;
+        if (langIndex === undefined || !langField) return;
+
+        profiloData.languages[Number(langIndex)][langField] = e.target.value;
+    });
+    document.getElementById("proLangEditor").addEventListener("click", (e) => {
+        const removeButton = e.target.closest("[data-lang-remove]");
+        if (!removeButton) return;
+
+        removeLang(Number(removeButton.dataset.langRemove));
+    });
+
+    document
+        .getElementById("btnAddExperience")
+        .addEventListener("click", addExpRow);
+
+    document.getElementById("proExpEditor").addEventListener("change", (e) => {
+        const { expIndex, expField } = e.target.dataset;
+        if (expIndex === undefined || !expField) return;
+
+        profiloData.experiences[Number(expIndex)][expField] = e.target.value;
+    });
+    document.getElementById("proExpEditor").addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const expIndex = e.target.dataset.expLabelInput;
+        if (expIndex === undefined) return;
+
+        e.preventDefault();
+        addExpLabel(Number(expIndex), e.target.value);
+        e.target.value = "";
+    });
+    document.getElementById("proExpEditor").addEventListener("click", (e) => {
+        const removeExpButton = e.target.closest("[data-exp-remove]");
+        if (removeExpButton) {
+            removeExp(Number(removeExpButton.dataset.expRemove));
+            return;
+        }
+
+        const removeLabelButton = e.target.closest("[data-label-remove]");
+        if (removeLabelButton) {
+            removeExpLabel(
+                Number(removeLabelButton.dataset.expIndex),
+                Number(removeLabelButton.dataset.labelRemove),
+            );
+        }
+    });
+
+    document
+        .querySelector("#profiloOverlay .modal-btn-cancel")
         .addEventListener("click", closeProfiloModal);
     document
         .getElementById("btnSalvaProfilo")
         .addEventListener("click", salvaProfilo);
 
-    /* ── Profilo modal: chiudi cliccando fuori ───────────── */
     document.getElementById("profiloOverlay").addEventListener("click", (e) => {
         if (e.target === document.getElementById("profiloOverlay"))
             closeProfiloModal();
     });
 
-    /* ── Impostazioni modal: chiudi e salva ──────────────── */
     document
-        .querySelector("#impOverlay .logout-btn-cancel")
+        .querySelector("#impOverlay .modal-btn-cancel")
         .addEventListener("click", closeImpModal);
     document
         .getElementById("btnSalvaImp")
         .addEventListener("click", salvaImpModal);
 
-    /* ── Impostazioni modal: chiudi cliccando fuori ──────── */
     document.getElementById("impOverlay").addEventListener("click", (e) => {
         if (e.target === document.getElementById("impOverlay")) closeImpModal();
     });
 
-    /* ── Impostazioni toggles e select ──────────────────────
-       Usa event delegation sull'intera sezione impostazioni
-       per intercettare qualsiasi checkbox/select cambiato.  */
     document
         .getElementById("sectionImpostazioni")
         .addEventListener("change", saveImpostazioni);
 
-    /* ── Impostazioni tema segmented ─────────────────────── */
     document.querySelectorAll(".imp-seg").forEach((btn) => {
         btn.addEventListener("click", () => setTema(btn));
     });
 
-    /* ── Impostazioni: esporta dati e CV ─────────────────── */
     document
-        .querySelector('[data-action="esportaDati"]')
-        .addEventListener("click", esportaDati);
+        .getElementById("btnTerminaSessioni")
+        .addEventListener("click", terminaAltreSessioni);
+
+    updateGreeting();
+
     document
-        .querySelector('[data-action="esportaCV"]')
-        .addEventListener("click", esportaCV);
+        .querySelector('[data-action="openTerms"]')
+        .addEventListener("click", () => {
+            window.open("/terms", "_blank", "noopener");
+        });
+
     document
         .querySelector('[data-action="openPrivacy"]')
         .addEventListener("click", () => {
             window.open("/privacy", "_blank", "noopener");
         });
 
-    /* ── Logout modal ────────────────────────────────────── */
     document
         .getElementById("logoutCancel")
         .addEventListener("click", closeLogoutModal);
@@ -1264,13 +1738,13 @@ document.addEventListener("DOMContentLoaded", () => {
             closeLogoutModal();
     });
 
-    /* ── ESC: chiude tutti i modal ───────────────────────── */
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             closeSidebar();
             closeLogoutModal();
             closeProfiloModal();
             closeImpModal();
+            closeNotifPanel();
         }
     });
 });

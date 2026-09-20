@@ -7,6 +7,6 @@ class SoftSkill(Base):
 
     user_id = Column(String, ForeignKey('users.googleId'), primary_key=True)
     label = Column(String, primary_key=True)
-    icon = Column(String, nullable=False)     
+    icon = Column(String, nullable=False)
 
     user = relationship("User", back_populates="soft_skills")

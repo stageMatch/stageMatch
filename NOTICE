@@ -32,11 +32,6 @@ libraries, data sources, and services:
   - Copyright (c) 2010-2024, Leaflet contributors
   - https://leafletjs.com
 
-* Bootstrap
-  - Frontend framework
-  - Copyright (c) 2011-2024 The Bootstrap Authors
-  - https://getbootstrap.com
-
 * OpenRouteService
   - Routing and optimization services
   - https://openrouteservice.org
@@ -53,9 +48,17 @@ libraries, data sources, and services:
   - Python web framework
   - https://flask.palletsprojects.com
 
-* Flask-CORS
-  - CORS support for Flask
-  - https://github.com/corydolphin/flask-cors
+* Gunicorn
+  - WSGI HTTP server usato in produzione
+  - https://gunicorn.org
+
+* Authlib
+  - Client OAuth/OpenID Connect per il login Google
+  - https://authlib.org
+
+* Anthropic SDK for Python
+  - Client per la rifinitura AI dei punteggi (Anthropic o endpoint compatibile)
+  - https://github.com/anthropics/anthropic-sdk-python
 
 * Werkzeug
   - WSGI utilities used by Flask

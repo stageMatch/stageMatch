@@ -1,4 +1,3 @@
-/* ── RESET & BASE ─────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -8,13 +7,10 @@
 }
 
 :root {
-    /* Brand Colors - Midnight Blue & Emerald Green */
     --midnight-blue: #0A0E1A;
     --midnight-blue-light: #111625;
     --emerald-green: #2ECC71;
     --emerald-green-dark: #27AE60;
-    
-    /* Functional Aliases */
     --c-bg: var(--midnight-blue);
     --c-surface: var(--midnight-blue-light);
     --c-accent: var(--emerald-green);
@@ -23,10 +19,23 @@
     --c-muted: #7B74A0;
     --c-border: rgba(46, 204, 113, 0.1);
     --c-border-glow: rgba(46, 204, 113, 0.2);
+    --c-nav-bg: rgba(10, 14, 26, 0.8);
+    --c-nav-bg-scrolled: rgba(10, 14, 26, 0.95);
 
     --radius-lg: 12px;
     --radius-md: 8px;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="light"] {
+    --c-bg: #F7F9FC;
+    --c-surface: #FFFFFF;
+    --c-text: var(--midnight-blue);
+    --c-muted: #5B6478;
+    --c-border: rgba(10, 14, 26, 0.1);
+    --c-border-glow: rgba(46, 204, 113, 0.25);
+    --c-nav-bg: rgba(247, 249, 252, 0.8);
+    --c-nav-bg-scrolled: rgba(247, 249, 252, 0.95);
 }
 
 html {
@@ -42,7 +51,6 @@ body {
     line-height: 1.6;
 }
 
-/* ── NOISE TEXTURE OVERLAY ────────────────────────────────── */
 body::before {
     content: '';
     position: fixed;
@@ -53,7 +61,6 @@ body::before {
     opacity: 0.4;
 }
 
-/* ── NAVBAR ──────────────────────────────────────────────── */
 nav {
     position: fixed;
     top: 0;
@@ -65,7 +72,7 @@ nav {
     justify-content: space-between;
     padding: 0 5%;
     height: 70px;
-    background: rgba(10, 14, 26, 0.8);
+    background: var(--c-nav-bg);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--c-border);
     transition: var(--transition);
@@ -73,7 +80,7 @@ nav {
 
 nav.scrolled {
     height: 60px;
-    background: rgba(10, 14, 26, 0.95);
+    background: var(--c-nav-bg-scrolled);
     border-bottom: 1px solid var(--c-border-glow);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -85,7 +92,7 @@ nav.scrolled {
 }
 
 .logo-img {
-    height: 42px; /* Altezza ottimale per navbar da 70px */
+    height: 42px;
     width: auto;
     max-width: 100%;
     display: block;
@@ -120,10 +127,41 @@ nav.scrolled .logo-img {
 
 .nav-cta {
     display: flex;
+    align-items: center;
     gap: 1rem;
 }
 
-/* ── BUTTONS ─────────────────────────────────────────────── */
+.theme-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-toggle-btn:hover {
+    border-color: var(--c-accent);
+    color: var(--c-accent);
+}
+
+.theme-toggle-btn .icon-sun {
+    display: none;
+}
+
+:root[data-theme="light"] .theme-toggle-btn .icon-moon {
+    display: none;
+}
+
+:root[data-theme="light"] .theme-toggle-btn .icon-sun {
+    display: inline-flex;
+}
+
 .btn {
     font-size: 0.9rem;
     font-weight: 600;
@@ -165,7 +203,6 @@ nav.scrolled .logo-img {
     font-size: 1rem;
 }
 
-/* ── HERO ────────────────────────────────────────────────── */
 .hero {
     position: relative;
     min-height: 100vh;
@@ -200,13 +237,18 @@ nav.scrolled .logo-img {
     height: 400px;
     bottom: -50px;
     right: -50px;
-    background: #1e3a8a; /* Deep blue */
+    background: #1e3a8a;
     animation: float 12s infinite alternate-reverse;
 }
 
 @keyframes float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(50px, 30px) scale(1.1); }
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(50px, 30px) scale(1.1);
+    }
 }
 
 .hero-content {
@@ -250,7 +292,6 @@ nav.scrolled .logo-img {
     justify-content: center;
 }
 
-/* ── SECTION COMMON ──────────────────────────────────────── */
 section {
     position: relative;
     padding: 100px 5%;
@@ -278,7 +319,6 @@ section {
     letter-spacing: -0.02em;
 }
 
-/* ── FEATURES ────────────────────────────────────────────── */
 .features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -317,7 +357,6 @@ section {
     color: var(--c-muted);
 }
 
-/* ── HOW IT WORKS ────────────────────────────────────────── */
 .steps-container {
     max-width: 900px;
     margin: 0 auto;
@@ -361,16 +400,21 @@ section {
     color: var(--c-muted);
 }
 
-/* ── FOOTER ──────────────────────────────────────────────── */
 footer {
     padding: 60px 5%;
-    background: rgba(10, 14, 26, 0.5);
+    background: var(--c-surface);
     border-top: 1px solid var(--c-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 30px;
+}
+
+footer > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .footer-links {
@@ -395,7 +439,6 @@ footer {
     font-size: 0.85rem;
 }
 
-/* ── ANIMATIONS ──────────────────────────────────────────── */
 [data-reveal] {
     opacity: 0;
     transform: translateY(30px);
@@ -407,7 +450,6 @@ footer {
     transform: translateY(0);
 }
 
-/* ── RESPONSIVE ──────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .nav-links {
         gap: 1.5rem;
@@ -418,16 +460,16 @@ footer {
     .nav-links {
         display: none;
     }
-    
+
     .hero {
         padding-top: 140px;
     }
-    
+
     .hero-actions {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .step {
         flex-direction: column;
         gap: 15px;
@@ -447,7 +489,7 @@ footer {
     }
 
     .logo-img {
-        height: 32px; /* Logo più compatto su smartphone */
+        height: 32px;
     }
 
     nav.scrolled .logo-img {

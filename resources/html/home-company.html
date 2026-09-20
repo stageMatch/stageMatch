@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="app-theme" content="{{ color_mode }}" data-role="company">
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>stageMatch - Azienda Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home-company.css') }}">
@@ -10,7 +12,6 @@
 </head>
 <body>
 
-    <!-- Background Elements -->
     <div class="bg-overlay"></div>
     <div class="noise"></div>
 
@@ -27,15 +28,19 @@
             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+            <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z" />
+        </symbol>
         <symbol id="i-building" viewBox="0 0 24 24">
             <path d="M4 21V7l8-3 8 3v14" />
             <path d="M9 21v-4h6v4" />
             <path d="M8 10h.01M12 10h.01M16 10h.01M8 13h.01M12 13h.01M16 13h.01" />
         </symbol>
-        <symbol id="i-settings" viewBox="0 0 24 24">
-            <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5Z" />
-            <path
-                d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9-.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6Z" />
+        <symbol id="i-brain" viewBox="0 0 24 24">
+            <path d="M9 4a3 3 0 0 0-3 3v1a2.5 2.5 0 0 0-1 4V13a3 3 0 0 0 3 3h1" />
+            <path d="M15 4a3 3 0 0 1 3 3v1a2.5 2.5 0 0 1 1 4V13a3 3 0 0 1-3 3h-1" />
+            <path d="M12 4v16" />
+            <path d="M9 10h3M12 14h3" />
         </symbol>
         <symbol id="i-logout" viewBox="0 0 24 24">
             <path d="M10 17 15 12 10 7" />
@@ -45,6 +50,12 @@
         <symbol id="i-bell" viewBox="0 0 24 24">
             <path d="M15 18H5.5a1.5 1.5 0 0 1-1.2-2.4L6 13.5V10a6 6 0 1 1 12 0v3.5l1.7 2.1A1.5 1.5 0 0 1 18.5 18H15" />
             <path d="M10 20a2 2 0 0 0 4 0" />
+        </symbol>
+        <symbol id="i-bell-off" viewBox="0 0 24 24">
+            <path d="M15 18H7a1.5 1.5 0 0 1-1.2-2.4L7.5 13.5V10a4.5 4.5 0 0 1 7.8-3.1" />
+            <path d="M16.5 13.5 18 15.3A1.5 1.5 0 0 1 16.8 18H15" />
+            <path d="M10 20a2 2 0 0 0 4 0" />
+            <path d="M4 4l16 16" />
         </symbol>
         <symbol id="i-info" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="9" />
@@ -59,13 +70,19 @@
             <path d="m4 20 4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9L4 20Z" />
             <path d="m13.5 6.5 4 4" />
         </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+            <path d="m5 12 4 4 10-10" />
+        </symbol>
+        <symbol id="i-mail" viewBox="0 0 24 24">
+            <path d="M4 7h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" />
+            <path d="m4 8 8 6 8-6" />
+        </symbol>
     </svg>
 
     <div class="sidebar-overlay" id="overlay"></div>
 
     <div class="shell">
 
-        <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
         <aside class="sidebar" id="sidebar">
 
             <div class="sidebar-logo">
@@ -80,10 +97,16 @@
                     <span>Dashboard</span>
                 </a>
 
-                <a href="#" class="nav-item" id="navStudenti">
+                <a href="#" class="nav-item" id="navAnnunci">
+                    <span class="nav-icon"><span class="icon"><svg><use href="#i-folder"></use></svg></span></span>
+                    <span>Annunci</span>
+                    <span class="nav-badge" id="badgeAnnunci">0</span>
+                </a>
+
+                <a href="#" class="nav-item" id="navCandidature">
                     <span class="nav-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></span>
-                    <span>Studenti Interessati</span>
-                    <span class="nav-badge" id="badgeStudenti">0</span>
+                    <span>Candidature</span>
+                    <span class="nav-badge" id="badgeCandidature">0</span>
                 </a>
 
                 <div class="nav-divider"></div>
@@ -92,11 +115,6 @@
                 <a href="#" class="nav-item" id="navProfilo">
                     <span class="nav-icon"><span class="icon"><svg><use href="#i-building"></use></svg></span></span>
                     <span>Profilo Aziendale</span>
-                </a>
-
-                <a href="#" class="nav-item" id="navImpostazioni">
-                    <span class="nav-icon"><span class="icon"><svg><use href="#i-settings"></use></svg></span></span>
-                    <span>Impostazioni</span>
                 </a>
 
                 <a href="#" class="nav-item" id="navLogout">
@@ -115,7 +133,6 @@
 
         </aside>
 
-        <!-- ══════════════════════ MAIN ══════════════════════════ -->
         <div class="main">
 
             <header class="topbar">
@@ -126,13 +143,26 @@
                     <div class="topbar-greeting">Benvenuto, <span>{{ company.name }}</span></div>
                 </div>
                 <div class="topbar-right">
+                    <div class="notif-wrap" id="notifWrap">
+                        <button class="topbar-icon-btn" id="notificationsToggle" type="button" aria-expanded="false" title="Notifiche">
+                            <span class="icon"><svg><use href="#i-bell"></use></svg></span>
+                            <span class="notif-badge hidden" id="notifBadge">0</span>
+                        </button>
+                        <div class="notif-panel" id="notifPanel">
+                            <div class="notif-panel-head">
+                                <span class="notif-panel-title"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</span>
+                            </div>
+                            <div class="notif-panel-body" id="notifList"></div>
+                            <div class="notif-empty hidden" id="notifEmpty">
+                                <div class="empty-state-icon"><span class="icon"><svg><use href="#i-bell-off"></use></svg></span></div>
+                                <span>Nessuna notifica</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="topbar-icon-btn" id="profiloButton" title="Profilo Aziendale"><span class="icon"><svg><use href="#i-building"></use></svg></span></div>
                 </div>
             </header>
 
-            <!-- ════════════════════════════════════════════════════
-           SEZIONE: DASHBOARD
-      ════════════════════════════════════════════════════ -->
             <div class="content" id="sectionDashboard">
 
                 <div class="page-header animate-in">
@@ -144,24 +174,17 @@
 
                 <div class="stats-row">
                     <div class="stat-card animate-in">
+                        <div class="stat-icon"><span class="icon"><svg><use href="#i-folder"></use></svg></span></div>
+                        <div>
+                            <div class="stat-num" id="statOffers">{{ stats.activeOffers }}</div>
+                            <div class="stat-lbl">Annunci Attivi</div>
+                        </div>
+                    </div>
+                    <div class="stat-card animate-in">
                         <div class="stat-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></div>
                         <div>
-                            <div class="stat-num" id="statMatches">0</div>
-                            <div class="stat-lbl">Studenti Match</div>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in">
-                        <div class="stat-icon"><span class="icon"><svg><use href="#i-bell"></use></svg></span></div>
-                        <div>
-                            <div class="stat-num" id="statInteressi">0</div>
-                            <div class="stat-lbl">Interessi Ricevuti</div>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in">
-                        <div class="stat-icon"><span class="icon"><svg><use href="#i-info"></use></svg></span></div>
-                        <div>
-                            <div class="stat-num" id="statViews">0</div>
-                            <div class="stat-lbl">Visualizzazioni Profilo</div>
+                            <div class="stat-num" id="statApplications">{{ stats.totalApplications }}</div>
+                            <div class="stat-lbl">Candidature Ricevute</div>
                         </div>
                     </div>
                 </div>
@@ -171,56 +194,73 @@
                         <div class="hero-header">
                             <div>
                                 <div class="hero-title">Trova i tuoi prossimi talenti</div>
-                                <div class="hero-desc">Visualizza gli studenti che corrispondono ai requisiti della tua azienda e contatta i profili più interessanti.</div>
+                                <div class="hero-desc">Pubblica un annuncio di stage con le competenze che cerchi: gli studenti compatibili lo vedranno nella loro dashboard e potranno candidarsi.</div>
                             </div>
-                            <div class="hero-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></div>
+                            <div class="hero-icon"><span class="icon"><svg><use href="#i-folder"></use></svg></span></div>
                         </div>
                         <div style="margin-top:24px">
-                            <button class="btn-primary" id="btnGoToStudents" style="width:100%;justify-content:center;">
-                                Vedi Studenti Interessati
+                            <button class="btn-primary" id="btnGoToAnnunci" style="width:100%;justify-content:center;">
+                                Gestisci Annunci
                             </button>
                         </div>
                     </div>
 
                     <div class="card">
                         <div class="card-head">
-                            <span class="card-title-inline"><span class="icon"><svg><use href="#i-users"></use></svg></span>Match Recenti</span>
+                            <span class="card-title-inline"><span class="icon"><svg><use href="#i-users"></use></svg></span>Candidature Recenti</span>
                         </div>
-                        <div id="recentStudentsList">
+                        <div id="recentApplicationsList">
                             <div class="section-state">
-                                <span>Nessun match recente</span>
+                                <span>Nessuna candidatura recente</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ════════════════════════════════════════════════════
-           SEZIONE: STUDENTI INTERESSATI
-      ════════════════════════════════════════════════════ -->
-            <div class="content hidden" id="sectionStudenti">
+            <div class="content hidden" id="sectionAnnunci">
                 <div class="page-header animate-in">
                     <div>
-                        <div class="page-title">Studenti Interessati</div>
-                        <div class="page-subtitle">Studenti che hanno mostrato interesse o sono compatibili</div>
+                        <div class="page-title">I tuoi annunci</div>
+                        <div class="page-subtitle">Gestisci le offerte di stage pubblicate</div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-primary" id="btnNewOffer">+ Nuovo annuncio</button>
                     </div>
                 </div>
 
-                <div id="studentiLoading" class="section-state">
+                <div id="annunciLoading" class="section-state">
                     <div class="spinner"></div>
-                    <span>Caricamento studenti…</span>
+                    <span>Caricamento annunci…</span>
                 </div>
-                <div id="studentiEmpty" class="section-state" style="display:none;">
-                    <div class="empty-state-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></div>
-                    <strong style="color:white;">Nessuno studente trovato</strong>
-                    <span>Gli studenti appariranno qui quando ci saranno match o manifestazioni di interesse.</span>
+                <div id="annunciEmpty" class="section-state" style="display:none;">
+                    <div class="empty-state-icon"><span class="icon"><svg><use href="#i-folder"></use></svg></span></div>
+                    <strong style="color:white;">Nessun annuncio pubblicato</strong>
+                    <span>Crea il tuo primo annuncio per iniziare a ricevere candidature.</span>
                 </div>
-                <div id="studentiList" class="students-grid" style="display:none;"></div>
+                <div id="annunciList" class="offers-grid" style="display:none;"></div>
             </div>
 
-            <!-- ════════════════════════════════════════════════════
-           SEZIONE: PROFILO AZIENDALE
-      ════════════════════════════════════════════════════ -->
+            <div class="content hidden" id="sectionCandidature">
+                <div class="page-header animate-in">
+                    <div>
+                        <div class="page-title">Candidature ricevute</div>
+                        <div class="page-subtitle">Studenti che si sono candidati ai tuoi annunci</div>
+                    </div>
+                </div>
+
+                <div id="candidatureLoading" class="section-state">
+                    <div class="spinner"></div>
+                    <span>Caricamento candidature…</span>
+                </div>
+                <div id="candidatureEmpty" class="section-state" style="display:none;">
+                    <div class="empty-state-icon"><span class="icon"><svg><use href="#i-users"></use></svg></span></div>
+                    <strong style="color:white;">Nessuna candidatura ricevuta</strong>
+                    <span>Le candidature ricevute sui tuoi annunci appariranno qui.</span>
+                </div>
+                <div id="candidatureList" class="students-grid" style="display:none;"></div>
+            </div>
+
             <div class="content hidden" id="sectionProfilo">
                 <div class="page-header animate-in">
                     <div>
@@ -239,46 +279,39 @@
                     <div class="profilo-avatar">{{ company.name[:2]|upper }}</div>
                     <div class="profilo-hero-info">
                         <div class="profilo-hero-name">{{ company.name }}</div>
-                        <div class="profilo-hero-sub">{{ company.address }}</div>
+                        <div class="profilo-hero-sub">{{ company.address_parts | select | join(", ") }}</div>
                     </div>
                 </div>
 
                 <div class="profilo-grid animate-in" style="margin-top: 16px;">
                     <div class="pro-card pro-card-wide">
                         <div class="pro-card-head"><span class="icon"><svg><use href="#i-building"></use></svg></span>Dati Azienda</div>
-                        <div class="pro-rows">
+                        <div class="pro-rows" id="proAziendaDati">
                             <div class="pro-row"><span class="pro-lbl">Ragione Sociale</span><span class="pro-val">{{ company.name }}</span></div>
                             <div class="pro-row"><span class="pro-lbl">Email</span><span class="pro-val">{{ company.email }}</span></div>
-                            <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">{{ company.address }}</span></div>
-                            <div class="pro-row"><span class="pro-lbl">Codice di Accesso</span><span class="pro-val pro-mono">{{ company.access_code }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Indirizzo</span><span class="pro-val">{{ company.address_parts | select | join(", ") }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Settore</span><span class="pro-val" id="proValSettore">{{ company.settore or "--" }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Telefono</span><span class="pro-val" id="proValTelefono">{{ company.telefono or "--" }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Sito web</span><span class="pro-val" id="proValSito">{{ company.sito_web or "--" }}</span></div>
+                            <div class="pro-row"><span class="pro-lbl">Descrizione</span><span class="pro-val" id="proValDescrizione">{{ company.descrizione or "--" }}</span></div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- ════════════════════════════════════════════════════
-           SEZIONE: IMPOSTAZIONI
-      ════════════════════════════════════════════════════ -->
-            <div class="content hidden" id="sectionImpostazioni">
-                <div class="page-header animate-in">
-                    <div>
-                        <div class="page-title">Impostazioni</div>
-                        <div class="page-subtitle">Gestisci il tuo account aziendale</div>
-                    </div>
-                </div>
-
-                <div class="imp-grid animate-in" style="margin-top: 16px;">
-                    <div class="imp-card card">
-                        <div class="card-head"><span class="card-title-inline"><span class="icon"><svg><use href="#i-bell"></use></svg></span>Notifiche</span></div>
-                        <div class="imp-toggle-row">
-                            <div class="imp-row-info">
-                                <div class="imp-row-label">Nuovi interessi studenteschi</div>
-                                <div class="imp-row-sub">Ricevi una notifica quando uno studente si candida</div>
+                    <div class="pro-card pro-card-wide">
+                        <div class="pro-card-head"><span class="icon"><svg><use href="#i-info"></use></svg></span>I tuoi dati</div>
+                        <div class="pro-rows">
+                            <div class="pro-row">
+                                <span class="pro-lbl">Scarica i tuoi dati (JSON)</span>
+                                <a class="btn-ghost" href="/api/company/export" download>Scarica</a>
                             </div>
-                            <label class="imp-toggle">
-                                <input type="checkbox" checked />
-                                <span class="imp-toggle-track"></span>
-                            </label>
+                            <div class="pro-row">
+                                <span class="pro-lbl">Elimina account e annunci</span>
+                                <button class="btn-ghost" type="button" data-account-delete data-delete-url="/api/company/delete">Elimina account</button>
+                            </div>
+                            <div class="pro-row">
+                                <span class="pro-lbl">Documenti</span>
+                                <span class="pro-val"><a href="{{ url_for('terms') }}" target="_blank" rel="noopener">Termini</a> · <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">Privacy</a></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -287,10 +320,114 @@
         </div>
     </div>
 
-    <!-- Modali e overlay (Logout, Modifica Profilo) -->
-    <div class="logout-overlay" id="logoutOverlay">
-        <div class="logout-modal">
-            <div class="logout-modal-icon">
+    <div class="modal-overlay" id="offerOverlay">
+        <div class="profilo-modal">
+            <div class="profilo-modal-head">
+                <div class="profilo-modal-title"><span class="icon"><svg><use href="#i-folder"></use></svg></span><span id="offerModalTitle">Nuovo annuncio</span></div>
+                <button class="profilo-modal-close" id="offerModalClose">✕</button>
+            </div>
+
+            <div class="pro-tab-panel active">
+                <div class="pro-form-grid">
+                    <div class="pro-field pro-field-full">
+                        <label>Titolo annuncio</label>
+                        <input type="text" id="offerTitle" placeholder="Es. Stage Sviluppatore Backend" />
+                    </div>
+                    <div class="pro-field pro-field-full">
+                        <label>Descrizione</label>
+                        <textarea id="offerDescription" rows="4" placeholder="Descrivi il ruolo, le attività e cosa offre l'azienda"></textarea>
+                    </div>
+                </div>
+
+                <div id="offerSkillsEditor" class="pro-skills-editor"></div>
+                <button class="pro-add-btn" id="offerAddSkillBtn">+ Aggiungi competenza richiesta</button>
+
+                <div class="pro-soft-check-grid" id="offerSoftEditor" style="margin-top:16px;"></div>
+            </div>
+
+            <div class="profilo-modal-footer">
+                <div class="pro-api-status" id="offerApiStatus"></div>
+                <div class="profilo-modal-actions">
+                    <button class="modal-btn-cancel" id="offerModalCancel">Annulla</button>
+                    <button class="modal-btn-confirm" id="btnSalvaOfferta">Salva annuncio</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="companyProfileOverlay">
+        <div class="profilo-modal">
+            <div class="profilo-modal-head">
+                <div class="profilo-modal-title"><span class="icon"><svg><use href="#i-pencil"></use></svg></span>Modifica profilo aziendale</div>
+                <button class="profilo-modal-close" id="companyProfileModalClose">✕</button>
+            </div>
+
+            <div class="pro-tab-panel active">
+                <div class="pro-form-grid">
+                    <div class="pro-field">
+                        <label>Settore</label>
+                        <input type="text" id="fSettore" placeholder="Es. Sviluppo Software" />
+                    </div>
+                    <div class="pro-field">
+                        <label>Telefono</label>
+                        <input type="tel" id="fTelefonoAzienda" placeholder="+39 …" />
+                    </div>
+                    <div class="pro-field pro-field-full">
+                        <label>Sito web</label>
+                        <input type="text" id="fSitoWeb" placeholder="www.esempio.it" />
+                    </div>
+                    <div class="pro-field pro-field-full">
+                        <label>Descrizione</label>
+                        <textarea id="fDescrizione" rows="4" placeholder="Racconta chi siete agli studenti"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profilo-modal-footer">
+                <div class="pro-api-status" id="companyProfileApiStatus"></div>
+                <div class="profilo-modal-actions">
+                    <button class="modal-btn-cancel" id="companyProfileModalCancel">Annulla</button>
+                    <button class="modal-btn-confirm" id="btnSalvaProfiloAzienda">Salva modifiche</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="notifDetailsOverlay">
+        <div class="modal-box notif-details-modal">
+            <div class="company-details-header">
+                <div>
+                    <div class="modal-title" id="notifDetailsTitle"></div>
+                    <div class="modal-desc company-details-subtitle" id="notifDetailsMeta"></div>
+                </div>
+                <button class="profilo-modal-close" id="notifDetailsClose" type="button">✕</button>
+            </div>
+            <div class="notif-details-message" id="notifDetailsMessage"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="closeOfferOverlay">
+        <div class="modal-box">
+            <div class="modal-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                </svg>
+            </div>
+            <div class="modal-title">Chiudere questo annuncio?</div>
+            <div class="modal-desc">L'annuncio non sarà più visibile agli studenti e non potrai più ricevere nuove candidature.</div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" id="closeOfferCancel">Annulla</button>
+                <button class="modal-btn-confirm" id="closeOfferConfirm">Chiudi annuncio</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="logoutOverlay">
+        <div class="modal-box">
+            <div class="modal-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -298,15 +435,19 @@
                     <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
             </div>
-            <div class="logout-modal-title">Sei sicuro di voler uscire?</div>
-            <div class="logout-modal-desc">La tua sessione aziendale verrà terminata.</div>
-            <div class="logout-modal-actions">
-                <button class="logout-btn-cancel" id="logoutCancel">Annulla</button>
-                <button class="logout-btn-confirm" id="logoutConfirm">Conferma</button>
+            <div class="modal-title">Sei sicuro di voler uscire?</div>
+            <div class="modal-desc">La tua sessione aziendale verrà terminata.</div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" id="logoutCancel">Annulla</button>
+                <button class="modal-btn-confirm" id="logoutConfirm">Conferma</button>
             </div>
         </div>
     </div>
 
+    <div class="imp-toast" id="impToast"></div>
+
+    <script id="notifications-data" type="application/json">{{ notifications | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/account-data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/home-company.js') }}"></script>
 </body>
 </html>

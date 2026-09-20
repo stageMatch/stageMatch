@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8" />
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StageMatch - Informativa privacy</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/privacy.css') }}" />
@@ -10,45 +11,191 @@
 </head>
 <body>
     <main class="privacy-page">
-        <section class="privacy-header">
+        <nav class="legal-nav" aria-label="Navigazione">
+            <a class="legal-back" href="{{ url_for('mainPage') }}">&larr; Torna alla home</a>
+            <div class="legal-switch">
+                <a href="{{ url_for('privacy') }}" aria-current="page">Privacy</a>
+                <a href="{{ url_for('terms') }}">Termini</a>
+            </div>
+        </nav>
+
+        <header class="privacy-header">
             <p class="eyebrow">StageMatch</p>
             <h1>Informativa privacy</h1>
-            <p>Versione {{ privacy_version }}</p>
+            <p class="legal-meta">Versione {{ privacy_version }} &middot; ai sensi degli artt. 13 e 14 del Regolamento (UE) 2016/679 (GDPR)</p>
+        </header>
+
+        <nav class="legal-toc" aria-labelledby="toc-title">
+            <h2 id="toc-title">Indice</h2>
+            <ol>
+                <li><a href="#titolare">Titolare e contatti</a></li>
+                <li><a href="#dati">Dati trattati</a></li>
+                <li><a href="#finalita">Finalità e base giuridica</a></li>
+                <li><a href="#minori">Utenti minorenni</a></li>
+                <li><a href="#destinatari">Chi può vedere i tuoi dati</a></li>
+                <li><a href="#terze-parti">Servizi di terze parti</a></li>
+                <li><a href="#automatizzato">Trattamento automatizzato</a></li>
+                <li><a href="#cookie">Cookie e dati nel browser</a></li>
+                <li><a href="#conservazione">Conservazione</a></li>
+                <li><a href="#sicurezza">Sicurezza</a></li>
+                <li><a href="#diritti">I tuoi diritti</a></li>
+            </ol>
+        </nav>
+
+        <section id="titolare">
+            <h2>Titolare e contatti</h2>
+            <p>
+                Il titolare del trattamento è la scuola o il gestore di StageMatch che mette a disposizione
+                la piattaforma per l'incontro tra studenti e aziende in vista di stage e percorsi di
+                formazione.
+            </p>
+            <p>
+                Per qualsiasi richiesta sui tuoi dati puoi rivolgerti al referente privacy indicato dalla scuola
+                o dal gestore{% if support_email %}: <a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}.
+            </p>
         </section>
 
-        <section>
+        <section id="dati">
             <h2>Dati trattati</h2>
-            <p>
-                StageMatch raccoglie i dati inseriti durante la registrazione: dati identificativi,
-                contatti, codice fiscale, dati anagrafici, indirizzo di residenza, classe, indirizzo
-                di studio e dati dell'account usato per l'accesso.
+
+            <h3>Studenti</h3>
+            <ul>
+                <li><strong>Anagrafica e contatti</strong>: nome, cognome, email, telefono, data e comune di nascita, sesso, codice fiscale, indirizzo di residenza e foto profilo dell'account Google.</li>
+                <li><strong>Percorso scolastico</strong>: istituto, indirizzo di studio e classe.</li>
+                <li><strong>Profilo professionale</strong>: competenze, soft skill, lingue ed esperienze che inserisci.</li>
+                <li><strong>Attività sulla piattaforma</strong>: candidature e messaggi di candidatura, punteggi di compatibilità, notifiche, preferenze (tema, lingua, mezzo di trasporto) e percorsi salvati.</li>
+            </ul>
+
+            <h3>Aziende</h3>
+            <ul>
+                <li><strong>Dati dell'azienda</strong>: denominazione, indirizzo, settore, descrizione, sito web, telefono, logo o foto dell'account Google ed email di accesso.</li>
+                <li><strong>Attività sulla piattaforma</strong>: annunci di stage con i relativi requisiti, notifiche e candidature ricevute.</li>
+                <li><strong>Registrazione</strong>: il codice di accesso monouso fornito dalla scuola.</li>
+            </ul>
+
+            <h3>Dati tecnici (tutti gli utenti)</h3>
+            <ul>
+                <li>Identificativo dell'account Google, email, sessioni di accesso attive (con data di creazione e ultimo utilizzo).</li>
+                <li>Versione dell'informativa accettata e data di accettazione.</li>
+            </ul>
+
+            <p class="legal-note">
+                StageMatch non usa la password: l'accesso avviene esclusivamente tramite il tuo account Google.
             </p>
         </section>
 
-        <section>
-            <h2>Finalita</h2>
+        <section id="finalita">
+            <h2>Finalità e base giuridica</h2>
+            <ul>
+                <li><strong>Creare e gestire il profilo</strong>, consentire l'accesso e usare le funzioni dell'applicazione (candidature, annunci, notifiche): base giuridica è il tuo consenso, prestato con l'accettazione di questa informativa alla registrazione, e l'esecuzione del servizio richiesto.</li>
+                <li><strong>Proporre abbinamenti</strong> tra studenti e annunci di stage, anche con calcolo del tragitto casa-azienda: consenso e esecuzione del servizio.</li>
+                <li><strong>Sicurezza, prevenzione degli abusi e tracciabilità</strong> del servizio (sessioni, limiti di accesso, storico dei consensi): legittimo interesse del titolare e obbligo di dimostrare il consenso.</li>
+            </ul>
+            <p>I dati non sono usati per finalità di marketing né venduti a terzi.</p>
+        </section>
+
+        <section id="minori">
+            <h2>Utenti minorenni</h2>
             <p>
-                I dati sono usati per creare e gestire il profilo studente, proporre match per gli
-                stage, abilitare le funzioni dell'applicazione, gestire contatti operativi e mantenere
-                sicurezza e tracciabilita del servizio.
+                StageMatch è pensato per studenti delle scuole superiori, che possono essere minorenni. Se hai
+                meno di 14 anni il consenso deve essere dato o autorizzato da chi esercita la responsabilità
+                genitoriale. I genitori possono
+                esercitare in qualsiasi momento i diritti descritti più sotto per conto del minore.
             </p>
         </section>
 
-        <section>
-            <h2>Conservazione e accesso</h2>
+        <section id="destinatari">
+            <h2>Chi può vedere i tuoi dati</h2>
             <p>
-                I dati sono conservati per il tempo necessario alla gestione del percorso su StageMatch
-                e sono accessibili solo ai soggetti autorizzati per le finalita indicate. Non sono usati
-                per finalita di marketing.
+                I dati sono accessibili solo ai soggetti autorizzati dal titolare (referente privacy e
+                amministratori del servizio) e solo per le finalità indicate.
+            </p>
+            <ul>
+                <li><strong>Aziende</strong>: vedono, degli studenti che si candidano a un loro annuncio, nome, cognome, email, classe e messaggio di candidatura. Non vedono gli altri dati del tuo profilo (ad esempio codice fiscale, indirizzo di residenza o telefono).</li>
+                <li><strong>Studenti</strong>: vedono le informazioni pubbliche dell'azienda e degli annunci (denominazione, settore, descrizione, sede, requisiti).</li>
+            </ul>
+        </section>
+
+        <section id="terze-parti">
+            <h2>Servizi di terze parti</h2>
+            <p>Per funzionare, StageMatch condivide alcuni dati con questi servizi esterni:</p>
+            <ul>
+                <li><strong>Google</strong>: accesso con account Google (email, nome, foto) e caricamento dei caratteri grafici.</li>
+                <li><strong>Nominatim, Photon (Komoot) e OpenRouteService</strong>: gli indirizzi di residenza e delle aziende vengono inviati per la ricerca degli indirizzi e il calcolo del tragitto.</li>
+                <li><strong>Anthropic o DeepSeek</strong> (se attivo): per rifinire il punteggio di compatibilità vengono inviati competenze, soft skill, lingue, esperienze e distanza in forma anonima, senza nome, email, indirizzo o altri dati identificativi. Evita di inserire dati personali nei testi liberi delle esperienze.</li>
+                <li><strong>GitHub</strong>: elenco dei comuni italiani usato nei moduli di registrazione.</li>
+            </ul>
+            <p class="legal-note">
+                Alcuni di questi fornitori hanno sede o server fuori dallo Spazio economico europeo: il
+                trasferimento avviene, dove previsto, con le garanzie richieste dal GDPR (ad esempio clausole
+                contrattuali standard o decisioni di adeguatezza).
             </p>
         </section>
 
-        <section>
-            <h2>Diritti</h2>
+        <section id="automatizzato">
+            <h2>Trattamento automatizzato</h2>
             <p>
-                Puoi chiedere accesso, rettifica, cancellazione, limitazione, opposizione o portabilita
-                dei dati secondo il GDPR. Per esercitare i diritti o chiedere chiarimenti, contatta il
-                referente privacy indicato dalla scuola o dal gestore di StageMatch.
+                I punteggi di compatibilità sono calcolati in automatico da competenze, soft skill e tempo di
+                percorrenza, eventualmente rifiniti da un servizio di intelligenza artificiale. Servono solo a
+                ordinare i suggerimenti: nessuna decisione che ti riguarda è presa esclusivamente in modo
+                automatizzato e la scelta di candidarti o di selezionare un candidato resta sempre umana.
+            </p>
+        </section>
+
+        <section id="cookie">
+            <h2>Cookie e dati nel browser</h2>
+            <p>
+                StageMatch usa solo un <strong>cookie tecnico di sessione</strong> (HttpOnly, inviato solo su
+                connessione sicura), necessario per l'accesso e per la sicurezza: senza di esso il servizio non
+                può funzionare. Di norma la sessione scade dopo 8 ore di inattività o al termine dell'uso e
+                puoi avere più sessioni attive fino a un limite massimo.
+            </p>
+            <p>
+                Nel browser viene inoltre salvata la preferenza del tema chiaro o scuro. Non sono usati cookie di
+                profilazione né di analisi statistica.
+            </p>
+        </section>
+
+        <section id="conservazione">
+            <h2>Conservazione</h2>
+            <ul>
+                <li>I dati del profilo, le candidature e gli annunci sono conservati per il tempo necessario alla gestione del tuo percorso su StageMatch, fino a quando non elimini il tuo account.</li>
+                <li>Quando elimini l'account, i dati collegati (profilo, competenze, esperienze, percorsi, candidature, notifiche, abbinamenti e sessioni) vengono cancellati.</li>
+                <li>Le sessioni di accesso scadute vengono eliminate automaticamente.</li>
+            </ul>
+        </section>
+
+        <section id="sicurezza">
+            <h2>Sicurezza</h2>
+            <p>
+                Adottiamo misure tecniche e organizzative adeguate: accesso solo tramite Google, sessioni sul
+                server con durata limitata e numero massimo di dispositivi, protezione dalle richieste
+                provenienti da altri siti, comunicazioni cifrate e accesso ai dati riservato al personale
+                autorizzato. Nessun sistema è però completamente esente da rischi: in caso di violazione dei dati
+                personali il titolare adotta le misure e le comunicazioni previste dalla legge.
+            </p>
+        </section>
+
+        <section id="diritti">
+            <h2>I tuoi diritti</h2>
+            <p>
+                Puoi chiedere accesso, rettifica, cancellazione, limitazione, opposizione o portabilità dei
+                dati secondo il GDPR e, se il trattamento si basa sul consenso, revocarlo in ogni momento senza
+                pregiudicare la liceità del trattamento già effettuato.
+            </p>
+            <p>
+                In autonomia puoi <strong>scaricare i tuoi dati</strong> in formato JSON ed <strong>eliminare il
+                tuo account</strong> da Impostazioni (studenti) o dal Profilo (aziende).
+            </p>
+            <p>
+                Per esercitare gli altri diritti o chiedere chiarimenti, contatta il referente privacy indicato
+                dalla scuola o dal gestore di StageMatch{% if support_email %}: <a href="mailto:{{ support_email }}">{{ support_email }}</a>{% endif %}.
+                Se ritieni che il trattamento violi la normativa, puoi proporre reclamo al
+                <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">Garante per la protezione dei dati personali</a>.
+            </p>
+            <p class="legal-note">
+                Le condizioni di utilizzo del servizio sono descritte nei
+                <a href="{{ url_for('terms') }}">Termini e condizioni</a>.
             </p>
         </section>
     </main>
