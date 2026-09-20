@@ -28,21 +28,16 @@ from .models.company_access_code import CompanyAccessCode
 # global
 Session = None
 
-# Delimitatore usato per campi "lista" salvati come singola stringa (stessa
-# convenzione di `indirizzo`, vedi app.py e CLAUDE.md).
 LABEL_DELIMITER = " ££ "
 
-# Campi di UserPreferences modificabili dal client (whitelist).
 PREFERENCE_FIELDS = ("color_mode", "lingua", "default_transport_mode")
 
-# Numero massimo di percorsi conservati per utente.
 MAX_USER_ROUTES = 25
 
 def initDB(connstr: str):
     """Initialize the database engine and session."""
     global Session
 
-    # Le query SQL (con dati personali) si loggano solo su richiesta esplicita.
     echo = os.getenv("SQL_ECHO", "False").lower() == "true"
     engine = create_engine(
         f"sqlite:///{connstr}",
